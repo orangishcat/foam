@@ -1,0 +1,30 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+import { Theme } from "palette.slint";
+
+export component Home inherits Window {
+    in-out property <int> counter: 42;
+    callback request-increase-value();
+    preferred-width: 1200px;
+    preferred-height: 800px;
+
+    in-out property <color> text-color: Theme.dark.text-50;
+    in-out property <color> background-color: Theme.dark.background-800;
+    in-out property <color> primary-color: Theme.dark.primary-500;
+
+    background: root.background-color;
+
+    VerticalBox {
+        Text {
+            text: "Counter: \{root.counter}";
+            color: root.text-color;
+        }
+
+        Button {
+            text: "Increase value";
+            primary: true;
+            clicked => {
+                root.request-increase-value();
+            }
+        }
+    }
+}

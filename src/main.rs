@@ -3,10 +3,21 @@
 
 use std::error::Error;
 
+mod config;
+mod request;
+mod state;
+
+use state::State;
+
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let ui = AppWindow::new()?;
+    let app_config = config::AppConfig::load(None);
+    request::init(&app_config)?;
+    let state = State::new(app_config);
+
+    let ui = Home::new()?;
+    ui.set_counter(state.config().counter.into());
 
     let ui_handle = ui.as_weak();
     ui.on_request_increase_value(move || {
