@@ -12,8 +12,10 @@ use state::State;
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let app_config = config::AppConfig::load(None);
-    request::init(&app_config)?;
+    let mut app_config = config::AppConfig::load(None);
+    if !app_config.subdomain.is_empty() || app_config.api_key.is_some() {
+        request::courses(&mut app_config)?;
+    }
     let state = State::new(app_config);
 
     let ui = Home::new()?;

@@ -4,46 +4,75 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clapfig::{Clapfig, Schema, SearchPath};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-const CONFIG_FILE_NAME: &str = "config.toml";
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
+const CONFIG_FILE_NAME: &str = "config.json";
 
-#[derive(Schema, Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[serde(default)]
 pub struct AppConfig {
-    #[clapfig(default = "")]
+    pub subdomain: String,
+    pub last_updated: Option<DateTime<Utc>>,
     pub cookie_key: String,
-    #[clapfig(default = "")]
     pub cookie_value: String,
     pub api_key: Option<String>,
     pub api_secret: Option<String>,
+    #[serde(skip)]
+    data_dir: PathBuf,
 }
 
 impl AppConfig {
-    pub fn load(config_path: Option<PathBuf>) -> Self {
-        let config_dir = config_path.unwrap_or_else(|| {
-            dirs::config_dir()
-                .expect("failed to locate the platform configuration directory")
+    pub fn load(data_path: Option<PathBuf>) -> Self {
+        let data_dir = data_path.unwrap_or_else(|| {
+            dirs::data_dir()
+                .expect("failed to locate the platform application data directory")
                 .join(APP_NAME)
         });
-        Self::create_default_file(&config_dir);
+        Self::create_data_layout(&data_dir);
 
-        let builder = Clapfig::schema_builder::<AppConfig>()
-            .app_name(APP_NAME)
-            .file_name(CONFIG_FILE_NAME)
-            .search_paths(vec![SearchPath::Path(config_dir)]);
-        builder.load().expect("failed to load app configuration")
+        let config_file = data_dir.join(CONFIG_FILE_NAME);
+        Self::create_default_file(&config_file);
+
+        let contents = fs::read_to_string(&config_file).unwrap_or_else(|error| {
+            panic!(
+                "failed to read app configuration at {}: {error}",
+                config_file.display()
+            )
+        });
+        let mut config: Self = serde_json::from_str(&contents).unwrap_or_else(|error| {
+            panic!(
+                "failed to parse app configuration at {}: {error}",
+                config_file.display()
+            )
+        });
+        config.data_dir = data_dir;
+        config
     }
 
-    fn create_default_file(config_dir: &Path) {
-        fs::create_dir_all(config_dir).expect("failed to create app configuration directory");
+    pub fn data_dir(&self) -> &Path {
+        &self.data_dir
+    }
 
-        let config_file = config_dir.join(CONFIG_FILE_NAME);
+    pub fn save(&self) -> std::io::Result<()> {
+        let contents =
+            serde_json::to_string_pretty(self).expect("failed to serialize app configuration");
+        fs::write(
+            self.data_dir.join(CONFIG_FILE_NAME),
+            format!("{contents}\n"),
+        )
+    }
+
+    fn create_data_layout(data_dir: &Path) {
+        fs::create_dir_all(data_dir.join("courses")).expect("failed to create app data directory");
+    }
+
+    fn create_default_file(config_file: &Path) {
         let mut file = match OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&config_file)
+            .open(config_file)
         {
             Ok(file) => file,
             Err(error) if error.kind() == ErrorKind::AlreadyExists => return,
@@ -53,9 +82,9 @@ impl AppConfig {
             ),
         };
 
-        let contents = toml::to_string_pretty(&Self::default())
+        let contents = serde_json::to_string_pretty(&Self::default())
             .expect("failed to serialize default app configuration");
-        file.write_all(contents.as_bytes())
+        file.write_all(format!("{contents}\n").as_bytes())
             .expect("failed to write default app configuration");
     }
 }
