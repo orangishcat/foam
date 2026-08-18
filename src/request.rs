@@ -4,8 +4,9 @@ use std::time::Duration;
 use reqwest::blocking::{Client, Response};
 
 use crate::config::AppConfig;
+use std::sync::OnceLock;
 
-static CLIENT: Mutex<Option<Client>> = Mutex::new(None);
+static CLIENT: OnceLock<Client> = OnceLock::new();
 
 // pretend we're chrome or something, idk
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -15,17 +16,12 @@ pub fn init(config: &AppConfig) -> reqwest::Result<()> {
         .user_agent(USER_AGENT)
         .timeout(Duration::from_secs(30))
         .build()?;
-    let mut guard = CLIENT.lock().unwrap();
-    *guard = Some(client);
+    CLIENT.set(client).expect("client already initialized");
     Ok(())
 }
 
-fn client() -> Client {
-    CLIENT
-        .lock()
-        .unwrap()
-        .clone()
-        .expect("client not initialized")
+fn client() -> &'static Client {
+    CLIENT.get().expect("client not initialized")
 }
 
 pub fn get(url: &str) -> reqwest::Result<Response> {

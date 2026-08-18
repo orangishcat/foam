@@ -9,8 +9,8 @@ const CONFIG_FILE_NAME: &str = "config.json";
 pub struct AppConfig {
     pub counter: i8,
     pub cookie: String,
-    pub api_key: String,
-    pub api_secret: String,
+    pub api_key: Option<String>,
+    pub api_secret: Option<String>,
 }
 
 impl AppConfig {
