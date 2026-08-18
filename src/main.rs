@@ -17,14 +17,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let state = State::new(app_config);
 
     let ui = Home::new()?;
-    ui.set_counter(state.config().counter.into());
-
-    let ui_handle = ui.as_weak();
-    ui.on_request_increase_value(move || {
-        let ui = ui_handle.unwrap();
-        ui.set_counter(ui.get_counter() + 1);
-    });
-
     ui.run()?;
 
     Ok(())
