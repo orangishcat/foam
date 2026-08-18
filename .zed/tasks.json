@@ -1,6 +1,10 @@
 [
   {
     "label": "run",
-    "command": "cargo run"
-  }
+    "command": "cargo run",
+  },
+  {
+    "label": "live-preview",
+    "command": "slint-viewer --auto-reload ui/home.slint",
+  },
 ]

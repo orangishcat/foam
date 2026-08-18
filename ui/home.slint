@@ -1,5 +1,7 @@
-import { Button, VerticalBox } from "std-widgets.slint";
+import { HorizontalBox } from "std-widgets.slint";
+import { Dashboard } from "dashboard.slint";
 import { Theme } from "palette.slint";
+import { Sidebar } from "sidebar.slint";
 
 export component Home inherits Window {
     preferred-width: 1200px;
@@ -11,5 +13,11 @@ export component Home inherits Window {
 
     background: root.background-color;
 
-    VerticalBox { }
+    HorizontalBox {
+        padding: 0px;
+        spacing: 0px;
+
+        Sidebar { }
+        Dashboard { horizontal-stretch: 1; }
+    }
 }

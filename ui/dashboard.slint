@@ -1,0 +1,39 @@
+import { HorizontalBox, VerticalBox } from "std-widgets.slint";
+import { Theme } from "palette.slint";
+
+export component Dashboard inherits Rectangle {
+    background: Theme.dark.background-800;
+
+    VerticalBox {
+        padding: 32px;
+        spacing: 24px;
+
+        Rectangle {
+            background: Theme.dark.background-700;
+            border-radius: 10px;
+            vertical-stretch: 1;
+
+            VerticalBox {
+                padding: 24px;
+                spacing: 12px;
+
+                Text {
+                    text: "Upcoming";
+                    color: Theme.dark.text-50;
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "No upcoming assignments to show.";
+                    color: Theme.dark.text-300;
+                    font-size: 15px;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+            }
+        }
+    }
+}

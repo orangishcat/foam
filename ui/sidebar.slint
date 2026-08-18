@@ -1,0 +1,62 @@
+import { VerticalBox } from "std-widgets.slint";
+import { Theme } from "palette.slint";
+
+component NavigationItem inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+
+    height: 44px;
+    border-radius: 6px;
+    background: selected ? Theme.dark.primary-600 : transparent;
+
+    Text {
+        text: root.label;
+        color: selected ? Theme.dark.text-50 : Theme.dark.text-200;
+        font-size: 16px;
+        vertical-alignment: center;
+        x: 16px;
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    width: 240px;
+    background: Theme.dark.background-900;
+
+    VerticalBox {
+        padding: 24px;
+        spacing: 10px;
+
+        Text {
+            text: "Foam";
+            color: Theme.dark.text-50;
+            font-size: 26px;
+            font-weight: 700;
+            height: 54px;
+        }
+
+        NavigationItem {
+            label: "Dashboard";
+            selected: true;
+        }
+
+        NavigationItem {
+            label: "Courses";
+        }
+
+        NavigationItem {
+            label: "Assignments";
+        }
+
+        NavigationItem {
+            label: "Calendar";
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+
+        NavigationItem {
+            label: "Settings";
+        }
+    }
+}
