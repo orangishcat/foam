@@ -111,7 +111,7 @@ fn deduplicated_path(directory: &Path, title: &str, extension: &str) -> PathBuf 
     unreachable!()
 }
 
-fn safe_file_stem(title: &str) -> String {
+pub(super) fn safe_file_stem(title: &str) -> String {
     let stem = title
         .trim()
         .chars()

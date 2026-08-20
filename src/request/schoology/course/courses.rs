@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use chrono::Utc;
 use log::{debug, info};
@@ -30,6 +30,9 @@ pub struct CoursesResponse {
 /// A Schoology course section returned by `users/{user_id}/sections`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Course {
+    /// Resolved local directory; not part of the Schoology API response.
+    #[serde(skip)]
+    pub data_dir: PathBuf,
     #[serde(
         default,
         rename = "id",
@@ -133,15 +136,21 @@ pub fn courses() -> CoursesResponse {
     }
 
     let mut config = config_write();
-    for course in &response.section {
+    let courses_dir = config.data_dir().join("courses");
+    fs::create_dir_all(&courses_dir).expect("failed to create courses data directory");
+    for course in &mut response.section {
+        let title = if course.section_title.trim().is_empty() {
+            &course.course_title
+        } else {
+            &course.section_title
+        };
+        course.data_dir = super::deduplicated_folder(&courses_dir, title);
         info!(
             "saving Schoology course section: id={}, title={}",
             course.nid, course.section_title
         );
-        let course_dir = config.data_dir().join("courses").join(&course.nid);
-        fs::create_dir_all(&course_dir).expect("failed to create course data directory");
         let contents = serde_json::to_string_pretty(course).expect("failed to serialize course");
-        fs::write(course_dir.join("course.json"), format!("{contents}\n"))
+        fs::write(course.data_dir.join("course.json"), format!("{contents}\n"))
             .expect("failed to save course");
     }
 

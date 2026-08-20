@@ -15,7 +15,7 @@ slint::include_modules!();
 fn scrape_courses() {
     let courses = request::schoology::course::courses::courses();
     for course in courses.section {
-        request::schoology::course::course(&course.nid, "0");
+        request::schoology::course::course(&course.nid, "0", &course.data_dir);
     }
 }
 

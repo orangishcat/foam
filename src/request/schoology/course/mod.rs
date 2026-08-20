@@ -1,12 +1,14 @@
-use std::{collections::HashSet, fs, path::PathBuf};
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use log::{info, warn};
 use serde::Deserialize;
 use serde_json::Value;
 
 use super::api_get;
-use crate::config::config;
-
 pub mod courses;
 pub mod materials;
 
@@ -46,11 +48,11 @@ struct RawFolderResponse {
 /// deduplicated titles rather than Schoology IDs.
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-folder/>
-pub fn course(course_id: &str, folder_id: &str) -> CourseFolderResponse {
+pub fn course(course_id: &str, folder_id: &str, course_dir: &Path) -> CourseFolderResponse {
     info!("scraping Schoology course folder tree: course={course_id}, folder={folder_id}");
     let mut visited = HashSet::new();
     let url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
-    scrape_folder(course_id, folder_id, &url, &mut visited)
+    scrape_folder(course_id, folder_id, &url, course_dir, &mut visited)
         .expect("the requested Schoology course folder was visited more than once")
 }
 
@@ -61,6 +63,7 @@ fn scrape_folder(
     course_id: &str,
     folder_id: &str,
     url: &str,
+    folder_dir: &Path,
     visited: &mut HashSet<String>,
 ) -> Option<CourseFolderResponse> {
     if !visited.insert(folder_id.to_owned()) {
@@ -72,8 +75,8 @@ fn scrape_folder(
     let raw_response: Value = api_get(url);
     let response: RawFolderResponse = serde_json::from_value(raw_response)
         .expect("failed to decode Schoology course folder response");
-    let folder_dir = course_folder(course_id, folder_id);
-    fs::create_dir_all(&folder_dir).expect("failed to create course folder data directory");
+    let materials_dir = folder_dir.join("materials");
+    fs::create_dir_all(&materials_dir).expect("failed to create materials directory");
 
     let folder_items: Vec<CourseMaterial> = response
         .folder_items
@@ -83,13 +86,21 @@ fn scrape_folder(
 
     for material in &folder_items {
         if material.material_type.as_deref() == Some("folder") {
+            if visited.contains(&material.id) {
+                warn!(
+                    "skipping already visited child folder: course={course_id}, folder={}",
+                    material.id
+                );
+                continue;
+            }
             let child_url = material
                 .location
                 .clone()
                 .unwrap_or_else(|| format!("{API_ROOT}/{course_id}/folder/{}", material.id));
-            scrape_folder(course_id, &material.id, &child_url, visited);
+            let child_dir = deduplicated_folder(folder_dir, &material.title);
+            scrape_folder(course_id, &material.id, &child_url, &child_dir, visited);
         } else {
-            materials::scrape(material, &folder_dir);
+            materials::scrape(material, &materials_dir);
         }
     }
 
@@ -122,12 +133,25 @@ impl CourseMaterial {
     }
 }
 
-fn course_folder(course_id: &str, folder_id: &str) -> PathBuf {
-    config()
-        .data_dir()
-        .join("courses")
-        .join(course_id)
-        .join(folder_id)
+pub(super) fn deduplicated_folder(parent: &Path, title: &str) -> PathBuf {
+    let stem = materials::safe_file_stem(title);
+    for duplicate in 1.. {
+        let name = if duplicate == 1 {
+            stem.clone()
+        } else {
+            format!("{stem} ({duplicate})")
+        };
+        let path = parent.join(name);
+        match fs::create_dir(&path) {
+            Ok(()) => {
+                info!("created Schoology course folder: {}", path.display());
+                return path;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => panic!("failed to create course folder: {error}"),
+        }
+    }
+    unreachable!()
 }
 
 fn string_field(value: &Value, field: &str) -> String {
