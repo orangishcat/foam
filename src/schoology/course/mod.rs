@@ -52,7 +52,7 @@ pub fn course(course_id: &str, folder_id: &str, course_dir: &Path) {
     info!("scraping Schoology course folder tree: course={course_id}, folder={folder_id}");
     let mut visited = HashSet::new();
     let url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
-    if let Err(error) = scrape_folder(course_id, folder_id, &url, course_dir, &mut visited) {
+    if let Err(error) = scrape_folder(course_id, folder_id, &url, course_dir, true, &mut visited) {
         warn!("skipping failed Schoology course scrape: course={course_id}, error={error}");
     }
 }
@@ -65,6 +65,7 @@ fn scrape_folder(
     folder_id: &str,
     url: &str,
     folder_dir: &Path,
+    is_root: bool,
     visited: &mut HashSet<String>,
 ) -> RequestResult<Option<CourseFolderResponse>> {
     if !visited.insert(folder_id.to_owned()) {
@@ -75,7 +76,11 @@ fn scrape_folder(
     info!("scraping Schoology course folder: course={course_id}, folder={folder_id}, url={url}");
     let raw_response: Value = api_get(url)?;
     let response: RawFolderResponse = serde_json::from_value(raw_response)?;
-    let materials_dir = folder_dir.join("materials");
+    let materials_dir = if is_root {
+        folder_dir.join("materials")
+    } else {
+        folder_dir.to_path_buf()
+    };
     fs::create_dir_all(&materials_dir)?;
 
     let folder_items: Vec<CourseMaterial> = response
@@ -97,8 +102,15 @@ fn scrape_folder(
                 .location
                 .clone()
                 .unwrap_or_else(|| format!("{API_ROOT}/{course_id}/folder/{}", material.id));
-            match deduplicated_folder(folder_dir, &material.title).and_then(|child_dir| {
-                scrape_folder(course_id, &material.id, &child_url, &child_dir, visited)
+            match deduplicated_folder(&materials_dir, &material.title).and_then(|child_dir| {
+                scrape_folder(
+                    course_id,
+                    &material.id,
+                    &child_url,
+                    &child_dir,
+                    false,
+                    visited,
+                )
             }) {
                 Ok(_) => {}
                 Err(error) => warn!(

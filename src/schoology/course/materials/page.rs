@@ -2,7 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{ApiLinks, integer, string},
 };
-use crate::request::schoology::RequestResult;
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};

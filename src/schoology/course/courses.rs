@@ -151,12 +151,8 @@ pub fn courses() -> CoursesResponse {
     }
     let mut saved_courses = Vec::with_capacity(response.section.len());
     for mut course in response.section.drain(..) {
-        let title = if course.section_title.trim().is_empty() {
-            &course.course_title
-        } else {
-            &course.section_title
-        };
-        course.data_dir = match super::deduplicated_folder(&courses_dir, title) {
+        let title = format!("{}__{}", course.course_title, course.section_title);
+        course.data_dir = match super::deduplicated_folder(&courses_dir, &title) {
             Ok(path) => path,
             Err(error) => {
                 warn!(

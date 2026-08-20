@@ -1,49 +1,43 @@
 use super::{
     CourseMaterial, api_get, save,
-    types::{ApiLinks, integer, string},
+    types::{integer, string},
 };
-use crate::request::schoology::RequestResult;
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MediaAlbum {
+pub struct Package {
     #[serde(default, deserialize_with = "string")]
     pub id: String,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
-    pub description: String,
+    pub url: String,
     #[serde(default, deserialize_with = "integer")]
-    pub setting_comments: i64,
+    pub num_attempts: i64,
     #[serde(default, deserialize_with = "integer")]
-    pub setting_member_post: i64,
+    pub scorm_grading_enabled: i64,
     #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
+    pub sco_grading_enabled: i64,
     #[serde(default, deserialize_with = "integer")]
-    pub photo_count: i64,
+    pub grade_timing_type: i64,
     #[serde(default, deserialize_with = "integer")]
-    pub video_count: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub audio_count: i64,
-    #[serde(default)]
-    pub cover_image_url: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub created: i64,
+    pub grade_timing_option: i64,
     #[serde(default, deserialize_with = "integer")]
     pub available: i64,
     #[serde(default, deserialize_with = "integer")]
     pub completed: i64,
     #[serde(default)]
     pub completion_status: String,
-    #[serde(default)]
-    pub links: ApiLinks,
+    #[serde(default, deserialize_with = "integer")]
+    pub count_in_grade: i64,
 }
 
-/// Scrapes a media album. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/media-album/>
+/// Scrapes a SCORM package. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/scorm-package/>
 pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
-    info!("scraping Schoology media album: {url}");
-    let response: MediaAlbum = api_get(url)?;
+    info!("scraping Schoology SCORM package: {url}");
+    let response: Package = api_get(url)?;
     save(material, &response, destination)
 }

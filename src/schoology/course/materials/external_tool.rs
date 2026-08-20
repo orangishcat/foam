@@ -1,39 +1,37 @@
 use super::{
     CourseMaterial, api_get, save,
-    types::{float, integer, string},
+    types::{integer, string},
 };
-use crate::request::schoology::RequestResult;
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Assessment {
+pub struct ExternalTool {
     #[serde(default, deserialize_with = "string")]
     pub id: String,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
-    pub description: String,
-    #[serde(default, deserialize_with = "float")]
-    pub max_points: f64,
+    pub url: String,
     #[serde(default)]
-    pub due: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub grading_scale: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub grading_period: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
+    pub description: String,
     #[serde(default, deserialize_with = "integer")]
     pub available: i64,
     #[serde(default, deserialize_with = "integer")]
-    pub completed: i64,
+    pub published: i64,
+    #[serde(default, deserialize_with = "integer")]
+    pub count_in_grade: i64,
+    #[serde(default, deserialize_with = "integer")]
+    pub collected_only: i64,
+    #[serde(default, deserialize_with = "integer")]
+    pub auto_publish_grades: i64,
 }
 
-/// Scrapes an assessment or test/quiz. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/assignment/>
+/// Scrapes an external tool. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/>
 pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
-    info!("scraping Schoology assessment: {url}");
-    let response: Assessment = api_get(url)?;
+    info!("scraping Schoology external tool: {url}");
+    let response: ExternalTool = api_get(url)?;
     save(material, &response, destination)
 }

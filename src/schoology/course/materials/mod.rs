@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::CourseMaterial;
-use crate::request::schoology::{RequestResult, api_get};
+use crate::schoology::{RequestResult, api_get};
 
 pub mod assessment;
 pub mod assignment;

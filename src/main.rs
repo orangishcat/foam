@@ -6,16 +6,16 @@ use std::error::Error;
 use crate::config::config;
 
 mod config;
-mod request;
+mod schoology;
 slint::include_modules!();
 
 /// Scrapes the user's course sections and each section's material tree.
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
 fn scrape_courses() {
-    let courses = request::schoology::course::courses::courses();
+    let courses = schoology::course::courses::courses();
     for course in courses.section {
-        request::schoology::course::course(&course.nid, "0", &course.data_dir);
+        schoology::course::course(&course.nid, "0", &course.data_dir);
     }
 }
 
