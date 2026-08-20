@@ -2,6 +2,7 @@ use std::{
     fs::{self, OpenOptions},
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
+    sync::{LazyLock, RwLock},
 };
 
 use chrono::{DateTime, Utc};
@@ -9,6 +10,9 @@ use serde::{Deserialize, Serialize};
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const CONFIG_FILE_NAME: &str = "config.json";
+
+pub static CONFIG: LazyLock<RwLock<AppConfig>> =
+    LazyLock::new(|| RwLock::new(AppConfig::load(None)));
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(default)]
