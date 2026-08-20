@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use chrono::Utc;
-use log::{debug, info};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
@@ -109,13 +109,20 @@ pub fn courses() -> CoursesResponse {
             start,
             limit: PAGE_LIMIT,
         };
-        let mut page: CoursesResponse = api_get_with_query(
+        let page_result = api_get_with_query(
             &format!(
                 "https://api.schoology.com/v1/users/{}/sections",
                 config().user_id
             ),
             &query,
         );
+        let mut page: CoursesResponse = match page_result {
+            Ok(page) => page,
+            Err(error) => {
+                warn!("stopping course pagination after failed page at start={start}: {error}");
+                break;
+            }
+        };
         let page_len = page.section.len();
 
         if response.links.self_url.is_empty() {
@@ -137,25 +144,57 @@ pub fn courses() -> CoursesResponse {
 
     let mut config = config_write();
     let courses_dir = config.data_dir().join("courses");
-    fs::create_dir_all(&courses_dir).expect("failed to create courses data directory");
-    for course in &mut response.section {
+    if let Err(error) = fs::create_dir_all(&courses_dir) {
+        error!("skipping course saves because the courses directory failed: {error}");
+        response.section.clear();
+        return response;
+    }
+    let mut saved_courses = Vec::with_capacity(response.section.len());
+    for mut course in response.section.drain(..) {
         let title = if course.section_title.trim().is_empty() {
             &course.course_title
         } else {
             &course.section_title
         };
-        course.data_dir = super::deduplicated_folder(&courses_dir, title);
+        course.data_dir = match super::deduplicated_folder(&courses_dir, title) {
+            Ok(path) => path,
+            Err(error) => {
+                warn!(
+                    "skipping failed course directory for {}: {error}",
+                    course.nid
+                );
+                continue;
+            }
+        };
         info!(
             "saving Schoology course section: id={}, title={}",
             course.nid, course.section_title
         );
-        let contents = serde_json::to_string_pretty(course).expect("failed to serialize course");
-        fs::write(course.data_dir.join("course.json"), format!("{contents}\n"))
-            .expect("failed to save course");
+        match serde_json::to_string_pretty(&course) {
+            Ok(contents) => {
+                if let Err(error) =
+                    fs::write(course.data_dir.join("course.json"), format!("{contents}\n"))
+                {
+                    warn!("skipping failed course save for {}: {error}", course.nid);
+                    continue;
+                }
+            }
+            Err(error) => {
+                warn!(
+                    "skipping failed course serialization for {}: {error}",
+                    course.nid
+                );
+                continue;
+            }
+        }
+        saved_courses.push(course);
     }
+    response.section = saved_courses;
 
     config.last_updated = Some(Utc::now());
-    config.save().expect("failed to save configuration");
+    if let Err(error) = config.save() {
+        error!("failed to save scraper configuration: {error}");
+    }
     response
 }
 

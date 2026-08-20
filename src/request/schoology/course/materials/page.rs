@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{ApiLinks, integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -41,8 +42,8 @@ pub struct Page {
 }
 
 /// Scrapes a page. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/pages/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology page: {url}");
-    let response: Page = api_get(url);
+    let response: Page = api_get(url)?;
     save(material, &response, destination)
 }

@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::CourseMaterial;
-use crate::request::schoology::api_get;
+use crate::request::schoology::{RequestResult, api_get};
 
 pub mod assessment;
 pub mod assignment;
@@ -29,7 +29,7 @@ pub mod web_package;
 /// additions to the API do not make the scraper silently lose content.
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-folder/>
-pub fn scrape(material: &CourseMaterial, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, destination: &Path) -> RequestResult<PathBuf> {
     let material_type = material.material_type.as_deref().unwrap_or("unknown");
     info!(
         "scraping Schoology course material: id={}, title={}, type={}, location={}",
@@ -78,24 +78,32 @@ pub fn scrape(material: &CourseMaterial, destination: &Path) -> PathBuf {
 /// Scrapes a material through the API endpoint supplied in `location`.
 ///
 /// Schoology API overview: <https://developers.schoology.com/api-documentation/rest-api-v1/>
-fn api_material(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
-    let response: Value = api_get(url);
+fn api_material(
+    material: &CourseMaterial,
+    url: &str,
+    destination: &Path,
+) -> RequestResult<PathBuf> {
+    let response: Value = api_get(url)?;
     save(material, &response, destination)
 }
 
-fn save<T: Serialize>(material: &CourseMaterial, value: &T, destination: &Path) -> PathBuf {
-    fs::create_dir_all(destination).expect("failed to create material data directory");
-    let contents =
-        serde_json::to_string_pretty(value).expect("failed to serialize Schoology course material");
-    let path = deduplicated_path(destination, &material.title, "json");
-    fs::write(&path, format!("{contents}\n")).expect("failed to save course material");
+fn save<T: Serialize>(
+    material: &CourseMaterial,
+    value: &T,
+    destination: &Path,
+) -> RequestResult<PathBuf> {
+    fs::create_dir_all(destination)?;
+    let contents = serde_json::to_string_pretty(value)?;
+    let path = deduplicated_path(destination, &material.title, "json")?;
+    fs::write(&path, format!("{contents}\n"))?;
     info!("saved Schoology course material: {}", path.display());
-    path
+    Ok(path)
 }
 
-fn deduplicated_path(directory: &Path, title: &str, extension: &str) -> PathBuf {
+fn deduplicated_path(directory: &Path, title: &str, extension: &str) -> RequestResult<PathBuf> {
     let stem = safe_file_stem(title);
-    for duplicate in 1.. {
+    let mut duplicate = 1usize;
+    loop {
         let name = if duplicate == 1 {
             format!("{stem}.{extension}")
         } else {
@@ -103,12 +111,11 @@ fn deduplicated_path(directory: &Path, title: &str, extension: &str) -> PathBuf 
         };
         let path = directory.join(name);
         match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(_) => return path,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(error) => panic!("failed to reserve course material filename: {error}"),
+            Ok(_) => return Ok(path),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => duplicate += 1,
+            Err(error) => return Err(error.into()),
         }
     }
-    unreachable!()
 }
 
 pub(super) fn safe_file_stem(title: &str) -> String {

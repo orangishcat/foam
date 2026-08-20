@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{ApiLinks, float, integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -55,8 +56,8 @@ pub struct Assignment {
 }
 
 /// Scrapes an assignment. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/assignment/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology assignment: {url}");
-    let response: Assignment = api_get(url);
+    let response: Assignment = api_get(url)?;
     save(material, &response, destination)
 }

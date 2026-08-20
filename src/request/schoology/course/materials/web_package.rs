@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -19,8 +20,8 @@ pub struct WebPackage {
 }
 
 /// Scrapes a web content package. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/web-content-package/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology web content package: {url}");
-    let response: WebPackage = api_get(url);
+    let response: WebPackage = api_get(url)?;
     save(material, &response, destination)
 }

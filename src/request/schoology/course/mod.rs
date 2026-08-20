@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -8,7 +8,7 @@ use log::{info, warn};
 use serde::Deserialize;
 use serde_json::Value;
 
-use super::api_get;
+use super::{RequestResult, api_get};
 pub mod courses;
 pub mod materials;
 
@@ -48,12 +48,13 @@ struct RawFolderResponse {
 /// deduplicated titles rather than Schoology IDs.
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-folder/>
-pub fn course(course_id: &str, folder_id: &str, course_dir: &Path) -> CourseFolderResponse {
+pub fn course(course_id: &str, folder_id: &str, course_dir: &Path) {
     info!("scraping Schoology course folder tree: course={course_id}, folder={folder_id}");
     let mut visited = HashSet::new();
     let url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
-    scrape_folder(course_id, folder_id, &url, course_dir, &mut visited)
-        .expect("the requested Schoology course folder was visited more than once")
+    if let Err(error) = scrape_folder(course_id, folder_id, &url, course_dir, &mut visited) {
+        warn!("skipping failed Schoology course scrape: course={course_id}, error={error}");
+    }
 }
 
 /// Scrapes one Course Folder response and recursively follows child folders.
@@ -65,24 +66,23 @@ fn scrape_folder(
     url: &str,
     folder_dir: &Path,
     visited: &mut HashSet<String>,
-) -> Option<CourseFolderResponse> {
+) -> RequestResult<Option<CourseFolderResponse>> {
     if !visited.insert(folder_id.to_owned()) {
         warn!("skipping already visited course folder: course={course_id}, folder={folder_id}");
-        return None;
+        return Ok(None);
     }
 
     info!("scraping Schoology course folder: course={course_id}, folder={folder_id}, url={url}");
-    let raw_response: Value = api_get(url);
-    let response: RawFolderResponse = serde_json::from_value(raw_response)
-        .expect("failed to decode Schoology course folder response");
+    let raw_response: Value = api_get(url)?;
+    let response: RawFolderResponse = serde_json::from_value(raw_response)?;
     let materials_dir = folder_dir.join("materials");
-    fs::create_dir_all(&materials_dir).expect("failed to create materials directory");
+    fs::create_dir_all(&materials_dir)?;
 
     let folder_items: Vec<CourseMaterial> = response
         .folder_items
         .into_iter()
         .map(CourseMaterial::from_raw)
-        .collect();
+        .collect::<RequestResult<_>>()?;
 
     for material in &folder_items {
         if material.material_type.as_deref() == Some("folder") {
@@ -97,29 +97,43 @@ fn scrape_folder(
                 .location
                 .clone()
                 .unwrap_or_else(|| format!("{API_ROOT}/{course_id}/folder/{}", material.id));
-            let child_dir = deduplicated_folder(folder_dir, &material.title);
-            scrape_folder(course_id, &material.id, &child_url, &child_dir, visited);
+            match deduplicated_folder(folder_dir, &material.title).and_then(|child_dir| {
+                scrape_folder(course_id, &material.id, &child_url, &child_dir, visited)
+            }) {
+                Ok(_) => {}
+                Err(error) => warn!(
+                    "skipping failed Schoology folder: course={course_id}, folder={}, error={error}",
+                    material.id
+                ),
+            }
         } else {
-            materials::scrape(material, &materials_dir);
+            if let Err(error) = materials::scrape(material, &materials_dir) {
+                warn!(
+                    "skipping failed Schoology material: course={course_id}, material={}, error={error}",
+                    material.id
+                );
+            }
         }
     }
 
-    Some(CourseFolderResponse {
-        self_folder: CourseMaterial::from_raw(response.self_folder),
-        parent: response.parent.map(CourseMaterial::from_raw),
+    Ok(Some(CourseFolderResponse {
+        self_folder: CourseMaterial::from_raw(response.self_folder)?,
+        parent: response.parent.map(CourseMaterial::from_raw).transpose()?,
         folder_items,
-    })
+    }))
 }
 
 impl CourseMaterial {
-    fn from_raw(raw: Value) -> Self {
+    fn from_raw(raw: Value) -> RequestResult<Self> {
         let id = scalar_as_string(
             raw.get("id")
-                .expect("Schoology course material is missing an id"),
+                .ok_or_else(|| io::Error::other("Schoology course material is missing an id"))?,
         )
-        .expect("Schoology course material id is not a string or number");
+        .ok_or_else(|| {
+            io::Error::other("Schoology course material id is not a string or number")
+        })?;
 
-        Self {
+        Ok(Self {
             id,
             title: string_field(&raw, "title"),
             body: string_field(&raw, "body"),
@@ -129,13 +143,14 @@ impl CourseMaterial {
                 .and_then(Value::as_str)
                 .map(str::to_owned),
             raw,
-        }
+        })
     }
 }
 
-pub(super) fn deduplicated_folder(parent: &Path, title: &str) -> PathBuf {
+pub(super) fn deduplicated_folder(parent: &Path, title: &str) -> RequestResult<PathBuf> {
     let stem = materials::safe_file_stem(title);
-    for duplicate in 1.. {
+    let mut duplicate = 1usize;
+    loop {
         let name = if duplicate == 1 {
             stem.clone()
         } else {
@@ -145,13 +160,12 @@ pub(super) fn deduplicated_folder(parent: &Path, title: &str) -> PathBuf {
         match fs::create_dir(&path) {
             Ok(()) => {
                 info!("created Schoology course folder: {}", path.display());
-                return path;
+                return Ok(path);
             }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(error) => panic!("failed to create course folder: {error}"),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => duplicate += 1,
+            Err(error) => return Err(error.into()),
         }
     }
-    unreachable!()
 }
 
 fn string_field(value: &Value, field: &str) -> String {

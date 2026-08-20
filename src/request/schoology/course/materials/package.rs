@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -35,8 +36,8 @@ pub struct Package {
 }
 
 /// Scrapes a SCORM package. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/scorm-package/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology SCORM package: {url}");
-    let response: Package = api_get(url);
+    let response: Package = api_get(url)?;
     save(material, &response, destination)
 }

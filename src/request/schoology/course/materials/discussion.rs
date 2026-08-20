@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{ApiLinks, integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -47,8 +48,8 @@ pub struct Discussion {
 }
 
 /// Scrapes a discussion. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/discussion-thread/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology discussion: {url}");
-    let response: Discussion = api_get(url);
+    let response: Discussion = api_get(url)?;
     save(material, &response, destination)
 }

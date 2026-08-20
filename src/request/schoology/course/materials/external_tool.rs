@@ -2,6 +2,7 @@ use super::{
     CourseMaterial, api_get, save,
     types::{integer, string},
 };
+use crate::request::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -29,8 +30,8 @@ pub struct ExternalTool {
 }
 
 /// Scrapes an external tool. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> PathBuf {
+pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
     info!("scraping Schoology external tool: {url}");
-    let response: ExternalTool = api_get(url);
+    let response: ExternalTool = api_get(url)?;
     save(material, &response, destination)
 }
