@@ -5,18 +5,16 @@ use std::error::Error;
 
 mod config;
 mod request;
-mod state;
-
-use state::State;
-
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut app_config = config::AppConfig::load(None);
-    if !app_config.subdomain.is_empty() || app_config.api_key.is_some() {
-        request::courses(&mut app_config)?;
+    let configured = {
+        let config = config::CONFIG.read().expect("config lock is poisoned");
+        !config.subdomain.is_empty() || config.api_key.is_some()
+    };
+    if configured {
+        request::schoology::courses::courses();
     }
-    let state = State::new(app_config);
 
     let ui = Home::new()?;
     ui.run()?;
