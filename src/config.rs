@@ -2,7 +2,7 @@ use std::{
     fs::{self, OpenOptions},
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
-    sync::{LazyLock, RwLock},
+    sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use chrono::{DateTime, Utc};
@@ -11,14 +11,14 @@ use serde::{Deserialize, Serialize};
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const CONFIG_FILE_NAME: &str = "config.json";
 
-pub static CONFIG: LazyLock<RwLock<AppConfig>> =
-    LazyLock::new(|| RwLock::new(AppConfig::load(None)));
+static CONFIG: LazyLock<RwLock<AppConfig>> = LazyLock::new(|| RwLock::new(AppConfig::load(None)));
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(default)]
 pub struct AppConfig {
     pub subdomain: String,
     pub last_updated: Option<DateTime<Utc>>,
+    pub user_id: String,
     pub cookie_key: String,
     pub cookie_value: String,
     pub api_key: Option<String>,
@@ -91,4 +91,12 @@ impl AppConfig {
         file.write_all(format!("{contents}\n").as_bytes())
             .expect("failed to write default app configuration");
     }
+}
+
+pub fn config() -> RwLockReadGuard<'static, AppConfig> {
+    CONFIG.read().expect("config lock is poisoned")
+}
+
+pub fn config_write() -> RwLockWriteGuard<'static, AppConfig> {
+    CONFIG.write().expect("config lock is poisoned")
 }

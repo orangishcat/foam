@@ -3,17 +3,26 @@
 
 use std::error::Error;
 
+use crate::config::config;
+
 mod config;
 mod request;
 slint::include_modules!();
 
+fn scrape_courses() {
+    let courses = request::schoology::courses::courses();
+    for course in courses.section {
+        request::schoology::course::course(&course.nid, "0");
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let configured = {
-        let config = config::CONFIG.read().expect("config lock is poisoned");
+        let config = config();
         !config.subdomain.is_empty() || config.api_key.is_some()
     };
     if configured {
-        request::schoology::courses::courses();
+        scrape_courses();
     }
 
     let ui = Home::new()?;

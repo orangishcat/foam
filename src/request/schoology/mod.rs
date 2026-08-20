@@ -9,8 +9,9 @@ use reqwest::{
 };
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::config::CONFIG;
+use crate::config::config;
 
+pub mod course;
 pub mod courses;
 
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -26,7 +27,7 @@ fn new_client() -> Client {
 }
 
 fn internal_url(route: &str) -> String {
-    let config = CONFIG.read().expect("config lock is poisoned");
+    let config = config();
     assert!(
         !config.subdomain.trim().is_empty(),
         "Schoology subdomain is not configured"
@@ -34,8 +35,12 @@ fn internal_url(route: &str) -> String {
     format!("https://{}.schoology.com{route}", config.subdomain.trim())
 }
 
-fn authorization(method: reqwest::Method, url: &str) -> String {
-    let config = CONFIG.read().expect("config lock is poisoned");
+fn authorization<R: oauth::Request + ?Sized>(
+    method: reqwest::Method,
+    url: &str,
+    request: &R,
+) -> String {
+    let config = config();
     let key = config
         .api_key
         .as_deref()
@@ -48,8 +53,8 @@ fn authorization(method: reqwest::Method, url: &str) -> String {
         .expect("Schoology API secret is not configured");
     let token = oauth::Token::from_parts(key, secret, "", "");
     let header = match method {
-        reqwest::Method::GET => oauth::get(url, &(), &token, oauth::PLAINTEXT),
-        reqwest::Method::POST => oauth::post(url, &(), &token, oauth::PLAINTEXT),
+        reqwest::Method::GET => oauth::get(url, request, &token, oauth::PLAINTEXT),
+        reqwest::Method::POST => oauth::post(url, request, &token, oauth::PLAINTEXT),
         _ => unreachable!(),
     };
     header.replacen("OAuth ", "OAuth realm=\"Schoology API\",", 1)
@@ -57,7 +62,7 @@ fn authorization(method: reqwest::Method, url: &str) -> String {
 
 pub fn internal_get<T: DeserializeOwned>(route: &str) -> T {
     let url = internal_url(route);
-    let config = CONFIG.read().expect("config lock is poisoned");
+    let config = config();
     let cookie = format!("{}={}", config.cookie_key, config.cookie_value);
     INTERNAL_CLIENT
         .read()
@@ -75,7 +80,7 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> T {
 
 pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(route: &str, body: &B) -> T {
     let url = internal_url(route);
-    let config = CONFIG.read().expect("config lock is poisoned");
+    let config = config();
     let cookie = format!("{}={}", config.cookie_key, config.cookie_value);
     INTERNAL_CLIENT
         .read()
@@ -93,7 +98,7 @@ pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(route: &str, bo
 }
 
 pub fn api_get<T: DeserializeOwned>(url: &str) -> T {
-    let authorization = authorization(reqwest::Method::GET, url);
+    let authorization = authorization(reqwest::Method::GET, url, &());
     API_CLIENT
         .read()
         .expect("API client lock is poisoned")
@@ -108,8 +113,29 @@ pub fn api_get<T: DeserializeOwned>(url: &str) -> T {
         .expect("failed to decode Schoology API response")
 }
 
+pub fn api_get_with_query<Q, T>(url: &str, query: &Q) -> T
+where
+    Q: oauth::Request + Serialize + ?Sized,
+    T: DeserializeOwned,
+{
+    let authorization = authorization(reqwest::Method::GET, url, query);
+    API_CLIENT
+        .read()
+        .expect("API client lock is poisoned")
+        .get(url)
+        .query(query)
+        .header(ACCEPT, "application/json")
+        .header(AUTHORIZATION, authorization)
+        .send()
+        .expect("Schoology API GET failed")
+        .error_for_status()
+        .expect("Schoology API GET returned an error")
+        .json()
+        .expect("failed to decode Schoology API response")
+}
+
 pub fn api_post<B: Serialize + ?Sized, T: DeserializeOwned>(url: &str, body: &B) -> T {
-    let authorization = authorization(reqwest::Method::POST, url);
+    let authorization = authorization(reqwest::Method::POST, url, &());
     API_CLIENT
         .read()
         .expect("API client lock is poisoned")
