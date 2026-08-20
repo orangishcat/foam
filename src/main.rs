@@ -9,14 +9,18 @@ mod config;
 mod request;
 slint::include_modules!();
 
+/// Scrapes the user's course sections and each section's material tree.
+///
+/// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
 fn scrape_courses() {
-    let courses = request::schoology::courses::courses();
+    let courses = request::schoology::course::courses::courses();
     for course in courses.section {
         request::schoology::course::course(&course.nid, "0");
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let configured = {
         let config = config();
         !config.subdomain.is_empty() || config.api_key.is_some()

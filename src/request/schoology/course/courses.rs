@@ -1,12 +1,13 @@
 use std::{collections::BTreeMap, fs};
 
 use chrono::Utc;
+use log::{debug, info};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::config::{config, config_write};
 
-use super::api_get_with_query;
+use super::super::api_get_with_query;
 
 const PAGE_LIMIT: usize = 50;
 
@@ -91,11 +92,16 @@ pub struct Links {
     pub next: Option<String>,
 }
 
+/// Scrapes every course section belonging to the configured user.
+///
+/// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
 pub fn courses() -> CoursesResponse {
+    info!("scraping Schoology course sections");
     let mut response = CoursesResponse::default();
     let mut start = 0;
 
     loop {
+        debug!("scraping Schoology course sections page: start={start}, limit={PAGE_LIMIT}");
         let query = CoursesQuery {
             start,
             limit: PAGE_LIMIT,
@@ -103,7 +109,7 @@ pub fn courses() -> CoursesResponse {
         let mut page: CoursesResponse = api_get_with_query(
             &format!(
                 "https://api.schoology.com/v1/users/{}/sections",
-                &config().user_id
+                config().user_id
             ),
             &query,
         );
@@ -128,6 +134,10 @@ pub fn courses() -> CoursesResponse {
 
     let mut config = config_write();
     for course in &response.section {
+        info!(
+            "saving Schoology course section: id={}, title={}",
+            course.nid, course.section_title
+        );
         let course_dir = config.data_dir().join("courses").join(&course.nid);
         fs::create_dir_all(&course_dir).expect("failed to create course data directory");
         let contents = serde_json::to_string_pretty(course).expect("failed to serialize course");

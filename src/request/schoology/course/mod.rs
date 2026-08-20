@@ -1,10 +1,14 @@
 use std::{collections::HashSet, fs, path::PathBuf};
 
+use log::{info, warn};
 use serde::Deserialize;
 use serde_json::Value;
 
 use super::api_get;
 use crate::config::config;
+
+pub mod courses;
+pub mod materials;
 
 const API_ROOT: &str = "https://api.schoology.com/v1/courses";
 
@@ -38,26 +42,34 @@ struct RawFolderResponse {
 
 /// Scrape every material below `folder_id`, preserving Schoology's folder tree.
 ///
-/// Each raw material object is stored at
-/// `courses/<course_id>/<containing_folder_id>/<material_id>.json`. The typed
-/// response for the requested folder is returned for use by application code.
+/// Material details are stored below the containing folder using sanitized,
+/// deduplicated titles rather than Schoology IDs.
+///
+/// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-folder/>
 pub fn course(course_id: &str, folder_id: &str) -> CourseFolderResponse {
+    info!("scraping Schoology course folder tree: course={course_id}, folder={folder_id}");
     let mut visited = HashSet::new();
-    scrape_folder(course_id, folder_id, &mut visited)
+    let url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
+    scrape_folder(course_id, folder_id, &url, &mut visited)
         .expect("the requested Schoology course folder was visited more than once")
 }
 
+/// Scrapes one Course Folder response and recursively follows child folders.
+///
+/// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-folder/>
 fn scrape_folder(
     course_id: &str,
     folder_id: &str,
+    url: &str,
     visited: &mut HashSet<String>,
 ) -> Option<CourseFolderResponse> {
     if !visited.insert(folder_id.to_owned()) {
+        warn!("skipping already visited course folder: course={course_id}, folder={folder_id}");
         return None;
     }
 
-    let url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
-    let raw_response: Value = api_get(&url);
+    info!("scraping Schoology course folder: course={course_id}, folder={folder_id}, url={url}");
+    let raw_response: Value = api_get(url);
     let response: RawFolderResponse = serde_json::from_value(raw_response)
         .expect("failed to decode Schoology course folder response");
     let folder_dir = course_folder(course_id, folder_id);
@@ -70,16 +82,14 @@ fn scrape_folder(
         .collect();
 
     for material in &folder_items {
-        let contents = serde_json::to_string_pretty(&material.raw)
-            .expect("failed to serialize raw course material");
-        fs::write(
-            folder_dir.join(format!("{}.json", material.id)),
-            format!("{contents}\n"),
-        )
-        .expect("failed to save course material");
-
         if material.material_type.as_deref() == Some("folder") {
-            scrape_folder(course_id, &material.id, visited);
+            let child_url = material
+                .location
+                .clone()
+                .unwrap_or_else(|| format!("{API_ROOT}/{course_id}/folder/{}", material.id));
+            scrape_folder(course_id, &material.id, &child_url, visited);
+        } else {
+            materials::scrape(material, &folder_dir);
         }
     }
 

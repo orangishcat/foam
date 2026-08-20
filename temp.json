@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "type": "grade_add",
+      "sentence": "A new grade was posted for %s and %s",
+      "viewed": true,
+      "created": "Yesterday at 1:02 pm",
+      "more": "",
+      "realm": "user",
+      "realmId": "<realm id>",
+      "args": [
+        {
+          "id": "<item id>",
+          "title": "<assignment id>",
+          "type": "s_content_grade_item"
+        },
+        {
+          "id": "<item id>",
+          "title": "<assignment id>",
+          "type": "s_content_grade_item"
+        }
+      ],
+      "iconUrl": null
+    }
+  ]
+}
