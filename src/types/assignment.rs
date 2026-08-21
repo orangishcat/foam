@@ -1,11 +1,6 @@
-use crate::{
-    schoology::RequestResult,
-    types::{LooseFloat, LooseInt, loose_str::LooseString},
-};
+use crate::types::{LooseInt, loose_str::LooseString};
 use chrono::{DateTime, Utc};
-use log::info;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assignment {

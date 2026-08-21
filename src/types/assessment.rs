@@ -1,9 +1,5 @@
-use crate::{
-    schoology::RequestResult,
-    types::{LooseFloat, LooseInt, loose_str::LooseString},
-};
+use crate::types::{LooseFloat, LooseInt, loose_str::LooseString};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {

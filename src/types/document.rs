@@ -1,10 +1,5 @@
-use crate::{
-    schoology::RequestResult,
-    types::{LooseInt, attachment::Attachments},
-};
-use log::info;
+use crate::types::{LooseInt, attachment::Attachments};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
