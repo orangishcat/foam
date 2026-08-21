@@ -1,5 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::types::LooseInt;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApiLinks {
     #[serde(default, rename = "self")]
@@ -28,12 +30,12 @@ pub struct FileAttachment {
     pub title: String,
     #[serde(default)]
     pub filename: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub filesize: i64,
+    #[serde(default)]
+    pub filesize: LooseInt,
     #[serde(default)]
     pub md5_checksum: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub timestamp: i64,
+    #[serde(default)]
+    pub timestamp: LooseInt,
     #[serde(default)]
     pub filemime: String,
     #[serde(default)]
@@ -58,36 +60,4 @@ pub fn string<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::E
         Some(Repr::Float(v)) => v.to_string(),
         None => String::new(),
     })
-}
-
-pub fn integer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<i64, D::Error> {
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum Repr {
-        Integer(i64),
-        String(String),
-        Bool(bool),
-    }
-    match Option::<Repr>::deserialize(deserializer)? {
-        Some(Repr::Integer(v)) => Ok(v),
-        Some(Repr::String(v)) if v.is_empty() => Ok(0),
-        Some(Repr::String(v)) => v.parse().map_err(serde::de::Error::custom),
-        Some(Repr::Bool(v)) => Ok(i64::from(v)),
-        None => Ok(0),
-    }
-}
-
-pub fn float<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum Repr {
-        Float(f64),
-        String(String),
-    }
-    match Option::<Repr>::deserialize(deserializer)? {
-        Some(Repr::Float(v)) => Ok(v),
-        Some(Repr::String(v)) if v.is_empty() => Ok(0.0),
-        Some(Repr::String(v)) => v.parse().map_err(serde::de::Error::custom),
-        None => Ok(0.0),
-    }
 }

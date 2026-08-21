@@ -7,6 +7,8 @@ use crate::config::config;
 
 mod config;
 mod schoology;
+mod types;
+
 slint::include_modules!();
 
 /// Scrapes the user's course sections and each section's material tree.

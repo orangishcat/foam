@@ -1,8 +1,5 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{integer, string},
-};
-use crate::schoology::RequestResult;
+use super::{CourseMaterial, api_get, save, types::string};
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -17,16 +14,16 @@ pub struct ExternalTool {
     pub url: String,
     #[serde(default)]
     pub description: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub count_in_grade: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub collected_only: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub auto_publish_grades: i64,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub published: LooseInt,
+    #[serde(default)]
+    pub count_in_grade: LooseInt,
+    #[serde(default)]
+    pub collected_only: LooseInt,
+    #[serde(default)]
+    pub auto_publish_grades: LooseInt,
 }
 
 /// Scrapes an external tool. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/>

@@ -1,8 +1,5 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{integer, string},
-};
-use crate::schoology::RequestResult;
+use super::{CourseMaterial, api_get, save, types::string};
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -13,8 +10,8 @@ pub struct WebPackage {
     pub id: String,
     #[serde(default)]
     pub title: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub uid: i64,
+    #[serde(default)]
+    pub uid: LooseInt,
     #[serde(default)]
     pub url: String,
 }

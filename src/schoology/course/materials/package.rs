@@ -1,8 +1,5 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{integer, string},
-};
-use crate::schoology::RequestResult;
+use super::{CourseMaterial, api_get, save, types::string};
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,24 +12,24 @@ pub struct Package {
     pub title: String,
     #[serde(default)]
     pub url: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub num_attempts: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub scorm_grading_enabled: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub sco_grading_enabled: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub grade_timing_type: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub grade_timing_option: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub completed: i64,
+    #[serde(default)]
+    pub num_attempts: LooseInt,
+    #[serde(default)]
+    pub scorm_grading_enabled: LooseInt,
+    #[serde(default)]
+    pub sco_grading_enabled: LooseInt,
+    #[serde(default)]
+    pub grade_timing_type: LooseInt,
+    #[serde(default)]
+    pub grade_timing_option: LooseInt,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub completed: LooseInt,
     #[serde(default)]
     pub completion_status: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub count_in_grade: i64,
+    #[serde(default)]
+    pub count_in_grade: LooseInt,
 }
 
 /// Scrapes a SCORM package. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/scorm-package/>

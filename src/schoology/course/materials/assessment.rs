@@ -1,8 +1,8 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{float, integer, string},
+use super::{CourseMaterial, api_get, save, types::string};
+use crate::{
+    schoology::RequestResult,
+    types::{LooseFloat, LooseInt},
 };
-use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,20 +15,20 @@ pub struct Assessment {
     pub title: String,
     #[serde(default)]
     pub description: String,
-    #[serde(default, deserialize_with = "float")]
-    pub max_points: f64,
+    #[serde(default)]
+    pub max_points: LooseFloat,
     #[serde(default)]
     pub due: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub grading_scale: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub grading_period: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub completed: i64,
+    #[serde(default)]
+    pub grading_scale: LooseInt,
+    #[serde(default)]
+    pub grading_period: LooseInt,
+    #[serde(default)]
+    pub published: LooseInt,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub completed: LooseInt,
 }
 
 /// Scrapes an assessment or test/quiz. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/assignment/>

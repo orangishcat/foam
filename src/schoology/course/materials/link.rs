@@ -1,8 +1,8 @@
 use super::{
     CourseMaterial, api_get, save,
-    types::{Attachments, integer, string},
+    types::{Attachments, string},
 };
-use crate::schoology::RequestResult;
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,16 +15,16 @@ pub struct Link {
     pub title: String,
     #[serde(default)]
     pub url: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub course_fid: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
+    #[serde(default)]
+    pub course_fid: LooseInt,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub published: LooseInt,
     #[serde(default)]
     pub attachments: Attachments,
-    #[serde(default, deserialize_with = "integer")]
-    pub display_inline: i64,
+    #[serde(default)]
+    pub display_inline: LooseInt,
 }
 
 /// Scrapes a link document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>

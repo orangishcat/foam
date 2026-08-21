@@ -1,8 +1,8 @@
 use super::{
     CourseMaterial, api_get, save,
-    types::{ApiLinks, integer, string},
+    types::{ApiLinks, string},
 };
-use crate::schoology::RequestResult;
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,26 +15,26 @@ pub struct Page {
     pub title: String,
     #[serde(default)]
     pub body: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub parent: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub inline: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub created: i64,
+    #[serde(default)]
+    pub parent: LooseInt,
+    #[serde(default)]
+    pub published: LooseInt,
+    #[serde(default)]
+    pub inline: LooseInt,
+    #[serde(default)]
+    pub created: LooseInt,
     #[serde(default)]
     pub children: Vec<i64>,
-    #[serde(default, deserialize_with = "integer")]
-    pub num_assignees: i64,
+    #[serde(default)]
+    pub num_assignees: LooseInt,
     #[serde(default)]
     pub assignees: Vec<i64>,
     #[serde(default)]
     pub grading_group_ids: Vec<i64>,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub completed: i64,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub completed: LooseInt,
     #[serde(default)]
     pub completion_status: String,
     #[serde(default)]

@@ -5,7 +5,10 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::config::{config, config_write};
+use crate::{
+    config::{config, config_write},
+    types::loose_str::LooseString,
+};
 
 use super::super::api_get_with_query;
 
@@ -43,10 +46,10 @@ pub struct Course {
     pub course_title: String,
     #[serde(default)]
     pub course_code: String,
-    #[serde(default, deserialize_with = "deserialize_string_default")]
-    pub course_id: String,
-    #[serde(default, deserialize_with = "deserialize_string_default")]
-    pub school_id: String,
+    #[serde(default)]
+    pub course_id: LooseString,
+    #[serde(default)]
+    pub school_id: LooseString,
     #[serde(default)]
     pub access_code: String,
     #[serde(default, alias = "title")]
@@ -55,8 +58,8 @@ pub struct Course {
     pub section_code: String,
     #[serde(default)]
     pub section_school_code: String,
-    #[serde(default, deserialize_with = "deserialize_string_default")]
-    pub synced: String,
+    #[serde(default)]
+    pub synced: LooseString,
     #[serde(default)]
     pub active: i64,
     #[serde(default)]
@@ -74,8 +77,8 @@ pub struct Course {
     pub start_time: String,
     #[serde(default)]
     pub end_time: String,
-    #[serde(default, deserialize_with = "deserialize_string_default")]
-    pub weight: String,
+    #[serde(default)]
+    pub weight: LooseString,
     #[serde(default)]
     pub options: Value,
     #[serde(default)]

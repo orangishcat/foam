@@ -1,8 +1,8 @@
 use super::{
     CourseMaterial, api_get, save,
-    types::{ApiLinks, integer, string},
+    types::{ApiLinks, string},
 };
-use crate::schoology::RequestResult;
+use crate::{schoology::RequestResult, types::LooseInt};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -15,26 +15,26 @@ pub struct MediaAlbum {
     pub title: String,
     #[serde(default)]
     pub description: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub setting_comments: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub setting_member_post: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub published: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub photo_count: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub video_count: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub audio_count: i64,
+    #[serde(default)]
+    pub setting_comments: LooseInt,
+    #[serde(default)]
+    pub setting_member_post: LooseInt,
+    #[serde(default)]
+    pub published: LooseInt,
+    #[serde(default)]
+    pub photo_count: LooseInt,
+    #[serde(default)]
+    pub video_count: LooseInt,
+    #[serde(default)]
+    pub audio_count: LooseInt,
     #[serde(default)]
     pub cover_image_url: String,
-    #[serde(default, deserialize_with = "integer")]
-    pub created: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub available: i64,
-    #[serde(default, deserialize_with = "integer")]
-    pub completed: i64,
+    #[serde(default)]
+    pub created: LooseInt,
+    #[serde(default)]
+    pub available: LooseInt,
+    #[serde(default)]
+    pub completed: LooseInt,
     #[serde(default)]
     pub completion_status: String,
     #[serde(default)]
