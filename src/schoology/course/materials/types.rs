@@ -86,24 +86,6 @@ pub struct FileAttachment {
     pub extension: String,
 }
 
-pub fn string<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum Repr {
-        String(String),
-        Signed(i64),
-        Unsigned(u64),
-        Float(f64),
-    }
-    Ok(match Option::<Repr>::deserialize(deserializer)? {
-        Some(Repr::String(v)) => v,
-        Some(Repr::Signed(v)) => v.to_string(),
-        Some(Repr::Unsigned(v)) => v.to_string(),
-        Some(Repr::Float(v)) => v.to_string(),
-        None => String::new(),
-    })
-}
-
 impl From<Attachments> for crate::types::attachment::Attachments {
     fn from(value: Attachments) -> Self {
         Self {
