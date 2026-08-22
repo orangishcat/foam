@@ -1,11 +1,5 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{ApiLinks, string},
-};
-use crate::{schoology::RequestResult, types::LooseInt};
-use log::info;
+use super::types::{ApiLinks, LooseInt, string};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Discussion {
@@ -45,17 +39,4 @@ pub struct Discussion {
     pub completion_status: String,
     #[serde(default)]
     pub links: ApiLinks,
-}
-
-impl Discussion {
-    pub fn grade_item_id(&self) -> LooseInt {
-        self.grade_item_id
-    }
-}
-
-/// Scrapes a discussion. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/discussion-thread/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
-    info!("scraping Schoology discussion: {url}");
-    let response: Discussion = api_get(url)?;
-    save(material, &response, destination)
 }

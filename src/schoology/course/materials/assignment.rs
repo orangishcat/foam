@@ -1,14 +1,10 @@
 use super::{
-    CourseMaterial, api_get, save,
-    types::{ApiLinks, string},
+    CourseMaterial, api_get,
+    types::{ApiLinks, LooseFloat, LooseInt, string},
 };
-use crate::{
-    schoology::RequestResult,
-    types::{LooseFloat, LooseInt},
-};
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assignment {
@@ -59,8 +55,24 @@ pub struct Assignment {
 }
 
 /// Scrapes an assignment. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/assignment/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
+pub fn scrape(
+    _material: &CourseMaterial,
+    url: &str,
+) -> RequestResult<crate::types::assignment::Assignment> {
     info!("scraping Schoology assignment: {url}");
     let response: Assignment = api_get(url)?;
-    save(material, &response, destination)
+    Ok(crate::types::assignment::Assignment {
+        id: response.id,
+        title: response.title,
+        description: response.description,
+        due: response.due.parse().unwrap_or_default(),
+        max_points: response.max_points.0,
+        allow_submissions: response.allow_dropbox.0 != 0,
+        show_rubric: response.show_rubric,
+        assignees: response.assignees,
+        grading_group_ids: response.grading_group_ids,
+        count_in_grade: response.count_in_grade.0 != 0,
+        collected_only: response.collected_only.0 != 0,
+        auto_publish_grades: response.auto_publish_grades.0 != 0,
+    })
 }

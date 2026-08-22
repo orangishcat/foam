@@ -1,26 +1,25 @@
-use crate::types::{LooseFloat, LooseInt, loose_str::LooseString};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Assessment {
     #[serde(default)]
-    pub id: LooseString,
+    pub id: String,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
     pub description: String,
     #[serde(default)]
-    pub max_points: LooseFloat,
+    pub max_points: f64,
     #[serde(default)]
     pub due: String,
     #[serde(default)]
-    pub grading_scale: LooseInt,
+    pub grading_scale: i64,
     #[serde(default)]
-    pub grading_period: LooseInt,
+    pub grading_period: i64,
     #[serde(default)]
-    pub published: LooseInt,
+    pub published: bool,
     #[serde(default)]
-    pub available: LooseInt,
+    pub available: bool,
     #[serde(default)]
-    pub completed: LooseInt,
+    pub completed: bool,
 }

@@ -1,32 +1,19 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-// A string that can also accept a number
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize)]
 pub struct LooseString(pub String);
 
 impl<'de> Deserialize<'de> for LooseString {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         match Value::deserialize(deserializer)? {
-            Value::String(v) => Ok(Self(v)),
-            Value::Number(v) => Ok(Self(v.to_string())),
-            Value::Null => Ok(Self(String::new())),
-            v => Err(serde::de::Error::custom(format!(
-                "expected a string or number, got {v}"
+            Value::String(value) => Ok(Self(value)),
+            Value::Number(value) => Ok(Self(value.to_string())),
+            Value::Null => Ok(Self::default()),
+            value => Err(serde::de::Error::custom(format!(
+                "expected a string or number, got {value}"
             ))),
         }
-    }
-}
-
-impl Serialize for LooseString {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.0.serialize(serializer)
     }
 }
 

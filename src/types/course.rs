@@ -1,13 +1,9 @@
-use std::{collections::BTreeMap, path::PathBuf};
-
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::folder::Folder;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Course {
-    #[serde(skip)]
-    pub path: PathBuf,
-
     #[serde(default)]
     pub course_id: String,
     #[serde(default)]
@@ -37,8 +33,6 @@ pub struct Course {
     pub end_time: String,
     #[serde(default)]
     pub weight: String,
-
-    /// Preserve fields added by Schoology without preventing deserialization.
-    #[serde(flatten)]
-    pub extra: BTreeMap<String, Value>,
+    #[serde(default)]
+    pub materials: Folder,
 }

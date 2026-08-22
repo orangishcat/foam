@@ -6,6 +6,7 @@ use std::error::Error;
 use crate::config::config;
 
 mod config;
+mod filesystem;
 mod schoology;
 mod types;
 
@@ -14,11 +15,11 @@ slint::include_modules!();
 /// Scrapes the user's course sections and each section's material tree.
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
-fn scrape_courses() {
-    let courses = schoology::course::courses::courses();
-    for course in courses.section {
-        schoology::course::course(&course.nid, "0", &course.data_dir);
-    }
+fn scrape_courses() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let courses = schoology::course::courses::courses()?;
+    let destination = config().data_dir().join("courses");
+    filesystem::write_courses(&courses, &destination)?;
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -28,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         !config.subdomain.is_empty() || config.api_key.is_some()
     };
     if configured {
-        scrape_courses();
+        scrape_courses().map_err(|error| -> Box<dyn Error> { error })?;
     }
 
     let ui = Home::new()?;

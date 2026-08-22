@@ -1,7 +1,7 @@
-use crate::types::{LooseInt, attachment::Attachments};
+use crate::types::attachment::Attachments;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Document {
     #[serde(default)]
     pub id: String,
@@ -10,7 +10,7 @@ pub struct Document {
     #[serde(default)]
     pub url: String,
     #[serde(default)]
-    pub course_fid: LooseInt,
+    pub course_fid: i64,
     #[serde(default)]
     pub attachments: Attachments,
 }

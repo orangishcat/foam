@@ -1,11 +1,10 @@
-use super::{CourseMaterial, api_get, save, types::string};
-use crate::{
-    schoology::RequestResult,
-    types::{LooseFloat, LooseInt},
+use super::{
+    CourseMaterial, api_get,
+    types::{LooseFloat, LooseInt, string},
 };
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
@@ -32,8 +31,22 @@ pub struct Assessment {
 }
 
 /// Scrapes an assessment or test/quiz. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/assignment/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
+pub fn scrape(
+    _material: &CourseMaterial,
+    url: &str,
+) -> RequestResult<crate::types::assessment::Assessment> {
     info!("scraping Schoology assessment: {url}");
     let response: Assessment = api_get(url)?;
-    save(material, &response, destination)
+    Ok(crate::types::assessment::Assessment {
+        id: response.id,
+        title: response.title,
+        description: response.description,
+        max_points: response.max_points.0,
+        due: response.due,
+        grading_scale: response.grading_scale.0,
+        grading_period: response.grading_period.0,
+        published: response.published.0 != 0,
+        available: response.available.0 != 0,
+        completed: response.completed.0 != 0,
+    })
 }

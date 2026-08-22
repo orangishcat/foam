@@ -1,11 +1,10 @@
 use super::{
-    CourseMaterial, api_get, save,
-    types::{Attachments, string},
+    CourseMaterial, api_get,
+    types::{Attachments, LooseInt, string},
 };
-use crate::{schoology::RequestResult, types::LooseInt};
+use crate::schoology::RequestResult;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -34,8 +33,17 @@ pub struct Document {
 }
 
 /// Scrapes a document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
+pub fn scrape(
+    _material: &CourseMaterial,
+    url: &str,
+) -> RequestResult<crate::types::document::Document> {
     info!("scraping Schoology document: {url}");
     let response: Document = api_get(url)?;
-    save(material, &response, destination)
+    Ok(crate::types::document::Document {
+        id: response.id,
+        title: response.title,
+        url: response.url,
+        course_fid: response.course_fid.0,
+        attachments: response.attachments.into(),
+    })
 }

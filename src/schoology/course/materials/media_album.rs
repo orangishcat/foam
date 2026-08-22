@@ -1,11 +1,5 @@
-use super::{
-    CourseMaterial, api_get, save,
-    types::{ApiLinks, string},
-};
-use crate::{schoology::RequestResult, types::LooseInt};
-use log::info;
+use super::types::{ApiLinks, LooseInt, string};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MediaAlbum {
@@ -39,11 +33,4 @@ pub struct MediaAlbum {
     pub completion_status: String,
     #[serde(default)]
     pub links: ApiLinks,
-}
-
-/// Scrapes a media album. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/media-album/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
-    info!("scraping Schoology media album: {url}");
-    let response: MediaAlbum = api_get(url)?;
-    save(material, &response, destination)
 }

@@ -1,11 +1,10 @@
-use crate::types::{LooseInt, loose_str::LooseString};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Assignment {
     #[serde(default)]
-    pub id: LooseString,
+    pub id: String,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
@@ -13,7 +12,7 @@ pub struct Assignment {
     #[serde(default)]
     pub due: DateTime<Utc>,
     #[serde(default)]
-    pub max_points: f32,
+    pub max_points: f64,
     #[serde(default)]
     pub allow_submissions: bool,
     #[serde(default)]
@@ -23,9 +22,9 @@ pub struct Assignment {
     #[serde(default)]
     pub grading_group_ids: Vec<i64>,
     #[serde(default)]
-    pub count_in_grade: LooseInt,
+    pub count_in_grade: bool,
     #[serde(default)]
-    pub collected_only: LooseInt,
+    pub collected_only: bool,
     #[serde(default)]
-    pub auto_publish_grades: LooseInt,
+    pub auto_publish_grades: bool,
 }

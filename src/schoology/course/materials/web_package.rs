@@ -1,8 +1,5 @@
-use super::{CourseMaterial, api_get, save, types::string};
-use crate::{schoology::RequestResult, types::LooseInt};
-use log::info;
+use super::types::{LooseInt, string};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebPackage {
@@ -14,11 +11,4 @@ pub struct WebPackage {
     pub uid: LooseInt,
     #[serde(default)]
     pub url: String,
-}
-
-/// Scrapes a web content package. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/web-content-package/>
-pub fn scrape(material: &CourseMaterial, url: &str, destination: &Path) -> RequestResult<PathBuf> {
-    info!("scraping Schoology web content package: {url}");
-    let response: WebPackage = api_get(url)?;
-    save(material, &response, destination)
 }

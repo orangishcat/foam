@@ -1,6 +1,46 @@
 use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
-use crate::types::LooseInt;
+#[derive(Debug, Default, Clone, Copy, Serialize)]
+pub struct LooseInt(pub i64);
+
+impl<'de> Deserialize<'de> for LooseInt {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        match Value::deserialize(deserializer)? {
+            Value::Number(v) => v
+                .as_i64()
+                .map(Self)
+                .ok_or_else(|| serde::de::Error::custom("integer is outside i64 range")),
+            Value::String(v) if v.is_empty() => Ok(Self::default()),
+            Value::String(v) => v.parse().map(Self).map_err(serde::de::Error::custom),
+            Value::Bool(v) => Ok(Self(i64::from(v))),
+            Value::Null => Ok(Self::default()),
+            value => Err(serde::de::Error::custom(format!(
+                "expected an integer, got {value}"
+            ))),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, Serialize)]
+pub struct LooseFloat(pub f64);
+
+impl<'de> Deserialize<'de> for LooseFloat {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        match Value::deserialize(deserializer)? {
+            Value::Number(v) => v
+                .as_f64()
+                .map(Self)
+                .ok_or_else(|| serde::de::Error::custom("number is outside f64 range")),
+            Value::String(v) if v.is_empty() => Ok(Self::default()),
+            Value::String(v) => v.parse().map(Self).map_err(serde::de::Error::custom),
+            Value::Null => Ok(Self::default()),
+            value => Err(serde::de::Error::custom(format!(
+                "expected a number, got {value}"
+            ))),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApiLinks {
@@ -60,4 +100,31 @@ pub fn string<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::E
         Some(Repr::Float(v)) => v.to_string(),
         None => String::new(),
     })
+}
+
+impl From<Attachments> for crate::types::attachment::Attachments {
+    fn from(value: Attachments) -> Self {
+        Self {
+            files: crate::types::attachment::AttachmentFiles {
+                file: value.files.file.into_iter().map(Into::into).collect(),
+            },
+        }
+    }
+}
+
+impl From<FileAttachment> for crate::types::attachment::FileAttachment {
+    fn from(value: FileAttachment) -> Self {
+        Self {
+            id: value.id,
+            attachment_type: value.attachment_type,
+            title: value.title,
+            filename: value.filename,
+            filesize: value.filesize.0,
+            md5_checksum: value.md5_checksum,
+            timestamp: chrono::DateTime::from_timestamp(value.timestamp.0, 0).unwrap_or_default(),
+            filemime: value.filemime,
+            download_path: value.download_path,
+            extension: value.extension,
+        }
+    }
 }

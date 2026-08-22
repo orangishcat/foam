@@ -1,7 +1,7 @@
-use crate::types::{LooseInt, attachment::Attachments};
+use crate::types::attachment::Attachments;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Link {
     #[serde(default)]
     pub id: String,
@@ -18,5 +18,5 @@ pub struct Link {
     #[serde(default)]
     pub attachments: Attachments,
     #[serde(default)]
-    pub display_inline: LooseInt,
+    pub display_inline: bool,
 }
