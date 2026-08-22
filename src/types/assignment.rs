@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::types::attachment::Attachments;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Assignment {
     #[serde(default)]
@@ -15,4 +17,6 @@ pub struct Assignment {
     pub max_points: f64,
     #[serde(default)]
     pub allow_submissions: bool,
+    #[serde(default)]
+    pub attachments: Attachments,
 }

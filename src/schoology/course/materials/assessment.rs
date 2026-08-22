@@ -1,16 +1,16 @@
 use super::{
     CourseMaterial, api_get,
-    types::{LooseFloat, LooseInt, string},
+    types::{LooseFloat, LooseInt},
 };
-use crate::schoology::RequestResult;
+use crate::{schoology::RequestResult, types::LooseString};
 use chrono::Utc;
 use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
-    #[serde(default, deserialize_with = "string")]
-    pub id: String,
+    #[serde(default)]
+    pub id: LooseString,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
@@ -39,7 +39,7 @@ pub fn scrape(
     info!("scraping Schoology assessment: {url}");
     let response: Assessment = api_get(url)?;
     Ok(crate::types::assessment::Assessment {
-        id: response.id,
+        id: response.id.0,
         title: response.title,
         description: response.description,
         max_points: response.max_points.0,

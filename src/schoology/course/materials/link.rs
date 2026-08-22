@@ -1,15 +1,15 @@
 use super::{
     CourseMaterial, api_get,
-    types::{Attachments, LooseInt, string},
+    types::{Attachments, LooseInt},
 };
-use crate::schoology::RequestResult;
+use crate::{schoology::RequestResult, types::LooseString};
 use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Link {
-    #[serde(default, deserialize_with = "string")]
-    pub id: String,
+    #[serde(default)]
+    pub id: LooseString,
     #[serde(default)]
     pub title: String,
     #[serde(default)]
@@ -31,7 +31,7 @@ pub fn scrape(_material: &CourseMaterial, url: &str) -> RequestResult<crate::typ
     info!("scraping Schoology link: {url}");
     let response: Link = api_get(url)?;
     Ok(crate::types::link::Link {
-        id: response.id,
+        id: response.id.0,
         title: response.title,
         url: response.url,
         course_fid: response.course_fid.0,

@@ -14,6 +14,7 @@ pub mod external_tool;
 pub mod link;
 pub mod media_album;
 pub mod package;
+pub mod page;
 pub mod types;
 pub mod web_package;
 

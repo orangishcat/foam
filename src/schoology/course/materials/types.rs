@@ -1,6 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+use crate::types::LooseString;
+
 #[derive(Debug, Default, Clone, Copy, Serialize)]
 pub struct LooseInt(pub i64);
 
@@ -62,8 +64,8 @@ pub struct AttachmentFiles {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FileAttachment {
-    #[serde(default, deserialize_with = "string")]
-    pub id: String,
+    #[serde(default)]
+    pub id: LooseString,
     #[serde(default, rename = "type")]
     pub attachment_type: String,
     #[serde(default)]
@@ -115,7 +117,7 @@ impl From<Attachments> for crate::types::attachment::Attachments {
 impl From<FileAttachment> for crate::types::attachment::FileAttachment {
     fn from(value: FileAttachment) -> Self {
         Self {
-            id: value.id,
+            id: value.id.0,
             attachment_type: value.attachment_type,
             title: value.title,
             filename: value.filename,
