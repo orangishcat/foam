@@ -12,7 +12,8 @@ pub mod document;
 pub mod external_tool;
 pub mod link;
 pub mod media_album;
-mod types;
+pub mod package;
+pub mod types;
 pub mod web_package;
 
 /// Fetch and coerce a Schoology material into the provider-independent model.

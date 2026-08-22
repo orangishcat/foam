@@ -68,11 +68,5 @@ pub fn scrape(
         due: response.due.parse().unwrap_or_default(),
         max_points: response.max_points.0,
         allow_submissions: response.allow_dropbox.0 != 0,
-        show_rubric: response.show_rubric,
-        assignees: response.assignees,
-        grading_group_ids: response.grading_group_ids,
-        count_in_grade: response.count_in_grade.0 != 0,
-        collected_only: response.collected_only.0 != 0,
-        auto_publish_grades: response.auto_publish_grades.0 != 0,
     })
 }

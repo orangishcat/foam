@@ -3,6 +3,7 @@ use super::{
     types::{LooseFloat, LooseInt, string},
 };
 use crate::schoology::RequestResult;
+use chrono::Utc;
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -42,11 +43,9 @@ pub fn scrape(
         title: response.title,
         description: response.description,
         max_points: response.max_points.0,
-        due: response.due,
-        grading_scale: response.grading_scale.0,
-        grading_period: response.grading_period.0,
-        published: response.published.0 != 0,
-        available: response.available.0 != 0,
+        due: chrono::DateTime::parse_from_str(&response.due, "%Y-%M-%D %H:%M:%s")
+            .unwrap_or_default()
+            .with_timezone(&Utc),
         completed: response.completed.0 != 0,
     })
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -11,15 +12,7 @@ pub struct Assessment {
     #[serde(default)]
     pub max_points: f64,
     #[serde(default)]
-    pub due: String,
-    #[serde(default)]
-    pub grading_scale: i64,
-    #[serde(default)]
-    pub grading_period: i64,
-    #[serde(default)]
-    pub published: bool,
-    #[serde(default)]
-    pub available: bool,
+    pub due: DateTime<Utc>,
     #[serde(default)]
     pub completed: bool,
 }
