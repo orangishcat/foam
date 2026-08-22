@@ -8,6 +8,7 @@ use crate::{
 
 pub mod assessment;
 pub mod assignment;
+pub mod discussion;
 pub mod document;
 pub mod external_tool;
 pub mod link;
