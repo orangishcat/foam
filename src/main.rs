@@ -16,9 +16,8 @@ slint::include_modules!();
 ///
 /// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
 fn scrape_courses() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let courses = schoology::course::courses::courses()?;
-    let destination = config().data_dir().join("courses");
-    filesystem::write_courses(&courses, &destination)?;
+    let courses = schoology::course::courses::scrape_courses()?;
+    filesystem::write_courses(&courses)?;
     Ok(())
 }
 

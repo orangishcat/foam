@@ -59,6 +59,10 @@ impl AppConfig {
         &self.data_dir
     }
 
+    pub fn courses_dir(&self) -> PathBuf {
+        self.data_dir().join("courses")
+    }
+
     pub fn save(&self) -> std::io::Result<()> {
         let contents =
             serde_json::to_string_pretty(self).expect("failed to serialize app configuration");

@@ -64,7 +64,7 @@ struct Links {
 
 /// Fetch every configured-user section and coerce it, including its complete
 /// material tree, into unified course models.
-pub fn courses() -> RequestResult<Vec<Course>> {
+pub fn scrape_courses() -> RequestResult<Vec<Course>> {
     let mut sections = Vec::new();
     let mut start = 0;
     loop {
