@@ -2,8 +2,12 @@ import { HorizontalBox } from "std-widgets.slint";
 import { Dashboard } from "dashboard.slint";
 import { Theme } from "palette.slint";
 import { Sidebar } from "sidebar.slint";
+import "./fonts/MozillaText.ttf";
 
-export component Home inherits Window {
+export component AppWindow inherits Window {
+    title: "Foam";
+
+    default-font-family: "Mozilla Text";
     preferred-width: 1200px;
     preferred-height: 800px;
 
@@ -18,6 +22,9 @@ export component Home inherits Window {
         spacing: 0px;
 
         Sidebar { }
-        Dashboard { horizontal-stretch: 1; }
+
+        Dashboard {
+            horizontal-stretch: 1;
+        }
     }
 }

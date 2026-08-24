@@ -3,52 +3,43 @@ import { Theme } from "palette.slint";
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
+    in property <image> icon;
     in property <bool> selected: false;
 
     height: 44px;
     border-radius: 6px;
-    background: selected ? Theme.dark.primary-600 : transparent;
+    background: selected ? Theme.dark.background-700 : transparent;
 
-    Text {
-        text: root.label;
-        color: selected ? Theme.dark.text-50 : Theme.dark.text-200;
-        font-size: 16px;
-        vertical-alignment: center;
-        x: 16px;
+    Image {
+        source: icon;
+        colorize: Theme.dark.text-200;
     }
+    // Text {
+    //     text: root.label;
+    //     color: selected ? Theme.dark.text-50 : Theme.dark.text-200;
+    //     font-size: 16px;
+    //     vertical-alignment: center;
+    //     x: 16px;
+    // }
 }
 
 export component Sidebar inherits Rectangle {
-    width: 240px;
+    in property <bool> minimized: true;
+    width: minimized ? 60px : 240px;
     background: Theme.dark.background-900;
 
     VerticalBox {
-        padding: 24px;
+        padding: 8px;
         spacing: 10px;
 
-        Text {
-            text: "Foam";
-            color: Theme.dark.text-50;
-            font-size: 26px;
-            font-weight: 700;
-            height: 54px;
+        Rectangle {
+            height: 0px;
         }
 
         NavigationItem {
             label: "Dashboard";
             selected: true;
-        }
-
-        NavigationItem {
-            label: "Courses";
-        }
-
-        NavigationItem {
-            label: "Assignments";
-        }
-
-        NavigationItem {
-            label: "Calendar";
+            icon: @image-url("icons/calendar-days.svg");
         }
 
         Rectangle {
@@ -57,6 +48,7 @@ export component Sidebar inherits Rectangle {
 
         NavigationItem {
             label: "Settings";
+            icon: @image-url("icons/settings.svg");
         }
     }
 }

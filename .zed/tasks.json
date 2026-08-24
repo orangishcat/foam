@@ -4,7 +4,15 @@
     "command": "RUST_BACKTRACE=1 cargo run",
   },
   {
+    "label": "check",
+    "command": "cargo check",
+  },
+  {
     "label": "live-preview",
-    "command": "slint-viewer --auto-reload ui/home.slint",
+    "command": "SLINT_LIVE_PREVIEW=1 cargo run --features slint/live-preview",
+  },
+  {
+    "label": "convert-svg",
+    "command": "sh scripts/convert-svg.sh",
   },
 ]
