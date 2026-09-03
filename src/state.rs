@@ -1,13 +1,6 @@
 use crate::types::course::Course;
 
+#[derive(Default)]
 pub struct AppState {
     courses: Vec<Course>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            courses: Default::default(),
-        }
-    }
 }
