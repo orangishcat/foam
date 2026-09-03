@@ -3,7 +3,7 @@
 
 use std::error::Error;
 
-use crate::config::config;
+use crate::{config::config, state::AppState};
 
 mod config;
 mod filesystem;
@@ -22,14 +22,8 @@ fn scrape_courses() -> Result<(), Box<dyn Error + Send + Sync>> {
     Ok(())
 }
 
-fn init() -> Result<(), Box<dyn std::error::Error>> {
-    // let configured = {
-    //     let config = config();
-    //     !config.subdomain.is_empty() || config.api_key.is_some()
-    // };
-    // if configured {
-    //     scrape_courses().map_err(|error| -> Box<dyn Error> { error })?;
-    // }
+fn init(state: &mut AppState) -> Result<(), Box<dyn std::error::Error>> {
+    state.load_courses();
     Ok(())
 }
 
@@ -41,7 +35,9 @@ fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    init()?;
+    let mut state = AppState::default();
+    init(&mut state)?;
+
     let ui = AppWindow::new()?;
     ui.run()?;
     shutdown()?;

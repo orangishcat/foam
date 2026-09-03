@@ -8,7 +8,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-const APP_NAME: &str = env!("CARGO_PKG_NAME");
+const APP_NAME: &str = concat!("dev.orangishcat.", env!("CARGO_PKG_NAME"));
 const CONFIG_FILE_NAME: &str = "config.json";
 
 static CONFIG: LazyLock<RwLock<AppConfig>> = LazyLock::new(|| RwLock::new(AppConfig::load(None)));
