@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::{
     config::config,
-    types::{course::Course, material::Material},
+    types::course::Course,
 };
 
 pub fn read_courses() -> io::Result<Vec<Course>> {

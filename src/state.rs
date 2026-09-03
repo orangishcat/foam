@@ -1,4 +1,4 @@
-use crate::{filesystem, schoology::course::courses, types::course::Course};
+use crate::{filesystem::read_courses, types::course::Course};
 
 #[derive(Default)]
 pub struct AppState {
@@ -9,7 +9,7 @@ impl AppState {
     pub fn load_courses(&mut self) {
         match read_courses() {
             Ok(courses) => self.courses = courses,
-            Err(courses) => {}
+            Err(_courses) => {}
         }
     }
 }
