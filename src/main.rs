@@ -3,7 +3,7 @@
 
 use std::error::Error;
 
-use crate::{config::config, state::AppState};
+use crate::{config::config, state::state::AppState};
 
 mod config;
 mod filesystem;
@@ -23,7 +23,7 @@ fn scrape_courses() -> Result<(), Box<dyn Error + Send + Sync>> {
 }
 
 fn init(state: &mut AppState) -> Result<(), Box<dyn std::error::Error>> {
-    state.load_courses();
+    state.courses.load_courses();
     Ok(())
 }
 
@@ -39,6 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init(&mut state)?;
 
     let ui = AppWindow::new()?;
+    state.sync_ui(&ui);
     ui.run()?;
     shutdown()?;
 

@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use serde::{Deserialize, Serialize};
 
 use super::material::Material;
