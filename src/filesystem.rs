@@ -7,18 +7,18 @@ use std::{
 use log::error;
 use serde::Serialize;
 
-use crate::{
-    config::config,
-    types::course::Course,
-};
+use crate::{config::config, types::course::Course};
 
 pub fn read_courses() -> io::Result<Vec<Course>> {
     let mut courses = vec![];
     for file_result in fs::read_dir(config().courses_dir())? {
         let path = file_result?.path();
         let reader = BufReader::new(File::open(&path)?);
-        match serde_json::from_reader(reader) {
-            Ok(course) => courses.push(course),
+        match serde_json::from_reader::<_, Course>(reader) {
+            Ok(mut course) => {
+                course.materials.set_course_id(&course.course_id);
+                courses.push(course);
+            }
             Err(error) => error!("Failed to read course from {}: {error}", path.display()),
         }
     }

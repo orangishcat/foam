@@ -75,6 +75,7 @@ pub fn scrape(
     };
     let response: Assignment = api_get_with_query(url, &query_params)?;
     Ok(crate::types::assignment::Assignment {
+        course_id: String::new(), // filled later
         id: response.id.0,
         title: response.title,
         description: response.description,

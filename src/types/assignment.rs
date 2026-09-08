@@ -6,6 +6,8 @@ use crate::types::attachment::Attachments;
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Assignment {
     #[serde(default)]
+    pub course_id: String,
+    #[serde(default)]
     pub id: String,
     #[serde(default)]
     pub title: String,

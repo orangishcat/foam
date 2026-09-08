@@ -10,7 +10,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn sync_ui(&mut self, ui: &AppWindow) {
-        self.dashboard.ui.set_assignment_view(value);
+    pub fn sync_ui(&self, ui: &AppWindow) {
+        self.dashboard.sync_ui(&self.courses, ui);
     }
 }

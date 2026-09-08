@@ -1,27 +1,34 @@
+use std::collections::BTreeMap;
+
 use crate::{
     filesystem::read_courses,
-    types::{assignment::Assignment, course::Course, material::Material},
+    types::{course::Course, material::Material},
 };
 
 #[derive(Default)]
 pub struct CourseState {
-    courses: Vec<Course>,
+    courses: BTreeMap<String, Course>,
 }
 
 impl CourseState {
     pub fn load_courses(&mut self) {
         match read_courses() {
-            Ok(courses) => self.courses = courses,
+            Ok(courses) => {
+                self.courses = courses
+                    .into_iter()
+                    .map(|course| (course.course_id.clone(), course))
+                    .collect();
+            }
             Err(_courses) => {} // todo!
         }
     }
-    pub fn get_all_assignments(&self) -> impl Iterator<Item = &Assignment> {
+    pub fn get_course(&self, course_id: &str) -> Option<&Course> {
+        self.courses.get(course_id)
+    }
+
+    pub fn walk_materials(&self) -> impl Iterator<Item = &Material> + '_ {
         self.courses
-            .iter()
+            .values()
             .flat_map(|c| c.materials.recursive_iter())
-            .filter_map(|m| match m {
-                Material::Assignment(m) => Some(m),
-                _ => None,
-            })
     }
 }

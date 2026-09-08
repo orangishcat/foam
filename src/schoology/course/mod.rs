@@ -29,7 +29,9 @@ struct RawFolderResponse {
 /// Fetch a complete Schoology material tree as a standardized folder.
 pub fn course(course_id: &str, folder_id: &str) -> RequestResult<Folder> {
     info!("scraping Schoology course tree: course={course_id}, folder={folder_id}");
-    scrape_folder(course_id, folder_id, None, &mut HashSet::new())
+    let mut folder = scrape_folder(course_id, folder_id, None, &mut HashSet::new())?;
+    folder.set_course_id(course_id);
+    Ok(folder)
 }
 
 fn scrape_folder(
