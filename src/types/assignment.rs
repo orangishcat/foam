@@ -17,6 +17,12 @@ pub struct Assignment {
     pub due: DateTime<Utc>,
     #[serde(default)]
     pub max_points: f64,
+    /// Recorded numeric score; absent for letter grades or ungraded assignments.
+    #[serde(default)]
+    pub score: Option<f64>,
+    /// Recorded nonnumeric grade, such as `A-`.
+    #[serde(default)]
+    pub letter_grade: Option<String>,
     #[serde(default)]
     pub allow_submissions: bool,
     #[serde(default)]

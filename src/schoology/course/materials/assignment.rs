@@ -81,6 +81,8 @@ pub fn scrape(
         description: response.description,
         due: response.due.0,
         max_points: response.max_points.0,
+        score: None, // populated by scrape_grades
+        letter_grade: None,
         allow_submissions: response.allow_dropbox.0 != 0,
         attachments: response.attachments.into(),
     })

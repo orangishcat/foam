@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{self, BufReader, Error, ErrorKind},
+    io::{self, BufReader, Error},
     path::{Path, PathBuf},
 };
 
@@ -24,7 +24,7 @@ pub fn read_courses() -> io::Result<Vec<Course>> {
     }
     if courses.is_empty() {
         warn!("courses is empty; reimporting");
-        return Err(Error::new(ErrorKind::Other, "course vec is empty"));
+        return Err(Error::other("course vec is empty"));
     }
     Ok(courses)
 }

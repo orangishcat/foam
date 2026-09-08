@@ -1,22 +1,26 @@
-use std::{
-    cmp::{max, min},
-    collections::BTreeMap,
-};
+use std::collections::BTreeMap;
 
-use chrono::{DateTime, Datelike, Days, Local, Utc};
+use chrono::{Datelike, Days, Local, Utc};
 use slint::{Color, ModelRc, VecModel};
 
 use crate::{
     AssignmentCol,
     types::{
-        assignment::{self, Assignment},
+        assignment::Assignment,
         material::Material,
     },
 };
 
 use super::courses::CourseState;
 
+const EXCLUDED_FROM_DASHBOARD: i64 = -5;
+
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
+    if assignment.due < Utc::now()
+        && (assignment.score.is_some() || assignment.letter_grade.is_some())
+    {
+        return EXCLUDED_FROM_DASHBOARD;
+    }
     (assignment.due - Utc::now()).num_days().clamp(-1, 4)
 }
 
@@ -26,7 +30,7 @@ const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sa
 pub struct DashboardState {}
 
 impl DashboardState {
-    pub fn sync_ui<'a>(&'a self, courses: &CourseState, ui: &crate::AppWindow) {
+    pub fn sync_ui(&self, courses: &CourseState, ui: &crate::AppWindow) {
         let assignments = courses
             .walk_materials()
             .filter_map(|material| match material {
@@ -41,7 +45,6 @@ impl DashboardState {
                 groups
             });
 
-        let now = Local::now();
         let sorted_bucket_to_modelrc = |bucket: i64| {
             let mut assign_vec = assignments.get(&bucket).cloned().unwrap_or_default();
             assign_vec.sort_by_key(|a| a.due);
@@ -68,7 +71,7 @@ impl DashboardState {
         }];
         let day_cols = (0..3)
             .map(|day_add| crate::AssignmentCol {
-                title: now
+                title: Local::now()
                     .checked_add_days(Days::new(day_add))
                     .map_or_else(
                         || format!("{day_add} days later"),

@@ -4,7 +4,7 @@ use serde_json::Value;
 use super::{super::api_get_with_query, course};
 use crate::{
     config::config,
-    schoology::RequestResult,
+    schoology::{RequestResult, course::grades::scrape_grades},
     types::{LooseString, LooseUsize, course::Course},
 };
 
@@ -65,6 +65,13 @@ struct Links {
 /// Fetch every configured-user section and coerce it, including its complete
 /// material tree, into unified course models.
 pub fn scrape_courses() -> RequestResult<Vec<Course>> {
+    let mut courses = scrape_materials()?;
+    scrape_grades(&mut courses)?;
+    Ok(courses)
+}
+
+/// Fetch sections and their material trees without requesting grades.
+pub fn scrape_materials() -> RequestResult<Vec<Course>> {
     let mut sections = Vec::new();
     let mut start = 0;
     loop {

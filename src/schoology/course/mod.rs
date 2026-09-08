@@ -6,6 +6,7 @@ use serde_json::Value;
 use std::{collections::HashSet, io};
 
 pub mod courses;
+pub mod grades;
 pub mod materials;
 const API_ROOT: &str = "https://api.schoology.com/v1/courses";
 

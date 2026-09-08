@@ -4,7 +4,7 @@ use log::error;
 
 use crate::{
     filesystem::{self, read_courses},
-    schoology,
+    schoology::{self},
     types::{course::Course, material::Material},
 };
 
