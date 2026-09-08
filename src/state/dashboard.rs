@@ -78,13 +78,13 @@ impl DashboardState {
                     )
                     .into(),
                 assignments: sorted_bucket_to_modelrc(day_add as i64),
-                color: Color::from_rgb_u8(70, 90, 130),
+                color: Color::from_rgb_u8(70, 130, 90),
             })
             .collect::<Vec<AssignmentCol>>();
         let future_col = vec![crate::AssignmentCol {
             title: "Future".into(),
             assignments: sorted_bucket_to_modelrc(4),
-            color: slint::Color::from_rgb_u8(130, 90, 60),
+            color: slint::Color::from_rgb_u8(70, 90, 130),
         }];
 
         ui.set_assignment_view(ModelRc::new(VecModel::from(
