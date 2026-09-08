@@ -13,15 +13,6 @@ mod types;
 
 slint::include_modules!();
 
-/// Scrapes the user's course sections and each section's material tree.
-///
-/// Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/course-section/>
-fn scrape_courses() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let courses = schoology::course::courses::scrape_courses()?;
-    filesystem::write_courses(&courses)?;
-    Ok(())
-}
-
 fn init(state: &mut AppState) -> Result<(), Box<dyn std::error::Error>> {
     state.courses.load_courses();
     Ok(())

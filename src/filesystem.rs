@@ -1,10 +1,10 @@
 use std::{
     fs::{self, File},
-    io::{self, BufReader},
+    io::{self, BufReader, Error, ErrorKind},
     path::{Path, PathBuf},
 };
 
-use log::error;
+use log::{error, warn};
 use serde::Serialize;
 
 use crate::{config::config, types::course::Course};
@@ -19,8 +19,12 @@ pub fn read_courses() -> io::Result<Vec<Course>> {
                 course.materials.set_course_id(&course.course_id);
                 courses.push(course);
             }
-            Err(error) => error!("Failed to read course from {}: {error}", path.display()),
+            Err(error) => warn!("Failed to read course from {}: {error}", path.display()),
         }
+    }
+    if courses.is_empty() {
+        warn!("courses is empty; reimporting");
+        return Err(Error::new(ErrorKind::Other, "course vec is empty"));
     }
     Ok(courses)
 }
