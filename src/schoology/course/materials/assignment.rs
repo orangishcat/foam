@@ -3,7 +3,7 @@ use super::{
     types::{ApiLinks, Attachments, LooseFloat, LooseInt},
 };
 use crate::{
-    schoology::{RequestResult, api_get_with_query},
+    schoology::{RequestResult, api_get_with_query, types::datetime::SchoologyDatetime},
     types::LooseString,
 };
 use log::info;
@@ -18,7 +18,7 @@ pub struct Assignment {
     #[serde(default)]
     pub description: String,
     #[serde(default)]
-    pub due: String,
+    pub due: SchoologyDatetime,
     #[serde(default)]
     pub grading_scale: LooseInt,
     #[serde(default)]
@@ -79,7 +79,7 @@ pub fn scrape(
         id: response.id.0,
         title: response.title,
         description: response.description,
-        due: response.due.parse().unwrap_or_default(),
+        due: response.due.0,
         max_points: response.max_points.0,
         allow_submissions: response.allow_dropbox.0 != 0,
         attachments: response.attachments.into(),

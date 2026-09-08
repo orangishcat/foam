@@ -2,8 +2,10 @@ use super::{
     CourseMaterial, api_get,
     types::{LooseFloat, LooseInt},
 };
-use crate::{schoology::RequestResult, types::LooseString};
-use chrono::Utc;
+use crate::{
+    schoology::{RequestResult, types::datetime::SchoologyDatetime},
+    types::LooseString,
+};
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +20,7 @@ pub struct Assessment {
     #[serde(default)]
     pub max_points: LooseFloat,
     #[serde(default)]
-    pub due: String,
+    pub due: SchoologyDatetime,
     #[serde(default)]
     pub grading_scale: LooseInt,
     #[serde(default)]
@@ -43,9 +45,7 @@ pub fn scrape(
         title: response.title,
         description: response.description,
         max_points: response.max_points.0,
-        due: chrono::DateTime::parse_from_str(&response.due, "%Y-%M-%D %H:%M:%s")
-            .unwrap_or_default()
-            .with_timezone(&Utc),
+        due: response.due.0,
         completed: response.completed.0 != 0,
     })
 }

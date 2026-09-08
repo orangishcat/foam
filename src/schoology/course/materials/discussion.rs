@@ -1,4 +1,4 @@
-use crate::types::LooseString;
+use crate::{schoology::types::datetime::SchoologyDatetime, types::LooseString};
 
 use super::types::{ApiLinks, LooseInt};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ pub struct Discussion {
     #[serde(default)]
     pub graded: LooseInt,
     #[serde(default)]
-    pub due: String,
+    pub due: SchoologyDatetime,
     #[serde(default)]
     pub grade_item_id: LooseInt,
     #[serde(default)]
