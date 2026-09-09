@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::types::attachment::Attachments;
+use crate::types::{attachment::Attachments, submission::Submission};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Assignment {
@@ -27,4 +27,7 @@ pub struct Assignment {
     pub allow_submissions: bool,
     #[serde(default)]
     pub attachments: Attachments,
+    /// The configured user's submission revisions, including drafts.
+    #[serde(default)]
+    pub submissions: Vec<Submission>,
 }

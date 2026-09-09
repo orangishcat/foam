@@ -4,7 +4,7 @@ use log::error;
 
 use crate::{
     filesystem::{self, read_courses},
-    schoology::{self},
+    schoology::{self, course::submissions::scrape_submissions},
     types::{course::Course, material::Material},
 };
 
@@ -17,10 +17,7 @@ impl CourseState {
     pub fn load_courses(&mut self) {
         match read_courses() {
             Ok(courses) => {
-                self.courses = courses
-                    .into_iter()
-                    .map(|course| (course.course_id.clone(), course))
-                    .collect();
+                self.courses = Self::to_btree(courses);
             }
             Err(_err) => {
                 fn scrape_courses() -> Result<Vec<Course>, Box<dyn Error + Send + Sync>> {

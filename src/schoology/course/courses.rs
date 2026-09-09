@@ -4,7 +4,10 @@ use serde_json::Value;
 use super::{super::api_get_with_query, course};
 use crate::{
     config::config,
-    schoology::{RequestResult, course::grades::scrape_grades},
+    schoology::{
+        RequestResult,
+        course::{grades::scrape_grades, submissions::scrape_submissions},
+    },
     types::{LooseString, LooseUsize, course::Course},
 };
 
@@ -67,6 +70,7 @@ struct Links {
 pub fn scrape_courses() -> RequestResult<Vec<Course>> {
     let mut courses = scrape_materials()?;
     scrape_grades(&mut courses)?;
+    scrape_submissions(&mut courses)?;
     Ok(courses)
 }
 

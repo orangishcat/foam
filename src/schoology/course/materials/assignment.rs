@@ -85,5 +85,6 @@ pub fn scrape(
         letter_grade: None,
         allow_submissions: response.allow_dropbox.0 != 0,
         attachments: response.attachments.into(),
+        submissions: Vec::new(), // populated by scrape_submissions
     })
 }

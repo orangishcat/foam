@@ -5,10 +5,7 @@ use slint::{Color, ModelRc, VecModel};
 
 use crate::{
     AssignmentCol,
-    types::{
-        assignment::Assignment,
-        material::Material,
-    },
+    types::{assignment::Assignment, material::Material},
 };
 
 use super::courses::CourseState;
@@ -17,7 +14,10 @@ const EXCLUDED_FROM_DASHBOARD: i64 = -5;
 
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
     if assignment.due < Utc::now()
-        && (assignment.score.is_some() || assignment.letter_grade.is_some())
+        && (assignment.score.is_some()
+            || assignment.letter_grade.is_some()
+            || !assignment.allow_submissions
+            || !assignment.submissions.is_empty())
     {
         return EXCLUDED_FROM_DASHBOARD;
     }
