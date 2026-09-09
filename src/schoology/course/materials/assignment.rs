@@ -9,53 +9,31 @@ use crate::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Assignment {
-    #[serde(default)]
     pub id: LooseString,
-    #[serde(default)]
     pub title: String,
-    #[serde(default)]
     pub description: String,
-    #[serde(default)]
     pub due: SchoologyDatetime,
-    #[serde(default)]
     pub grading_scale: LooseInt,
-    #[serde(default)]
     pub grading_period: LooseInt,
-    #[serde(default)]
     pub grading_category: LooseInt,
-    #[serde(default)]
     pub max_points: LooseFloat,
-    #[serde(default)]
     pub factor: LooseFloat,
-    #[serde(default)]
     pub is_final: LooseInt,
-    #[serde(default)]
     pub show_comments: LooseInt,
-    #[serde(default)]
     pub grade_stats: LooseInt,
-    #[serde(default)]
     pub allow_dropbox: LooseInt,
-    #[serde(default)]
     pub allow_discussion: LooseInt,
-    #[serde(default)]
     pub published: LooseInt,
-    #[serde(default)]
     pub show_rubric: bool,
-    #[serde(default)]
     pub assignees: Vec<i64>,
-    #[serde(default)]
     pub grading_group_ids: Vec<i64>,
-    #[serde(default)]
     pub count_in_grade: LooseInt,
-    #[serde(default)]
     pub collected_only: LooseInt,
-    #[serde(default)]
     pub auto_publish_grades: LooseInt,
-    #[serde(default)]
     pub links: ApiLinks,
-    #[serde(default)]
     pub attachments: Attachments,
 }
 

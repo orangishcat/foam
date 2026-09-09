@@ -19,9 +19,9 @@ struct SubmissionsQuery {
 // The user-specific view returns revisions, rather than the assignment-wide
 // list's default of only the latest revision for each user.
 // https://developers.schoology.com/api-documentation/rest-api-v1/submissions/
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
+#[serde(default)]
 struct SubmissionsResponse {
-    #[serde(default)]
     revision: Vec<Revision>,
 }
 

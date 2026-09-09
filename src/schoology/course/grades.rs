@@ -17,9 +17,9 @@ struct GradesQuery<'a> {
 // Schoology's user endpoint nests assignment grades under section -> period -> assignment.
 // Section totals (`final_grade`) are deliberately not assignment scores.
 // https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
+#[serde(default)]
 struct GradesResponse {
-    #[serde(default)]
     section: Vec<SectionGrades>,
 }
 
@@ -30,9 +30,9 @@ struct SectionGrades {
     period: Vec<PeriodGrades>,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
+#[serde(default)]
 struct PeriodGrades {
-    #[serde(default)]
     assignment: Vec<AssignmentGrade>,
 }
 
@@ -42,7 +42,6 @@ struct AssignmentGrade {
     // The API accepts numeric and grading-scale letter grades. Do not use
     // LooseFloat: it would lose letter grades and turn empty scores into zero.
     // https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/#fields
-    #[serde(default)]
     grade: Option<LooseString>,
 }
 

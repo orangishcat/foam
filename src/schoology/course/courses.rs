@@ -20,48 +20,38 @@ struct CoursesQuery {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
 struct CoursesResponse {
-    #[serde(default)]
     section: Vec<SchoologyCourse>,
-    #[serde(default)]
     total: LooseUsize,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
 struct SchoologyCourse {
-    #[serde(default, rename = "id")]
+    #[serde(rename = "id")]
     nid: LooseString,
-    #[serde(default)]
     course_title: String,
-    #[serde(default)]
     course_code: String,
-    #[serde(default, alias = "title")]
+    #[serde(alias = "title")]
     section_title: String,
-    #[serde(default)]
     section_code: String,
-    #[serde(default)]
     active: i64,
-    #[serde(default)]
     description: String,
-    #[serde(default, rename = "profile_url")]
+    #[serde(rename = "profile_url")]
     logo_img_src: String,
-    #[serde(default)]
     location: String,
-    #[serde(default)]
     meeting_days: Vec<Value>,
-    #[serde(default)]
     start_time: String,
-    #[serde(default)]
     end_time: String,
-    #[serde(default)]
     weight: LooseString,
-    #[serde(default)]
     links: Links,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
 struct Links {
-    #[serde(default, rename = "self")]
+    #[serde(rename = "self")]
     self_url: String,
 }
 

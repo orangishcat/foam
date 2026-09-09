@@ -6,23 +6,16 @@ use crate::{schoology::RequestResult, types::LooseString};
 use log::info;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Link {
-    #[serde(default)]
     pub id: LooseString,
-    #[serde(default)]
     pub title: String,
-    #[serde(default)]
     pub url: String,
-    #[serde(default)]
     pub course_fid: LooseInt,
-    #[serde(default)]
     pub available: LooseInt,
-    #[serde(default)]
     pub published: LooseInt,
-    #[serde(default)]
     pub attachments: Attachments,
-    #[serde(default)]
     pub display_inline: LooseInt,
 }
 

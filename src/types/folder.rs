@@ -5,14 +5,11 @@ use serde::{Deserialize, Serialize};
 use super::material::Material;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Folder {
-    #[serde(default)]
     pub id: String,
-    #[serde(default)]
     pub title: String,
-    #[serde(default)]
     pub body: String,
-    #[serde(default)]
     pub materials: Vec<Material>,
 }
 
