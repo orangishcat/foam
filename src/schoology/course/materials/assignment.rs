@@ -61,6 +61,7 @@ pub fn scrape(
         max_points: response.max_points.0,
         score: None, // populated by scrape_grades
         letter_grade: None,
+        manual_mark: None,
         allow_submissions: response.allow_dropbox.0 != 0,
         attachments: response.attachments.into(),
         submissions: Vec::new(), // populated by scrape_submissions
