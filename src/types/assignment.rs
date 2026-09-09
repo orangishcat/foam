@@ -11,13 +11,11 @@ pub struct Assignment {
     pub title: String,
     pub description: String,
     pub due: DateTime<Utc>,
+    pub manual_mark: Option<bool>, // true / false / (none -> fallback to other checks)
     pub max_points: f64,
-    /// Recorded numeric score; absent for letter grades or ungraded assignments.
     pub score: Option<f64>,
-    /// Recorded nonnumeric grade, such as `A-`.
-    pub letter_grade: Option<String>,
+    pub letter_grade: Option<String>, // why on earth does schoology allow letter grades
     pub allow_submissions: bool,
     pub attachments: Attachments,
-    /// The configured user's submission revisions, including drafts.
-    pub submissions: Vec<Submission>,
+    pub submissions: Vec<Submission>, // schoology revisions + drafts
 }
