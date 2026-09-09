@@ -22,31 +22,35 @@ export component Dashboard inherits Rectangle {
                 viewport-width: self.visible-width;
                 viewport-height: max(self.visible-height, assignments.preferred-height);
                 horizontal-scrollbar-policy: always-off;
-                assignments := VerticalBox {
-                    alignment: start;
+                Rectangle {
+                    background: Theme.dark.background-750;
 
-                    for assignment in col.assignments: Rectangle {
-                        background: col.color;
-                        border-radius: 5px;
-                        min-height: 40px;
-                        max-height: 120px;
+                    assignments := VerticalLayout {
+                        alignment: start;
+                        spacing: 5px;
+                        for assignment in col.assignments: Rectangle {
+                            background: assignment.color;
+                            border-radius: 5px;
+                            min-height: 40px;
+                            max-height: 120px;
                         // Text measurements include font size, weight, and wrapping.
                         preferred-height: title.preferred-height + course.preferred-height
-                            + content.padding-top + content.padding-bottom + 16px;
-                        clip: true;
+                                + content.padding-top + content.padding-bottom + 16px;
+                            clip: true;
 
-                        content := VerticalBox {
-                            spacing: 2px;
-                            title := Text {
-                                text: assignment.title;
-                                font-weight: 700;
-                                wrap: word-wrap;
-                            }
+                            content := VerticalBox {
+                                spacing: 2px;
+                                title := Text {
+                                    text: assignment.title;
+                                    font-weight: 700;
+                                    wrap: word-wrap;
+                                }
 
-                            course := Text {
-                                color: Theme.dark.text-400;
-                                text: assignment.course_name;
-                                wrap: word-wrap;
+                                course := Text {
+                                    color: Theme.dark.text-400;
+                                    text: assignment.course_name;
+                                    wrap: word-wrap;
+                                }
                             }
                         }
                     }

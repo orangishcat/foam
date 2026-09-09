@@ -54,6 +54,13 @@ impl DashboardState {
                     .map(|a| crate::Assignment {
                         title: a.title.clone().into(),
                         course_id: a.course_id.clone().into(),
+                        color: if a.is_completed() {
+                            Color::from_rgb_u8(70, 130, 90)
+                        } else if a.is_overdue() {
+                            Color::from_rgb_u8(130, 90, 60)
+                        } else {
+                            Color::from_rgb_u8(70, 90, 130)
+                        },
                         course_name: courses
                             .get_course(&a.course_id)
                             .map(|c| c.course_title.as_str())
@@ -67,9 +74,8 @@ impl DashboardState {
         let overdue_col = vec![crate::AssignmentCol {
             title: "Overdue".into(),
             assignments: sorted_bucket_to_modelrc(-1),
-            color: slint::Color::from_rgb_u8(130, 90, 60),
         }];
-        let day_cols = (0..3)
+        let day_cols = (0..4)
             .map(|day_add| crate::AssignmentCol {
                 title: Local::now()
                     .checked_add_days(Days::new(day_add))
@@ -81,13 +87,11 @@ impl DashboardState {
                     )
                     .into(),
                 assignments: sorted_bucket_to_modelrc(day_add as i64),
-                color: Color::from_rgb_u8(70, 130, 90),
             })
             .collect::<Vec<AssignmentCol>>();
         let future_col = vec![crate::AssignmentCol {
             title: "Future".into(),
             assignments: sorted_bucket_to_modelrc(4),
-            color: slint::Color::from_rgb_u8(70, 90, 130),
         }];
 
         ui.set_assignment_view(ModelRc::new(VecModel::from(

@@ -19,3 +19,15 @@ pub struct Assignment {
     pub attachments: Attachments,
     pub submissions: Vec<Submission>, // schoology revisions + drafts
 }
+
+impl Assignment {
+    pub fn is_completed(&self) -> bool {
+        if let Some(mark) = self.manual_mark {
+            return mark;
+        }
+        (self.is_overdue() && !self.allow_submissions) || !self.submissions.is_empty()
+    }
+    pub fn is_overdue(&self) -> bool {
+        self.due < Utc::now()
+    }
+}
