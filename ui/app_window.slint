@@ -1,34 +1,42 @@
 import { HorizontalBox } from "std-widgets.slint";
-import { Dashboard } from "dashboard.slint";
+import { Dashboard } from "screen/dashboard.slint";
+import { Screen } from "screen/screens.slint";
 import { Theme } from "palette.slint";
 import { Sidebar } from "sidebar.slint";
 import { AssignmentCol } from "types/assignment.slint";
 import "./fonts/MozillaText.ttf";
+import { Notifications } from "screen/notifications.slint";
 
 export component AppWindow inherits Window {
     title: "Foam";
-
     default-font-family: "Mozilla Text";
     preferred-width: 1200px;
     preferred-height: 800px;
 
-    in-out property <color> text-color: Theme.dark.text-50;
-    in-out property <color> background-color: Theme.dark.background-800;
-    in-out property <color> primary-color: Theme.dark.primary-500;
-
     in-out property <[AssignmentCol]> assignment-view;
-
-    background: root.background-color;
+    in-out property <Screen> screen: Screen.dashboard;
+    background: Theme.dark.background-800;
 
     HorizontalBox {
         padding: 0px;
         spacing: 0px;
 
-        Sidebar { }
+        Sidebar {
+            screen <=> root.screen;
+        }
 
-        Dashboard {
+        Rectangle {
             horizontal-stretch: 1;
-            assignment-view <=> root.assignment-view;
+            vertical-stretch: 1;
+            if root.screen == Screen.dashboard: Dashboard {
+                width: parent.width;
+                height: parent.height;
+                assignment-view <=> root.assignment-view;
+            }
+            if root.screen == Screen.notifs: Notifications {
+                width: parent.width;
+                height: parent.height;
+            }
         }
     }
 }

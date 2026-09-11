@@ -1,14 +1,23 @@
 import { VerticalBox } from "std-widgets.slint";
 import { Theme } from "palette.slint";
+import { Screen } from "screen/screens.slint";
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
     in property <image> icon;
-    in property <bool> selected: false;
+
+    in-out property <Screen> screen;
+    in property <Screen> change-to;
 
     height: 44px;
     border-radius: 6px;
-    background: selected ? Theme.dark.background-700 : transparent;
+    background: screen == change-to ? Theme.dark.background-700 : (touch.has-hover ? Theme.dark.background-600 : transparent);
+
+    touch := TouchArea {
+        clicked => {
+            screen = change-to;
+        }
+    }
 
     Image {
         source: icon;
@@ -25,6 +34,8 @@ component NavigationItem inherits Rectangle {
 
 export component Sidebar inherits Rectangle {
     in property <bool> minimized: true;
+    in-out property <Screen> screen: dashboard;
+
     width: minimized ? 60px : 240px;
     background: Theme.dark.background-900;
 
@@ -38,8 +49,16 @@ export component Sidebar inherits Rectangle {
 
         NavigationItem {
             label: "Dashboard";
-            selected: true;
             icon: @image-url("icons/calendar-days.svg");
+            screen <=> root.screen;
+            change-to: dashboard;
+        }
+
+        NavigationItem {
+            label: "Notifications";
+            icon: @image-url("icons/bell.svg");
+            screen <=> root.screen;
+            change-to: notifs;
         }
 
         Rectangle {
@@ -49,6 +68,8 @@ export component Sidebar inherits Rectangle {
         NavigationItem {
             label: "Settings";
             icon: @image-url("icons/settings.svg");
+            screen <=> root.screen;
+            change-to: settings;
         }
     }
 }
