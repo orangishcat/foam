@@ -1,16 +1,19 @@
 use std::{collections::BTreeMap, error::Error};
 
+use chrono::{DateTime, Local};
 use log::error;
 
 use crate::{
+    config::config,
     filesystem::{self, read_courses},
-    schoology::{self, course::submissions::scrape_submissions},
+    schoology::{self},
     types::{course::Course, material::Material},
 };
 
 #[derive(Default)]
 pub struct CourseState {
-    courses: BTreeMap<String, Course>,
+    pub courses: BTreeMap<String, Course>,
+    pub last_refresh: DateTime<Local>,
 }
 
 impl CourseState {
@@ -20,12 +23,8 @@ impl CourseState {
                 self.courses = Self::to_btree(courses);
             }
             Err(_err) => {
-                fn scrape_courses() -> Result<Vec<Course>, Box<dyn Error + Send + Sync>> {
-                    let courses = schoology::course::courses::scrape_courses()?;
-                    filesystem::write_courses(&courses)?;
-                    Ok(courses)
-                }
-                if let Ok(courses) = scrape_courses()
+                if let Ok(courses) = self
+                    .scrape_and_write_courses()
                     .inspect_err(|e| error!("An error occured while scraping courses: {}", e))
                 {
                     self.courses = Self::to_btree(courses);
@@ -33,14 +32,24 @@ impl CourseState {
             }
         }
     }
+    pub fn check_and_refresh_courses(&mut self) {
+        if Local::now() - self.last_refresh < config().refresh_duration {
+            return;
+        }
+        self.last_refresh = Local::now();
+    }
     pub fn get_course(&self, course_id: &str) -> Option<&Course> {
         self.courses.get(course_id)
     }
-
     pub fn walk_materials(&self) -> impl Iterator<Item = &Material> + '_ {
         self.courses
             .values()
             .flat_map(|c| c.materials.recursive_iter())
+    }
+    pub fn scrape_and_write_courses(&self) -> Result<Vec<Course>, Box<dyn Error + Send + Sync>> {
+        let courses = schoology::course::courses::scrape_courses()?;
+        filesystem::write_courses(&courses)?;
+        Ok(courses)
     }
     fn to_btree(courses: Vec<Course>) -> BTreeMap<String, Course> {
         courses

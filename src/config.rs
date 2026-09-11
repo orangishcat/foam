@@ -5,7 +5,8 @@ use std::{
     sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
 const APP_NAME: &str = concat!("dev.orangishcat.", env!("CARGO_PKG_NAME"));
@@ -13,7 +14,8 @@ const CONFIG_FILE_NAME: &str = "config.json";
 
 static CONFIG: LazyLock<RwLock<AppConfig>> = LazyLock::new(|| RwLock::new(AppConfig::load(None)));
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
+#[derivative(Default)]
 #[serde(default)]
 pub struct AppConfig {
     pub subdomain: String,
@@ -23,6 +25,10 @@ pub struct AppConfig {
     pub cookie_value: String,
     pub api_key: Option<String>,
     pub api_secret: Option<String>,
+
+    #[derivative(Default(value = "TimeDelta::minutes(5)"))]
+    pub refresh_duration: TimeDelta,
+
     #[serde(skip)]
     data_dir: PathBuf,
 }
