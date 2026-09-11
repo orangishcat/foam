@@ -1,0 +1,73 @@
+export component ProgressRing inherits Rectangle {
+    in property <float> progress: 0;
+    in property <color> track-color: #454545;
+    in property <color> progress-color: #78aaff;
+    private property <float> p: min(1, max(0, root.progress));
+
+    width: 36px;
+    height: 36px;
+    background: transparent;
+
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        fill: transparent;
+        stroke: root.track-color;
+        stroke-width: 2px;
+
+        MoveTo {
+            x: 50;
+            y: 6;
+        }
+
+        ArcTo {
+            x: 50;
+            y: 94;
+            radius-x: 44;
+            radius-y: 44;
+            sweep: true;
+        }
+
+        ArcTo {
+            x: 50;
+            y: 6;
+            radius-x: 44;
+            radius-y: 44;
+            sweep: true;
+        }
+    }
+
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        fill: transparent;
+        stroke: root.progress-color;
+        stroke-width: 2px;
+        visible: root.p > 0;
+
+        MoveTo {
+            x: 50;
+            y: 6;
+        }
+
+        ArcTo {
+            x: 50 + 44 * sin(root.p * 180deg);
+            y: 50 - 44 * cos(root.p * 180deg);
+            radius-x: 44;
+            radius-y: 44;
+            sweep: true;
+        }
+
+        ArcTo {
+            x: 50 + 44 * sin(root.p * 360deg);
+            y: 50 - 44 * cos(root.p * 360deg);
+            radius-x: 44;
+            radius-y: 44;
+            sweep: true;
+        }
+    }
+}

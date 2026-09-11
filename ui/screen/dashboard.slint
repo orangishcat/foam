@@ -1,14 +1,12 @@
 import { HorizontalBox, VerticalBox, ScrollView } from "std-widgets.slint";
 import { Theme } from "../palette.slint";
-import { AssignmentCol } from "../types/assignment.slint";
+import { UiState } from "../ui-state.slint";
 
 export component Dashboard inherits Rectangle {
     background: Theme.dark.background-800;
 
-    in-out property <[AssignmentCol]> assignment-view;
-
     HorizontalBox {
-        for col in assignment-view: VerticalBox {
+        for col in UiState.dashboard.assignment-view: VerticalBox {
             alignment: start;
 
             Text {

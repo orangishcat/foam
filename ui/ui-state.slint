@@ -1,0 +1,10 @@
+// ui/ui-state.slint
+import { Screen } from "screen/screens.slint";
+import { DashboardUi } from "types/dashboard-ui.slint";
+import { NotifUi } from "types/notif-ui.slint";
+
+export global UiState {
+    in-out property <Screen> screen: Screen.dashboard;
+    in-out property <DashboardUi> dashboard;
+    in-out property <NotifUi> notif;
+}

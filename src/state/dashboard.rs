@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use chrono::{Datelike, Days, Local, Utc};
-use slint::{Color, ModelRc, VecModel};
+use slint::{Color, ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AssignmentCol,
@@ -94,8 +94,11 @@ impl DashboardState {
             assignments: sorted_bucket_to_modelrc(4),
         }];
 
-        ui.set_assignment_view(ModelRc::new(VecModel::from(
-            [overdue_col, day_cols, future_col].concat(),
-        )));
+        ui.global::<crate::UiState>()
+            .set_dashboard(crate::DashboardUi {
+                assignment_view: ModelRc::new(VecModel::from(
+                    [overdue_col, day_cols, future_col].concat(),
+                )),
+            });
     }
 }
