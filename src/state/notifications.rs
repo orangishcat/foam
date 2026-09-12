@@ -71,7 +71,7 @@ impl NotificationState {
                     global.set_notif(notif);
                 })
             };
-            publish_progress(0.0);
+            publish_progress(1.0);
             let result = schoology::notification::update::update(&mut notifs, publish_progress);
             let persisted = state().course.save();
             if let Err(err) = &result {
@@ -103,6 +103,7 @@ impl NotificationState {
                     .into(),
                 course_id: notif.course_id.to_owned().into(),
             })
+            .take(20)
             .collect::<Vec<crate::Notification>>();
         ui.global::<crate::UiState>()
             .set_notif(crate::NotificationUi {

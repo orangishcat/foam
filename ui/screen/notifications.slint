@@ -1,37 +1,45 @@
 import { Theme } from "../palette.slint";
-import { ScrollView, HorizontalBox, VerticalBox } from "std-widgets.slint";
+import {
+    ScrollView,
+    HorizontalBox,
+    VerticalBox,
+    ListView,
+} from "std-widgets.slint";
 import { UiState } from "../ui-state.slint";
 
 export component Notifications inherits Rectangle {
     background: UiState.theme.background-800;
 
-    ScrollView {
-        VerticalBox {
-            padding: 32px;
+    VerticalBox {
+        ListView {
             for notif in UiState.notif.notifications: Rectangle {
-                border-radius: 10px;
-                border-width: 5px;
-                border-color: UiState.theme.background-400;
-                background: UiState.theme.background-700;
+                height: inner.height + 10px;
+                inner := Rectangle {
+                    border-radius: 5px;
+                    border-width: 2px;
+                    height: min(120px, max(30px, self.preferred-height));
+                    border-color: UiState.theme.background-400;
+                    background: UiState.theme.background-700;
 
-                preferred-height: title.preferred-height + course.preferred-height
-                    + content.padding-top + content.padding-bottom + 16px;
-                clip: true;
+                    preferred-height: title.preferred-height + course.preferred-height
+                        + content.padding-top + content.padding-bottom + 16px;
+                    clip: true;
 
-                HorizontalBox {
+                    HorizontalBox {
 
-                    content := VerticalBox {
-                        spacing: 2px;
-                        title := Text {
-                            text: notif.title;
-                            font-weight: 700;
-                            wrap: word-wrap;
-                        }
+                        content := VerticalBox {
+                            spacing: 2px;
+                            title := Text {
+                                text: notif.title;
+                                font-weight: 700;
+                                wrap: word-wrap;
+                            }
 
-                        course := Text {
-                            color: UiState.theme.text-400;
-                            text: notif.course;
-                            wrap: word-wrap;
+                            course := Text {
+                                color: UiState.theme.text-400;
+                                text: notif.course;
+                                wrap: word-wrap;
+                            }
                         }
                     }
                 }

@@ -24,13 +24,16 @@ export component AppWindow inherits Window {
         Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            if UiState.screen == Screen.dashboard: Dashboard {
+            Dashboard {
                 width: parent.width;
                 height: parent.height;
+                visible: UiState.screen == Screen.dashboard;
             }
-            if UiState.screen == Screen.notifs: Notifications {
+
+            Notifications {
                 width: parent.width;
                 height: parent.height;
+                visible: UiState.screen == Screen.notifs;
             }
         }
     }

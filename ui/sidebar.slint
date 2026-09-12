@@ -15,8 +15,10 @@ component NavigationItem inherits Rectangle {
     background: UiState.screen == change-to ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
 
     touch := TouchArea {
-        clicked => {
-            UiState.screen = change-to;
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down {
+                UiState.screen = change-to;
+            }
         }
     }
 
@@ -37,7 +39,7 @@ component NavigationItem inherits Rectangle {
     // }
 }
 
-export component Sidebar inherits Rectangle {
+    export component Sidebar inherits Rectangle {
     in property <bool> minimized: true;
 
     width: minimized ? 60px : 240px;
