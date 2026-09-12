@@ -42,7 +42,7 @@ impl NotificationState {
                 state().notifs.notifications = notifs.clone();
                 config_write().last_update = Local::now();
                 log::info!("Finished scraping notifications");
-                if let Err(err) = Self::update_notif_materials(notifs, check_started) {
+                if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
                     state().notifs.is_checking_notifications = false;
                     log::warn!("Starting notification material update failed: {err}");
                 }
@@ -83,6 +83,7 @@ impl NotificationState {
             }
             if result.is_ok() && persisted.is_ok() {
                 // notifications arriving during sync are marked as not synced
+                // the logic is here so that last_sync is only updated when sync is successful
                 config_write().last_sync = check_started;
             }
             crate::ui::run_on_ui_thread(move |ui| {
