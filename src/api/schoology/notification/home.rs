@@ -14,23 +14,8 @@ use scraper::{CaseSensitivity, ElementRef, Html, Selector};
 const HOME_ROUTE: &str = "/home/notifications?filter=all";
 
 pub fn scrape_home() -> RequestResult<Vec<Notification>> {
-    let mut route = HOME_ROUTE.to_owned();
-    let mut visited = HashSet::new();
-    let mut notifications = Vec::new();
-    let now = Local::now();
-
-    loop {
-        if !visited.insert(route.clone()) {
-            return Err(io::Error::other("notification pagination cycle").into());
-        }
-        let response: HomeResponse = internal_get(&route)?;
-        let (page, next) = parse_home(&response.output, now)?;
-        notifications.extend(page);
-        match next {
-            Some(next) => route = next,
-            None => return Ok(notifications),
-        }
-    }
+    let response: HomeResponse = internal_get(HOME_ROUTE)?;
+    parse_home(&response.output, Local::now())
 }
 
 fn selector(value: &str) -> Selector {
@@ -105,10 +90,7 @@ fn operation_prefix(element: ElementRef<'_>, output: &mut String) -> bool {
     false
 }
 
-fn parse_home(
-    html: &str,
-    now: DateTime<Local>,
-) -> RequestResult<(Vec<Notification>, Option<String>)> {
+fn parse_home(html: &str, now: DateTime<Local>) -> RequestResult<Vec<Notification>> {
     let document = Html::parse_fragment(html);
     let feed = document
         .select(&selector("ul.s-notifications-mini"))
@@ -121,7 +103,6 @@ fn parse_home(
     let material_times = selector(".material-created");
     let mut date = None;
     let mut notifications = Vec::new();
-    let mut next = None;
 
     for row in feed.child_elements() {
         if row
@@ -135,16 +116,6 @@ fn parse_home(
             .value()
             .has_class("notif-more", CaseSensitivity::CaseSensitive)
         {
-            if let Some(link) = row.select(&links).next() {
-                let url = reqwest::Url::parse("https://schoology.com")?
-                    .join(link.attr("href").unwrap_or_default())?;
-                let page = url
-                    .query_pairs()
-                    .find(|(key, _)| key == "page")
-                    .and_then(|(_, value)| value.parse::<usize>().ok())
-                    .ok_or_else(|| io::Error::other("invalid notification pagination link"))?;
-                next = Some(format!("{HOME_ROUTE}&page={page}"));
-            }
             continue;
         }
 
@@ -235,7 +206,7 @@ fn parse_home(
         }
     }
 
-    Ok((notifications, next))
+    Ok(notifications)
 }
 
 fn parse_created(value: &str, header: Option<NaiveDate>, now: DateTime<Local>) -> DateTime<Local> {

@@ -6,6 +6,7 @@ use crate::{
 mod home;
 mod material_type;
 mod navigation;
+mod update;
 
 /// Combine material posts from the full HTML feed with grades from the navigation feed.
 /// Both feeds must succeed to avoid returning an incomplete notification history.
