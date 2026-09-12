@@ -5,7 +5,7 @@ use std::error::Error;
 
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 
-use crate::{config::config, state::state::state};
+use crate::{config::config, state::state::state, ui::WEAK_UI};
 
 mod api;
 mod config;
@@ -13,6 +13,7 @@ mod filesystem;
 mod state;
 mod thread_manager;
 mod types;
+mod ui;
 
 slint::include_modules!();
 
@@ -29,6 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .backend_name("winit".into())
         .select()?;
     let ui = AppWindow::new()?;
+    *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
+
     ui.window().on_winit_window_event(move |_window, event| {
         if let winit::event::WindowEvent::Focused(focus) = event
             && *focus

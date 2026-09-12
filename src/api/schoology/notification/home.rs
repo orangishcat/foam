@@ -1,10 +1,7 @@
 use std::{collections::HashSet, io};
 
 use super::super::{RequestResult, internal_get};
-use crate::{
-    api::schoology::types::notification::HomeResponse,
-    types::notification::Notification,
-};
+use crate::{api::schoology::types::notification::HomeResponse, types::notification::Notification};
 use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeZone};
 use scraper::{CaseSensitivity, ElementRef, Html, Selector};
 
