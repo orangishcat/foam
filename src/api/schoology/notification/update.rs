@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    io,
-};
+use std::{collections::HashMap, io};
 
 use scraper::{Html, Selector};
 
@@ -10,6 +7,7 @@ use crate::{
         self, RequestResult,
         course::{self, CourseMaterial, materials},
     },
+    state::state::state,
     types::{
         course::Course,
         folder::Folder,
@@ -64,20 +62,14 @@ fn assignment_parent(html: &str, course_id: &str) -> RequestResult<String> {
         .unwrap_or_else(|| "0".to_owned()))
 }
 
-/// Discover parents first, then handle pending notifications in input order.
-/// A failed notification remains pending; progress only advances after success.
+/// Discover each parent and process its notification together in input order.
+/// Failed notifications are logged and remain pending; progress tracks attempted items.
 pub fn update(
     notifications: &mut [Notification],
-    courses: &mut [Course],
     mut publish_progress: impl FnMut(f32),
 ) -> RequestResult<()> {
     let mut folders = FolderMap::new();
-    let course_indices: HashMap<_, _> = courses
-        .iter()
-        .enumerate()
-        .map(|(i, c)| (c.course_id.clone(), i))
-        .collect();
-    for course in courses.iter() {
+    for course in state().course.courses.values() {
         index_folder(
             &course.course_id,
             &course.materials,
@@ -92,109 +84,190 @@ pub fn update(
         .filter(|(_, n)| !n.is_processed)
         .map(|(i, _)| i)
         .collect();
-    let mut parents = HashMap::new();
-    let mut documents = HashMap::new();
-    for &i in &pending {
-        let n = &notifications[i];
-        if !course_indices.contains_key(&n.course_id) {
-            return Err(io::Error::other(format!(
-                "notification course {} is not loaded",
-                n.course_id
-            ))
-            .into());
-        }
-        if n.event != NotificationEvent::MaterialPosted {
-            continue;
-        }
-        let parent = match n.material_type {
-            Some(MaterialType::Document) => {
-                let document: materials::document::Document = schoology::api_get(&format!(
-                    "https://api.schoology.com/v1/sections/{}/documents/{}",
-                    n.course_id, n.resource_id
-                ))?;
-                let parent = document.course_fid.0.to_string();
-                documents.insert(i, Material::Document(document.into()));
-                parent
-            }
-            Some(MaterialType::Assignment | MaterialType::Assessment) => assignment_parent(
-                &schoology::internal_get_html(&format!("/assignment/{}", n.resource_id))?,
-                &n.course_id,
-            )?,
-            Some(MaterialType::Link) => {
-                let meta = descriptor(n, "link", "documents");
-                let link = materials::link::scrape(&meta, meta.location.as_deref().unwrap())?;
-                let parent = link.course_fid.to_string();
-                documents.insert(i, Material::Link(link));
-                parent
-            }
-            _ => continue,
-        };
-        parents.insert(i, parent);
-    }
-    let mut refreshed = HashSet::new();
     for (done, &i) in pending.iter().enumerate() {
         let n = &mut notifications[i];
-        let course = &mut courses[course_indices[&n.course_id]];
-        match n.event {
-            NotificationEvent::MaterialPosted => {
-                let missing = parents.get(&i).is_some_and(|parent| {
-                    !folders.contains_key(&(n.course_id.clone(), parent.clone()))
-                });
-                if (missing || n.material_type == Some(MaterialType::Folder))
-                    && refreshed.insert(n.course_id.clone())
-                {
-                    course.materials = course::hierarchy(&n.course_id, &course.materials)?;
-                    folders.retain(|(id, _), _| id != &n.course_id);
-                    index_folder(
-                        &n.course_id,
-                        &course.materials,
-                        &mut Vec::new(),
-                        &mut folders,
-                    );
-                    folders.insert((n.course_id.clone(), "0".into()), Vec::new());
-                }
-                if let Some(parent) = parents.get(&i) {
-                    let path = folders
-                        .get(&(n.course_id.clone(), parent.clone()))
-                        .ok_or_else(|| {
-                            io::Error::other(format!(
-                                "parent folder {parent} is absent after hierarchy refresh"
-                            ))
-                        })?;
-                    let material = if let Some(material) = documents.remove(&i) {
-                        material
-                    } else {
-                        let kind = if n.material_type == Some(MaterialType::Assessment) {
-                            "assessment"
-                        } else {
-                            "assignment"
-                        };
-                        let meta = descriptor(n, kind, "assignments");
-                        let mut material = materials::scrape(&meta)?
-                            .ok_or_else(|| io::Error::other("unsupported posted material"))?;
-                        if let Material::Assignment(a) = &mut material {
-                            a.course_id = n.course_id.clone();
-                        }
-                        material
-                    };
-                    let folder = folder_at(&mut course.materials, path);
-                    // Repeated feed entries must not duplicate or erase cached grades/submissions.
-                    if !folder.materials.iter().any(|m| {
-                        course::material_id(m) == n.resource_id
-                            && MaterialType::from(m) == MaterialType::from(&material)
-                    }) {
-                        folder.materials.push(material);
-                    }
-                }
-            }
-            NotificationEvent::GradeUpdated => {
-                course::grades::scrape_grades(std::slice::from_mut(course))?;
-            }
-            NotificationEvent::Unknown => {}
+        if let Err(err) = process_notification(n, &mut folders) {
+            log::warn!(
+                "Skipping notification for resource {} in course {}: {err}",
+                n.resource_id,
+                n.course_id
+            );
         }
-        n.is_processed = true;
         publish_progress((done + 1) as f32 / pending.len() as f32);
     }
+    Ok(())
+}
+
+fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> RequestResult<()> {
+    // Release the state lock before making requests or publishing progress.
+    let course = state().course.get_course(&n.course_id).cloned();
+    let mut course = course.ok_or_else(|| {
+        io::Error::other(format!("notification course {} is not loaded", n.course_id))
+    })?;
+    // Commit refreshed paths with the course so a failure cannot leave stale paths.
+    let mut updated_folders = folders.clone();
+    match n.event {
+        NotificationEvent::MaterialPosted => {
+            handle_material_posted(n, &mut course, &mut updated_folders)?;
+        }
+        NotificationEvent::GradeUpdated => {
+            course::grades::scrape_grades(std::slice::from_mut(&mut course))?;
+        }
+        NotificationEvent::Unknown => {}
+    }
+    state().course.courses.insert(n.course_id.clone(), course);
+    *folders = updated_folders;
+    n.is_processed = true;
+    Ok(())
+}
+
+fn handle_material_posted(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+) -> RequestResult<()> {
+    match n.material_type {
+        Some(MaterialType::Document) => handle_document_posted(n, course, folders),
+        Some(MaterialType::Assignment | MaterialType::Assessment) => {
+            handle_assignment_posted(n, course, folders)
+        }
+        Some(MaterialType::Link) => handle_link_posted(n, course, folders),
+        Some(MaterialType::Folder) => handle_folder_posted(n, course, folders),
+        None => Ok(()),
+    }
+}
+
+fn handle_document_posted(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+) -> RequestResult<()> {
+    if contains_material(n, course) {
+        return Ok(());
+    }
+    let document: materials::document::Document = schoology::api_get(&format!(
+        "https://api.schoology.com/v1/sections/{}/documents/{}",
+        n.course_id, n.resource_id
+    ))?;
+    let parent = document.course_fid.0.to_string();
+    if let Some(path) = resolve_parent(n, course, folders, &parent)? {
+        folder_at(&mut course.materials, &path)
+            .materials
+            .push(Material::Document(document.into()));
+    }
+    Ok(())
+}
+
+fn handle_assignment_posted(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+) -> RequestResult<()> {
+    if contains_material(n, course) {
+        return Ok(());
+    }
+    let parent = assignment_parent(
+        &schoology::internal_get_html(&format!("/assignment/{}", n.resource_id))?,
+        &n.course_id,
+    )?;
+    let Some(path) = resolve_parent(n, course, folders, &parent)? else {
+        return Ok(());
+    };
+    let kind = if n.material_type == Some(MaterialType::Assessment) {
+        "assessment"
+    } else {
+        "assignment"
+    };
+    let meta = descriptor(n, kind, "assignments");
+    let mut material =
+        materials::scrape(&meta)?.ok_or_else(|| io::Error::other("unsupported posted material"))?;
+    if let Material::Assignment(a) = &mut material {
+        a.course_id = n.course_id.clone();
+    }
+    folder_at(&mut course.materials, &path)
+        .materials
+        .push(material);
+    Ok(())
+}
+
+fn handle_link_posted(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+) -> RequestResult<()> {
+    if contains_material(n, course) {
+        return Ok(());
+    }
+    let meta = descriptor(n, "link", "documents");
+    let link = materials::link::scrape(&meta, meta.location.as_deref().unwrap())?;
+    let parent = link.course_fid.to_string();
+    if let Some(path) = resolve_parent(n, course, folders, &parent)? {
+        folder_at(&mut course.materials, &path)
+            .materials
+            .push(Material::Link(link));
+    }
+    Ok(())
+}
+
+fn handle_folder_posted(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+) -> RequestResult<()> {
+    if contains_material(n, course) {
+        return Ok(());
+    }
+    refresh_hierarchy(course, folders)?;
+    if !contains_material(n, course) {
+        return Err(io::Error::other(format!(
+            "folder {} is absent after hierarchy refresh",
+            n.resource_id
+        ))
+        .into());
+    }
+    Ok(())
+}
+
+fn contains_material(n: &Notification, course: &Course) -> bool {
+    // Repeated feed entries must not duplicate or erase cached grades/submissions.
+    course.materials.recursive_iter().any(|material| {
+        course::material_id(material) == n.resource_id
+            && Some(MaterialType::from(material)) == n.material_type
+    })
+}
+
+/// Returns no path if refreshing the hierarchy also loaded the material.
+fn resolve_parent(
+    n: &Notification,
+    course: &mut Course,
+    folders: &mut FolderMap,
+    parent: &str,
+) -> RequestResult<Option<Vec<usize>>> {
+    let key = (n.course_id.clone(), parent.to_owned());
+    if !folders.contains_key(&key) {
+        refresh_hierarchy(course, folders)?;
+        if contains_material(n, course) {
+            return Ok(None);
+        }
+    }
+    folders.get(&key).cloned().map(Some).ok_or_else(|| {
+        io::Error::other(format!(
+            "parent folder {parent} is absent after hierarchy refresh"
+        ))
+        .into()
+    })
+}
+
+fn refresh_hierarchy(course: &mut Course, folders: &mut FolderMap) -> RequestResult<()> {
+    course.materials = course::hierarchy(&course.course_id, &course.materials)?;
+    folders.retain(|(id, _), _| id != &course.course_id);
+    index_folder(
+        &course.course_id,
+        &course.materials,
+        &mut Vec::new(),
+        folders,
+    );
+    folders.insert((course.course_id.clone(), "0".into()), Vec::new());
     Ok(())
 }
 

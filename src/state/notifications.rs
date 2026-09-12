@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use slint::ComponentHandle;
+use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow,
@@ -39,15 +39,15 @@ impl NotificationState {
                 for notif in notifs.iter_mut() {
                     notif.is_processed = notif.created < last_sync;
                 }
-                state().notifs.notifications = notifs.clone();
+                state().notif.notifications = notifs.clone();
                 config_write().last_update = Local::now();
                 log::info!("Finished scraping notifications");
                 if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
-                    state().notifs.is_checking_notifications = false;
+                    state().notif.is_checking_notifications = false;
                     log::warn!("Starting notification material update failed: {err}");
                 }
             } else {
-                state().notifs.is_checking_notifications = false;
+                state().notif.is_checking_notifications = false;
                 log::warn!("Scraping notifications failed");
             }
         })
@@ -59,7 +59,6 @@ impl NotificationState {
         check_started: DateTime<Local>,
     ) -> std::io::Result<()> {
         thread_manager::spawn_thread("update notification materials", move || {
-            let mut courses: Vec<_> = state().courses.courses.values().cloned().collect();
             let publish_progress = |progress| {
                 crate::ui::run_on_ui_thread(move |ui| {
                     let global = ui.global::<crate::UiState>();
@@ -69,12 +68,8 @@ impl NotificationState {
                 })
             };
             publish_progress(0.0);
-            let result = schoology::notification::update::update(
-                &mut notifs,
-                &mut courses,
-                publish_progress,
-            );
-            let persisted = crate::filesystem::write_courses(&courses);
+            let result = schoology::notification::update::update(&mut notifs, publish_progress);
+            let persisted = state().course.save();
             if let Err(err) = &result {
                 log::warn!("Updating notification materials failed: {err}");
             }
@@ -92,5 +87,24 @@ impl NotificationState {
         })
         .map(|_| ())
     }
-    pub fn sync_ui(&self, _courses: &CourseState, _ui: &AppWindow) {}
+    pub fn sync_ui(&self, courses: &CourseState, ui: &AppWindow) {
+        let notification_models = self
+            .notifications
+            .iter()
+            .map(|notif| crate::Notification {
+                title: notif.title.to_owned().into(),
+                course: courses
+                    .get_course(&notif.course_id)
+                    .map_or("Unknown course", |c| c.course_title.as_str())
+                    .into(),
+                course_id: notif.course_id.to_owned().into(),
+            })
+            .collect::<Vec<crate::Notification>>();
+        ui.global::<crate::UiState>()
+            .set_notif(crate::NotificationUi {
+                progress: 0.0,
+                temp_notifs: ModelRc::new(VecModel::from(Vec::new())), // todo!
+                notifications: ModelRc::new(VecModel::from(notification_models)),
+            });
+    }
 }

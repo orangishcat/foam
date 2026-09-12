@@ -46,7 +46,7 @@ pub fn write_courses(courses: &[Course]) -> io::Result<Vec<PathBuf>> {
 pub fn write_course(course: &Course) -> io::Result<PathBuf> {
     let courses_dir = config().courses_dir();
     let course_json_path =
-        courses_dir.join(unique_file(&courses_dir, &course.course_title, ".json"));
+        courses_dir.join(sanitized_file(&courses_dir, &course.course_title, ".json"));
     write_json(&course_json_path, course)?;
     Ok(course_json_path)
 }
@@ -56,38 +56,11 @@ pub(super) fn write_json(path: &Path, value: &impl Serialize) -> io::Result<()> 
     fs::write(path, format!("{json}\n"))
 }
 
-pub(super) fn unique_directory(parent: &Path, title: &str) -> io::Result<PathBuf> {
+pub(super) fn sanitized_file(parent: &Path, title: &str, extension: &str) -> PathBuf {
     let stem = safe_stem(title);
-    for duplicate in 1usize.. {
-        let name = if duplicate == 1 {
-            stem.clone()
-        } else {
-            format!("{stem} ({duplicate})")
-        };
-        let path = parent.join(name);
-        match fs::create_dir(&path) {
-            Ok(()) => return Ok(path),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
-            Err(error) => return Err(error),
-        }
-    }
-    unreachable!()
-}
-
-pub(super) fn unique_file(parent: &Path, title: &str, extension: &str) -> PathBuf {
-    let stem = safe_stem(title);
-    for duplicate in 1usize.. {
-        let name = if duplicate == 1 {
-            format!("{stem}.{extension}")
-        } else {
-            format!("{stem} ({duplicate}).{extension}")
-        };
-        let path = parent.join(name);
-        if !path.exists() {
-            return path;
-        }
-    }
-    unreachable!()
+    let name = format!("{stem}.{extension}");
+    let path = parent.join(name);
+    return path;
 }
 
 fn safe_stem(title: &str) -> String {

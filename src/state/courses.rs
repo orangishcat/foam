@@ -37,6 +37,10 @@ impl CourseState {
             .values()
             .flat_map(|c| c.materials.recursive_iter())
     }
+    pub fn save(&self) {
+        let courses: Vec<Course> = self.courses.values().cloned().collect();
+        filesystem::write_courses(&courses);
+    }
     pub fn scrape_and_write_courses(&self) -> Result<Vec<Course>, Box<dyn Error + Send + Sync>> {
         let courses = schoology::course::courses::scrape_courses()?;
         filesystem::write_courses(&courses)?;

@@ -1,5 +1,41 @@
 import { Theme } from "../palette.slint";
+import { ScrollView, HorizontalBox, VerticalBox } from "std-widgets.slint";
+import { UiState } from "../ui-state.slint";
 
 export component Notifications inherits Rectangle {
     background: Theme.dark.background-800;
+
+    ScrollView {
+        for notif in UiState.notif.notifications: Rectangle {
+            border-radius: 10px;
+            border-width: 5px;
+            border-color: Theme.dark.background-400;
+            background: Theme.dark.background-700;
+
+            preferred-height: title.preferred-height + course.preferred-height
+                + content.padding-top + content.padding-bottom + 16px;
+            clip: true;
+
+            HorizontalBox {
+                Image {
+                    source: @image-url("../icons/bell.svg");
+                }
+
+                content := VerticalBox {
+                    spacing: 2px;
+                    title := Text {
+                        text: notif.title;
+                        font-weight: 700;
+                        wrap: word-wrap;
+                    }
+
+                    course := Text {
+                        color: Theme.dark.text-400;
+                        text: notif.course;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
 }
