@@ -5,7 +5,7 @@ use std::{
     sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Local, TimeDelta};
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,9 @@ pub struct AppConfig {
 
     #[derivative(Default(value = "TimeDelta::minutes(5)"))]
     pub refresh_duration: TimeDelta,
+
+    pub last_update: DateTime<Local>,
+    pub last_sync: DateTime<Local>,
 
     #[serde(skip)]
     data_dir: PathBuf,

@@ -4,7 +4,7 @@ use chrono::{Datelike, Days, Local, Utc};
 use slint::{Color, ComponentHandle, ModelRc, VecModel};
 
 use crate::{
-    AssignmentCol,
+    AppWindow, AssignmentCol,
     types::{assignment::Assignment, material::Material},
 };
 
@@ -30,7 +30,7 @@ const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sa
 pub struct DashboardState {}
 
 impl DashboardState {
-    pub fn sync_ui(&self, courses: &CourseState, ui: &crate::AppWindow) {
+    pub fn sync_ui(&self, courses: &CourseState, ui: &slint::Weak<AppWindow>) {
         let assignments = courses
             .walk_materials()
             .filter_map(|material| match material {
@@ -94,7 +94,9 @@ impl DashboardState {
             assignments: sorted_bucket_to_modelrc(4),
         }];
 
-        ui.global::<crate::UiState>()
+        ui.upgrade()
+            .expect("UI is missing")
+            .global::<crate::UiState>()
             .set_dashboard(crate::DashboardUi {
                 assignment_view: ModelRc::new(VecModel::from(
                     [overdue_col, day_cols, future_col].concat(),

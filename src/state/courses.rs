@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, error::Error};
 
-use chrono::{DateTime, Local};
 use log::error;
 
 use crate::{
     api::schoology,
-    config::config,
     filesystem::{self, read_courses},
     types::{course::Course, material::Material},
 };
@@ -13,7 +11,6 @@ use crate::{
 #[derive(Clone, Default)]
 pub struct CourseState {
     pub courses: BTreeMap<String, Course>,
-    pub last_refresh: DateTime<Local>,
 }
 
 impl CourseState {
@@ -31,12 +28,6 @@ impl CourseState {
                 };
             }
         }
-    }
-    pub fn check_and_refresh_courses(&mut self) {
-        if Local::now() - self.last_refresh < config().refresh_duration {
-            return;
-        }
-        self.last_refresh = Local::now();
     }
     pub fn get_course(&self, course_id: &str) -> Option<&Course> {
         self.courses.get(course_id)

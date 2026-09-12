@@ -57,6 +57,7 @@ impl SchoologyNotification {
                 created,
                 resource_id: arg.id.0.clone(),
                 course_id: course_id.clone(),
+                is_processed: false,
             });
         }
         if result.is_empty() {
@@ -66,6 +67,7 @@ impl SchoologyNotification {
                 created,
                 resource_id: String::new(),
                 course_id,
+                is_processed: false,
             });
         }
         result

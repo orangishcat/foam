@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Notification {
     pub title: String,
     pub viewed: bool,
+    pub is_processed: bool, // whether foam has processed this notification by updating syncing
     pub created: DateTime<Local>, // best effort; if api doesn't expose use local time when fetching the resource
     pub resource_id: String,
     pub course_id: String,

@@ -2,7 +2,7 @@ use std::{collections::HashSet, io};
 
 use super::super::{RequestResult, internal_get};
 use crate::{
-    api::schoology::{notification::navigation, types::notification::HomeResponse},
+    api::schoology::types::notification::HomeResponse,
     types::notification::Notification,
 };
 use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeZone};
@@ -193,6 +193,7 @@ fn parse_home(
                 } else {
                     linked_course
                 },
+                is_processed: false,
             });
         }
         if seen.is_empty() {
@@ -202,6 +203,7 @@ fn parse_home(
                 created,
                 resource_id: String::new(),
                 course_id,
+                is_processed: false,
             });
         }
     }

@@ -1,16 +1,13 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{
-    error::Error,
-    sync::{Arc, Mutex},
-};
+use std::error::Error;
 
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 
 use crate::{
     config::config,
-    state::state::{AppState, state},
+    state::state::state,
 };
 
 mod api;
@@ -43,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     state().init();
-    state().sync_ui(&ui);
+    state().sync_ui(&ui.as_weak());
 
     ui.run()?;
     shutdown()?;
