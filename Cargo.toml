@@ -17,6 +17,7 @@ log = "0.4"
 env_logger = "0.11"
 derivative = "2.2.0"
 scraper = "0.27.0"
+itertools = "0.15.0"
 
 [build-dependencies]
 slint-build = "1.16.1"
@@ -27,5 +28,5 @@ lto = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"
-objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder"] }
+objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder", "NSMenu", "NSMenuItem"] }
 objc2-foundation = "0.2"

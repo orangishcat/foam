@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, error::Error};
 
+use itertools::Itertools;
 use log::error;
 
 use crate::{
@@ -24,6 +25,7 @@ impl CourseState {
                     self.courses
                         .values()
                         .map(|c| format!("\t{} ({})", c.course_title, c.course_id))
+                        .sorted()
                         .collect::<Vec<String>>()
                         .join("\n")
                 )

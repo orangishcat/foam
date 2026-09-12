@@ -36,17 +36,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 
+    #[cfg(target_os = "macos")]
+    let quit_target = macos_quit::new_target();
+
     ui.window().on_winit_window_event(move |_window, event| {
         if let winit::event::WindowEvent::Focused(focus) = event
             && *focus
         {
+            #[cfg(target_os = "macos")]
+            macos_quit::on_focus(&quit_target);
             state().on_focus();
         }
         EventResult::Propagate
     });
-
-    #[cfg(target_os = "macos")]
-    let _quit_delegate = macos_quit::install();
 
     state().init();
     state().sync_ui(&ui);
