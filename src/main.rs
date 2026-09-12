@@ -34,9 +34,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .select()?;
     let ui = AppWindow::new()?;
 
-    #[cfg(target_os = "macos")]
-    let _quit_delegate = macos_quit::install();
-
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 
     ui.window().on_winit_window_event(move |_window, event| {
@@ -47,6 +44,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         EventResult::Propagate
     });
+
+    #[cfg(target_os = "macos")]
+    let _quit_delegate = macos_quit::install();
 
     state().init();
     state().sync_ui(&ui);
