@@ -10,7 +10,7 @@ use crate::{
 
 const ROUTE: &str = "/iapi2/site-navigation/notifications";
 
-pub(super) fn scrape_notifications() -> RequestResult<Vec<Notification>> {
+pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
     let response: NotificationsResponse = internal_get(ROUTE)?;
     let now = Local::now();
     Ok(response

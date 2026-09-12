@@ -10,16 +10,7 @@ use scraper::{CaseSensitivity, ElementRef, Html, Selector};
 
 const HOME_ROUTE: &str = "/home/notifications?filter=all";
 
-/// Fetch notifications from the full HTML feed, falling back to the navigation
-/// feed if the primary route or its HTML format fails.
-pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
-    scrape_home().or_else(|error| {
-        log::warn!("Schoology notification feed failed; using fallback: {error}");
-        navigation::scrape_notifications()
-    })
-}
-
-fn scrape_home() -> RequestResult<Vec<Notification>> {
+pub fn scrape_home() -> RequestResult<Vec<Notification>> {
     let mut route = HOME_ROUTE.to_owned();
     let mut visited = HashSet::new();
     let mut notifications = Vec::new();
