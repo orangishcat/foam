@@ -5,11 +5,14 @@ use std::error::Error;
 
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 
+#[cfg(target_os = "macos")]
+use crate::platform::macos::macos_quit;
 use crate::{config::config, state::state::state, ui::WEAK_UI};
 
 mod api;
 mod config;
 mod filesystem;
+mod platform;
 mod state;
 mod thread_manager;
 mod types;
@@ -30,6 +33,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .backend_name("winit".into())
         .select()?;
     let ui = AppWindow::new()?;
+
+    #[cfg(target_os = "macos")]
+    let _quit_delegate = macos_quit::install();
+
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 
     ui.window().on_winit_window_event(move |_window, event| {
