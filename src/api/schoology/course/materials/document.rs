@@ -29,11 +29,17 @@ pub fn scrape(
 ) -> RequestResult<crate::types::document::Document> {
     info!("scraping Schoology document: {url}");
     let response: Document = api_get(url)?;
-    Ok(crate::types::document::Document {
-        id: response.id.0,
-        title: response.title,
-        url: response.url,
-        course_fid: response.course_fid.0,
-        attachments: response.attachments.into(),
-    })
+    Ok(response.into())
+}
+
+impl From<Document> for crate::types::document::Document {
+    fn from(response: Document) -> Self {
+        Self {
+            id: response.id.0,
+            title: response.title,
+            url: response.url,
+            course_fid: response.course_fid.0,
+            attachments: response.attachments.into(),
+        }
+    }
 }

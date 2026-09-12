@@ -88,6 +88,26 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
         .map_err(Into::into)
 }
 
+/// Fetch an authenticated HTML page using the same session as internal JSON requests.
+pub fn internal_get_html(route: &str) -> RequestResult<String> {
+    let url = internal_url(route)?;
+    let cookie = {
+        let config = config();
+        format!("{}={}", config.cookie_key, config.cookie_value)
+    };
+    Ok(INTERNAL_CLIENT
+        .as_ref()
+        .map_err(|error| io::Error::other(error.to_string()))?
+        .read()
+        .map_err(|_| io::Error::other("internal client lock is poisoned"))?
+        .get(url)
+        .header(ACCEPT, "text/html")
+        .header(COOKIE, cookie)
+        .send()?
+        .error_for_status()?
+        .text()?)
+}
+
 pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(
     route: &str,
     body: &B,

@@ -3,7 +3,10 @@ use crate::types::{folder::Folder, material::Material};
 use log::info;
 use serde::Deserialize;
 use serde_json::Value;
-use std::{collections::HashSet, io};
+use std::{
+    collections::{HashMap, HashSet},
+    io,
+};
 
 pub mod courses;
 pub mod grades;
@@ -31,9 +34,36 @@ struct RawFolderResponse {
 /// Fetch a complete Schoology material tree as a standardized folder.
 pub fn course(course_id: &str, folder_id: &str) -> RequestResult<Folder> {
     info!("scraping Schoology course tree: course={course_id}, folder={folder_id}");
-    let mut folder = scrape_folder(course_id, folder_id, None, &mut HashSet::new())?;
+    let mut folder = scrape_folder(course_id, folder_id, None, &mut HashSet::new(), None)?;
     folder.set_course_id(course_id);
     Ok(folder)
+}
+
+/// Refresh folder metadata and placement without fetching any material details.
+pub fn hierarchy(course_id: &str, existing: &Folder) -> RequestResult<Folder> {
+    let cached = existing
+        .recursive_iter()
+        .map(|m| {
+            (
+                (
+                    crate::types::material::MaterialType::from(m),
+                    material_id(m).to_owned(),
+                ),
+                m.clone(),
+            )
+        })
+        .collect();
+    scrape_folder(course_id, "0", None, &mut HashSet::new(), Some(&cached))
+}
+
+pub(crate) fn material_id(material: &Material) -> &str {
+    match material {
+        Material::Folder(m) => &m.id,
+        Material::Assignment(m) => &m.id,
+        Material::Document(m) => &m.id,
+        Material::Assessment(m) => &m.id,
+        Material::Link(m) => &m.id,
+    }
 }
 
 fn scrape_folder(
@@ -41,6 +71,7 @@ fn scrape_folder(
     folder_id: &str,
     url: Option<&str>,
     visited: &mut HashSet<String>,
+    cached: Option<&HashMap<(crate::types::material::MaterialType, String), Material>>,
 ) -> RequestResult<Folder> {
     if !visited.insert(folder_id.to_owned()) {
         return Err(io::Error::other(format!("course folder cycle at {folder_id}")).into());
@@ -62,8 +93,21 @@ fn scrape_folder(
                 &material.id,
                 material.location.as_deref(),
                 visited,
+                cached,
             )?;
             folder.materials.push(Material::Folder(Box::new(child)));
+        } else if let Some(cached) = cached {
+            use crate::types::material::MaterialType;
+            let kind = match material.material_type.as_str() {
+                "assignment" => Some(MaterialType::Assignment),
+                "document" => Some(MaterialType::Document),
+                "link" => Some(MaterialType::Link),
+                "assessment" | "test/quiz" | "quiz" => Some(MaterialType::Assessment),
+                _ => None,
+            };
+            if let Some(value) = kind.and_then(|kind| cached.get(&(kind, material.id))) {
+                folder.materials.push(value.clone());
+            }
         } else {
             if let Some(material) = materials::scrape(&material)? {
                 folder.materials.push(material);
