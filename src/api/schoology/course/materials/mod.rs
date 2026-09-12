@@ -2,7 +2,7 @@ use log::{info, warn};
 
 use super::CourseMaterial;
 use crate::{
-    schoology::{RequestResult, api_get},
+    api::schoology::{RequestResult, api_get},
     types::material::Material,
 };
 

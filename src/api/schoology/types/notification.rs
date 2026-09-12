@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::types::LooseString;
+use crate::api::types::LooseString;
 
 #[derive(Deserialize)]
 pub(crate) struct HomeResponse {

@@ -1,11 +1,11 @@
 use log::info;
 
 use crate::{
-    config::config,
-    schoology::{
+    api::schoology::{
         RequestResult, api_get_with_query,
         types::submission::{SubmissionsQuery, SubmissionsResponse},
     },
+    config::config,
     types::{course::Course, folder::Folder, material::Material, submission::Submission},
 };
 

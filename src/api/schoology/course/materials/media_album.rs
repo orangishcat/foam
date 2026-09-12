@@ -1,6 +1,6 @@
-use crate::types::LooseString;
+use crate::api::types::{LooseInt, LooseString};
 
-use super::types::{ApiLinks, LooseInt};
+use super::types::ApiLinks;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

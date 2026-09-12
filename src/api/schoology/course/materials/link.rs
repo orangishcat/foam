@@ -1,8 +1,8 @@
-use super::{
-    CourseMaterial, api_get,
-    types::{Attachments, LooseInt},
+use super::{CourseMaterial, api_get, types::Attachments};
+use crate::api::{
+    schoology::RequestResult,
+    types::{LooseInt, LooseString},
 };
-use crate::{schoology::RequestResult, types::LooseString};
 use log::info;
 use serde::{Deserialize, Serialize};
 

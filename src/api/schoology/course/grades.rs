@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use log::info;
 
 use crate::{
-    config::config,
-    schoology::{
+    api::schoology::{
         RequestResult, api_get_with_query,
         types::grades::{GradesQuery, GradesResponse},
     },
+    config::config,
     types::{course::Course, folder::Folder, material::Material},
 };
 

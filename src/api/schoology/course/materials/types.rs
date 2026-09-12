@@ -1,48 +1,6 @@
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 
-use crate::types::LooseString;
-
-#[derive(Debug, Default, Clone, Copy, Serialize)]
-pub struct LooseInt(pub i64);
-
-impl<'de> Deserialize<'de> for LooseInt {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match Value::deserialize(deserializer)? {
-            Value::Number(v) => v
-                .as_i64()
-                .map(Self)
-                .ok_or_else(|| serde::de::Error::custom("integer is outside i64 range")),
-            Value::String(v) if v.is_empty() => Ok(Self::default()),
-            Value::String(v) => v.parse().map(Self).map_err(serde::de::Error::custom),
-            Value::Bool(v) => Ok(Self(i64::from(v))),
-            Value::Null => Ok(Self::default()),
-            value => Err(serde::de::Error::custom(format!(
-                "expected an integer, got {value}"
-            ))),
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy, Serialize)]
-pub struct LooseFloat(pub f64);
-
-impl<'de> Deserialize<'de> for LooseFloat {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match Value::deserialize(deserializer)? {
-            Value::Number(v) => v
-                .as_f64()
-                .map(Self)
-                .ok_or_else(|| serde::de::Error::custom("number is outside f64 range")),
-            Value::String(v) if v.is_empty() => Ok(Self::default()),
-            Value::String(v) => v.parse().map(Self).map_err(serde::de::Error::custom),
-            Value::Null => Ok(Self::default()),
-            value => Err(serde::de::Error::custom(format!(
-                "expected a number, got {value}"
-            ))),
-        }
-    }
-}
+use crate::api::types::{LooseInt, LooseString};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]

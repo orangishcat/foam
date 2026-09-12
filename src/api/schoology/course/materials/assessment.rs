@@ -1,10 +1,7 @@
-use super::{
-    CourseMaterial, api_get,
-    types::{LooseFloat, LooseInt},
-};
-use crate::{
+use super::{CourseMaterial, api_get};
+use crate::api::{
     schoology::{RequestResult, types::datetime::SchoologyDatetime},
-    types::LooseString,
+    types::{LooseFloat, LooseInt, LooseString},
 };
 use log::info;
 use serde::{Deserialize, Serialize};

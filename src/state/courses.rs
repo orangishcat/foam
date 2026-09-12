@@ -4,9 +4,9 @@ use chrono::{DateTime, Local};
 use log::error;
 
 use crate::{
+    api::schoology,
     config::config,
     filesystem::{self, read_courses},
-    schoology::{self},
     types::{course::Course, material::Material},
 };
 

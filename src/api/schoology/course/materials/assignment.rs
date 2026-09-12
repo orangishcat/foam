@@ -1,10 +1,10 @@
 use super::{
     CourseMaterial,
-    types::{ApiLinks, Attachments, LooseFloat, LooseInt},
+    types::{ApiLinks, Attachments},
 };
-use crate::{
+use crate::api::{
     schoology::{RequestResult, api_get_with_query, types::datetime::SchoologyDatetime},
-    types::LooseString,
+    types::{LooseFloat, LooseInt, LooseString},
 };
 use log::info;
 use serde::{Deserialize, Serialize};

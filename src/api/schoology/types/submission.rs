@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::{LooseString, submission::Submission};
-
-use crate::schoology::course::materials::types::{Attachments, LooseInt};
+use crate::{
+    api::{
+        schoology::course::materials::types::Attachments,
+        types::{LooseInt, LooseString},
+    },
+    types::submission::Submission,
+};
 
 #[derive(Serialize, oauth::Request)]
 pub(crate) struct SubmissionsQuery {

@@ -1,6 +1,9 @@
-use crate::{schoology::types::datetime::SchoologyDatetime, types::LooseString};
+use crate::api::{
+    schoology::types::datetime::SchoologyDatetime,
+    types::{LooseInt, LooseString},
+};
 
-use super::types::{ApiLinks, LooseInt};
+use super::types::ApiLinks;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

@@ -13,9 +13,9 @@ use crate::{
     state::state::{AppState, state},
 };
 
+mod api;
 mod config;
 mod filesystem;
-mod schoology;
 mod state;
 mod types;
 

@@ -4,7 +4,7 @@ use chrono::{DateTime, Days, Local, NaiveTime, TimeZone};
 
 use super::super::{RequestResult, internal_get};
 use crate::{
-    schoology::types::notification::{NotificationsResponse, SchoologyNotification},
+    api::schoology::types::notification::{NotificationsResponse, SchoologyNotification},
     types::notification::Notification,
 };
 

@@ -2,7 +2,7 @@ use std::{collections::HashSet, io};
 
 use super::super::{RequestResult, internal_get};
 use crate::{
-    schoology::{notification::navigation, types::notification::HomeResponse},
+    api::schoology::{notification::navigation, types::notification::HomeResponse},
     types::notification::Notification,
 };
 use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeZone};

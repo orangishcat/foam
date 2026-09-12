@@ -3,12 +3,15 @@ use serde_json::Value;
 
 use super::{super::api_get_with_query, course};
 use crate::{
-    config::config,
-    schoology::{
-        RequestResult,
-        course::{grades::scrape_grades, submissions::scrape_submissions},
+    api::{
+        schoology::{
+            RequestResult,
+            course::{grades::scrape_grades, submissions::scrape_submissions},
+        },
+        types::{LooseString, LooseUsize},
     },
-    types::{LooseString, LooseUsize, course::Course},
+    config::config,
+    types::course::Course,
 };
 
 const PAGE_LIMIT: usize = 50;
