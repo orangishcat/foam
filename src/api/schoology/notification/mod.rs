@@ -1,17 +1,18 @@
 use crate::{
-    api::schoology::{RequestResult, notification::home::scrape_home},
-    types::notification::Notification,
+    api::schoology::RequestResult,
+    types::notification::{Notification, NotificationEvent},
 };
 
 mod home;
+mod material_type;
 mod navigation;
 
-/// Fetch notifications from the full HTML feed, falling back to the navigation
-/// feed if the primary route or its HTML format fails.
+/// Combine material posts from the full HTML feed with grades from the navigation feed.
+/// Both feeds must succeed to avoid returning an incomplete notification history.
 pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
-    home::scrape_home().or_else(|error| {
-        log::warn!("Schoology notification feed failed; using fallback: {error}");
-        navigation::scrape_notifications()
-            .inspect_err(|e| log::warn!("Schoology iapi2 notification feed failed: {e}"))
-    })
+    let mut notifications = home::scrape_home()?;
+    notifications.retain(|item| item.event == NotificationEvent::MaterialPosted);
+    notifications.extend(navigation::scrape_notifications()?);
+    notifications.sort_by_key(|item| std::cmp::Reverse(item.created));
+    Ok(notifications)
 }

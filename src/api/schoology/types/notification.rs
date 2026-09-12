@@ -15,6 +15,8 @@ pub(crate) struct NotificationsResponse {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SchoologyNotification {
+    #[serde(rename = "type", default)]
+    pub kind: String,
     pub sentence: String,
     pub viewed: bool,
     pub created: String,

@@ -5,7 +5,7 @@ use chrono::{DateTime, Days, Local, NaiveTime, TimeZone};
 use super::super::{RequestResult, internal_get};
 use crate::{
     api::schoology::types::notification::{NotificationsResponse, SchoologyNotification},
-    types::notification::Notification,
+    types::notification::{Notification, NotificationEvent},
 };
 
 const ROUTE: &str = "/iapi2/site-navigation/notifications";
@@ -22,6 +22,11 @@ pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
 
 impl SchoologyNotification {
     fn into_notifications(self, now: DateTime<Local>) -> Vec<Notification> {
+        // Resource argument types describe the material, not the operation.
+        // Only grade events belong to this feed's contribution.
+        if !matches!(self.kind.as_str(), "grade_add" | "grade_update") {
+            return Vec::new();
+        }
         let course_id = if self.realm == "course" {
             self.realm_id.0.clone()
         } else {
@@ -52,20 +57,24 @@ impl SchoologyNotification {
                 continue;
             }
             result.push(Notification {
+                event: NotificationEvent::GradeUpdated,
                 title: format!("{prefix}{}{suffix}", arg.title),
                 viewed: self.viewed,
                 created,
                 resource_id: arg.id.0.clone(),
+                material_type: super::material_type::parse(&arg.kind),
                 course_id: course_id.clone(),
                 is_processed: false,
             });
         }
         if result.is_empty() {
             result.push(Notification {
+                event: NotificationEvent::GradeUpdated,
                 title: prefix,
                 viewed: self.viewed,
                 created,
                 resource_id: String::new(),
+                material_type: None,
                 course_id,
                 is_processed: false,
             });

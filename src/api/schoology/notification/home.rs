@@ -1,7 +1,13 @@
 use std::{collections::HashSet, io};
 
 use super::super::{RequestResult, internal_get};
-use crate::{api::schoology::types::notification::HomeResponse, types::notification::Notification};
+use crate::{
+    api::schoology::types::notification::HomeResponse,
+    types::{
+        material::MaterialType,
+        notification::{Notification, NotificationEvent},
+    },
+};
 use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeZone};
 use scraper::{CaseSensitivity, ElementRef, Html, Selector};
 
@@ -41,7 +47,7 @@ fn text(element: ElementRef<'_>) -> String {
 }
 
 /// Returns the resource and any course encoded in the link.
-fn resource(href: &str) -> Option<(String, String)> {
+fn resource(href: &str) -> Option<(String, String, Option<MaterialType>)> {
     let url = reqwest::Url::parse("https://schoology.com")
         .ok()?
         .join(href)
@@ -55,13 +61,21 @@ fn resource(href: &str) -> Option<(String, String)> {
     match parts.as_slice() {
         ["course", course, "materials", rest @ ..] => {
             let id = rest.iter().rev().find(|id| numeric(id))?;
-            Some(((*id).to_owned(), (*course).to_owned()))
+            let material_type = rest
+                .first()
+                .and_then(|kind| super::material_type::parse(kind));
+            Some(((*id).to_owned(), (*course).to_owned(), material_type))
         }
         [
-            "assignment" | "assessment" | "discussion" | "event" | "page",
+            kind @ ("assignment" | "assessment" | "assessment_v2" | "discussion" | "event" | "page"
+            | "document" | "link" | "folder"),
             id,
             ..,
-        ] if numeric(id) => Some(((*id).to_owned(), String::new())),
+        ] if numeric(id) => Some((
+            (*id).to_owned(),
+            String::new(),
+            super::material_type::parse(kind),
+        )),
         _ => None,
     }
 }
@@ -162,12 +176,24 @@ fn parse_home(
         let mut prefix = String::new();
         operation_prefix(sentence, &mut prefix);
         let prefix = prefix.split_whitespace().collect::<Vec<_>>().join(" ");
+        let event = if prefix.split_whitespace().any(|word| {
+            matches!(
+                word.to_ascii_lowercase().as_str(),
+                "added" | "posted" | "created" | "uploaded" | "published"
+            )
+        }) {
+            NotificationEvent::MaterialPosted
+        } else {
+            NotificationEvent::Unknown
+        };
         let mut seen = HashSet::new();
 
         // Expanded item lists repeat the preview links, so deduplicate resources
         // only within each source row.
         for link in row.select(&links) {
-            let Some((resource_id, linked_course)) = link.attr("href").and_then(resource) else {
+            let Some((resource_id, linked_course, material_type)) =
+                link.attr("href").and_then(resource)
+            else {
                 continue;
             };
             if !seen.insert((resource_id.clone(), linked_course.clone())) {
@@ -181,10 +207,12 @@ fn parse_home(
                 .and_then(|time| parse_posted_time(&text(time), date))
                 .unwrap_or(created);
             notifications.push(Notification {
+                event,
                 title: format!("{prefix} {}", text(link)).trim().to_owned(),
                 viewed,
                 created: item_created,
                 resource_id,
+                material_type,
                 course_id: if linked_course.is_empty() {
                     course_id.clone()
                 } else {
@@ -195,10 +223,12 @@ fn parse_home(
         }
         if seen.is_empty() {
             notifications.push(Notification {
+                event: NotificationEvent::Unknown,
                 title: prefix,
                 viewed,
                 created,
                 resource_id: String::new(),
+                material_type: None,
                 course_id,
                 is_processed: false,
             });
