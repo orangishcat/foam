@@ -1,6 +1,5 @@
 import { VerticalBox } from "std-widgets.slint";
 import { ProgressRing } from "components/progress-ring.slint";
-import { Theme } from "palette.slint";
 import { Screen } from "screen/screens.slint";
 import { UiState } from "ui-state.slint";
 
@@ -13,7 +12,7 @@ component NavigationItem inherits Rectangle {
 
     height: 44px;
     border-radius: 6px;
-    background: UiState.screen == change-to ? Theme.dark.background-700 : (touch.has-hover ? Theme.dark.background-600 : transparent);
+    background: UiState.screen == change-to ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
 
     touch := TouchArea {
         clicked => {
@@ -27,11 +26,11 @@ component NavigationItem inherits Rectangle {
 
     Image {
         source: icon;
-        colorize: Theme.dark.text-200;
+        colorize: UiState.theme.text-200;
     }
     // Text {
     //     text: root.label;
-    //     color: selected ? Theme.dark.text-50 : Theme.dark.text-200;
+    //     color: selected ? UiState.theme.text-50 : UiState.theme.text-200;
     //     font-size: 16px;
     //     vertical-alignment: center;
     //     x: 16px;
@@ -42,7 +41,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> minimized: true;
 
     width: minimized ? 60px : 240px;
-    background: Theme.dark.background-900;
+    background: UiState.theme.background-900;
 
     VerticalBox {
         padding: 8px;

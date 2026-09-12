@@ -60,7 +60,7 @@ pub(super) fn sanitized_file(parent: &Path, title: &str, extension: &str) -> Pat
     let stem = safe_stem(title);
     let name = format!("{stem}.{extension}");
     let path = parent.join(name);
-    return path;
+    path
 }
 
 fn safe_stem(title: &str) -> String {

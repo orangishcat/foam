@@ -3,7 +3,7 @@ import { ScrollView, HorizontalBox, VerticalBox } from "std-widgets.slint";
 import { UiState } from "../ui-state.slint";
 
 export component Notifications inherits Rectangle {
-    background: Theme.dark.background-800;
+    background: UiState.theme.background-800;
 
     ScrollView {
         VerticalBox {
@@ -11,8 +11,8 @@ export component Notifications inherits Rectangle {
             for notif in UiState.notif.notifications: Rectangle {
                 border-radius: 10px;
                 border-width: 5px;
-                border-color: Theme.dark.background-400;
-                background: Theme.dark.background-700;
+                border-color: UiState.theme.background-400;
+                background: UiState.theme.background-700;
 
                 preferred-height: title.preferred-height + course.preferred-height
                     + content.padding-top + content.padding-bottom + 16px;
@@ -29,7 +29,7 @@ export component Notifications inherits Rectangle {
                         }
 
                         course := Text {
-                            color: Theme.dark.text-400;
+                            color: UiState.theme.text-400;
                             text: notif.course;
                             wrap: word-wrap;
                         }

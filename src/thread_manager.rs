@@ -42,8 +42,7 @@ pub fn spawn_thread(
     let mut registry = THREADS.lock().unwrap_or_else(|e| e.into_inner());
 
     if registry.shutting_down {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "program is shutting down",
         ));
     }

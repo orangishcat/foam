@@ -92,7 +92,7 @@ pub fn update(
     // 3. process notifications
     let len = pending.len();
     for (i, notif) in pending.iter_mut().enumerate() {
-        if let Err(err) = process_notification(*notif, &mut folders) {
+        if let Err(err) = process_notification(notif, &mut folders) {
             log::warn!(
                 "Skipping notification for resource {} in course {}: {err}",
                 notif.resource_id,

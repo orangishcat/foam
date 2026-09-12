@@ -3,7 +3,7 @@ import { Theme } from "../palette.slint";
 import { UiState } from "../ui-state.slint";
 
 export component Dashboard inherits Rectangle {
-    background: Theme.dark.background-800;
+    background: UiState.theme.background-800;
 
     HorizontalBox {
         for col in UiState.dashboard.assignment-view: VerticalBox {
@@ -21,7 +21,7 @@ export component Dashboard inherits Rectangle {
                 viewport-height: max(self.visible-height, assignments.preferred-height);
                 horizontal-scrollbar-policy: always-off;
                 Rectangle {
-                    background: Theme.dark.background-750;
+                    background: UiState.theme.background-750;
 
                     assignments := VerticalLayout {
                         alignment: start;
@@ -45,7 +45,7 @@ export component Dashboard inherits Rectangle {
                                 }
 
                                 course := Text {
-                                    color: Theme.dark.text-400;
+                                    color: UiState.theme.text-400;
                                     text: assignment.course_name;
                                     wrap: word-wrap;
                                 }

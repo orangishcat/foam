@@ -1,7 +1,6 @@
 import { HorizontalBox } from "std-widgets.slint";
 import { Dashboard } from "screen/dashboard.slint";
 import { Screen } from "screen/screens.slint";
-import { Theme } from "palette.slint";
 import { Sidebar } from "sidebar.slint";
 import { UiState } from "ui-state.slint";
 export { UiState }from "ui-state.slint";
@@ -14,7 +13,7 @@ export component AppWindow inherits Window {
     preferred-width: 1200px;
     preferred-height: 800px;
 
-    background: Theme.dark.background-800;
+    background: UiState.theme.background-800;
 
     HorizontalBox {
         padding: 0px;
