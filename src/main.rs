@@ -44,8 +44,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     state().init();
     state().sync_ui(&ui);
 
-    ui.run()?;
+    match ui.run() {
+        Err(e) => log::warn!("Error in UI thread occured: {e}"),
+        _ => log::info!("UI exited successfully"),
+    }
     shutdown()?;
+
+    log::info!("Shutdown successful");
 
     Ok(())
 }

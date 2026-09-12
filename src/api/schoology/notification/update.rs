@@ -68,6 +68,16 @@ pub fn update(
     notifications: &mut [Notification],
     mut publish_progress: impl FnMut(f32),
 ) -> RequestResult<()> {
+    // 1. list pending notifications
+    let mut pending: Vec<&mut Notification> = notifications
+        .iter_mut()
+        .filter(|n| !n.is_processed)
+        .collect();
+    if pending.is_empty() {
+        return Ok(());
+    }
+
+    // 2. build folder index so that looking for folders in future calls is faster
     let mut folders = FolderMap::new();
     for course in state().course.courses.values() {
         index_folder(
@@ -78,22 +88,18 @@ pub fn update(
         );
         folders.insert((course.course_id.clone(), "0".into()), Vec::new());
     }
-    let pending: Vec<_> = notifications
-        .iter()
-        .enumerate()
-        .filter(|(_, n)| !n.is_processed)
-        .map(|(i, _)| i)
-        .collect();
-    for (done, &i) in pending.iter().enumerate() {
-        let n = &mut notifications[i];
-        if let Err(err) = process_notification(n, &mut folders) {
+
+    // 3. process notifications
+    let len = pending.len();
+    for (i, notif) in pending.iter_mut().enumerate() {
+        if let Err(err) = process_notification(*notif, &mut folders) {
             log::warn!(
                 "Skipping notification for resource {} in course {}: {err}",
-                n.resource_id,
-                n.course_id
+                notif.resource_id,
+                notif.course_id
             );
         }
-        publish_progress((done + 1) as f32 / pending.len() as f32);
+        publish_progress((i + 1) as f32 / len as f32);
     }
     Ok(())
 }

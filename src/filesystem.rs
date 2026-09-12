@@ -46,7 +46,7 @@ pub fn write_courses(courses: &[Course]) -> io::Result<Vec<PathBuf>> {
 pub fn write_course(course: &Course) -> io::Result<PathBuf> {
     let courses_dir = config().courses_dir();
     let course_json_path =
-        courses_dir.join(sanitized_file(&courses_dir, &course.course_title, ".json"));
+        courses_dir.join(sanitized_file(&courses_dir, &course.course_title, "json"));
     write_json(&course_json_path, course)?;
     Ok(course_json_path)
 }
