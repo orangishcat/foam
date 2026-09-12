@@ -10,7 +10,7 @@ use crate::{
     types::{course::Course, material::Material},
 };
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CourseState {
     pub courses: BTreeMap<String, Course>,
     pub last_refresh: DateTime<Local>,

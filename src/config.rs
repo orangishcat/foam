@@ -19,7 +19,6 @@ static CONFIG: LazyLock<RwLock<AppConfig>> = LazyLock::new(|| RwLock::new(AppCon
 #[serde(default)]
 pub struct AppConfig {
     pub subdomain: String,
-    pub last_updated: Option<DateTime<Utc>>,
     pub user_id: String,
     pub cookie_key: String,
     pub cookie_value: String,

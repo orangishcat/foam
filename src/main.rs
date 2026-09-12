@@ -1,9 +1,17 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::error::Error;
+use std::{
+    error::Error,
+    sync::{Arc, Mutex},
+};
 
-use crate::{config::config, state::state::AppState};
+use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
+
+use crate::{
+    config::config,
+    state::state::{AppState, state},
+};
 
 mod config;
 mod filesystem;
@@ -13,11 +21,6 @@ mod types;
 
 slint::include_modules!();
 
-fn init(state: &mut AppState) -> Result<(), Box<dyn std::error::Error>> {
-    state.courses.load_courses();
-    Ok(())
-}
-
 fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
     config().save()?;
     Ok(())
@@ -26,11 +29,22 @@ fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let mut state = AppState::default();
-    init(&mut state)?;
-
+    slint::BackendSelector::new()
+        .backend_name("winit".into())
+        .select()?;
     let ui = AppWindow::new()?;
-    state.sync_ui(&ui);
+    ui.window().on_winit_window_event(move |_window, event| {
+        if let winit::event::WindowEvent::Focused(focus) = event
+            && *focus
+        {
+            state().on_focus();
+        }
+        EventResult::Propagate
+    });
+
+    state().init();
+    state().sync_ui(&ui);
+
     ui.run()?;
     shutdown()?;
 
