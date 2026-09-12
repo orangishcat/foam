@@ -5,7 +5,8 @@ use super::folder::Folder;
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Course {
-    pub course_id: String,
+    pub course_id: String, // in schoology this is actually the section id
+    pub aliases: Vec<String>,
     pub course_title: String,
     pub course_code: String,
     pub course_url: String,

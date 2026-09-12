@@ -21,6 +21,7 @@ impl NotificationState {
         if Local::now() - config().last_update < config().refresh_duration
             || self.is_checking_notifications
         {
+            log::debug!("Notifications cache is fresh, skipping fetch");
             return;
         }
 

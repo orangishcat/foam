@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io};
+use std::{
+    collections::HashMap,
+    io::{self, Error},
+};
 
 use scraper::{Html, Selector};
 
@@ -41,7 +44,7 @@ fn folder_at<'a>(mut folder: &'a mut Folder, path: &[usize]) -> &'a mut Folder {
     folder
 }
 
-fn assignment_parent(html: &str, course_id: &str) -> RequestResult<String> {
+fn assignment_parent(html: &str, course: &Course) -> RequestResult<String> {
     let document = Html::parse_document(html);
     let selector = Selector::parse(
         ".content-top-upper-wrapper > div:nth-child(2) > div:nth-child(2) > a:nth-child(2)",
@@ -53,7 +56,10 @@ fn assignment_parent(html: &str, course_id: &str) -> RequestResult<String> {
         .and_then(|a| a.value().attr("href"))
         .ok_or_else(|| io::Error::other("assignment parent folder anchor is missing"))?;
     let url = reqwest::Url::parse("https://schoology.com")?.join(href)?;
-    if url.path() != format!("/course/{course_id}/materials") {
+    if !std::iter::once(&course.course_id)
+        .chain(course.aliases.iter())
+        .any(|id| url.path() == format!("/course/{id}/materials"))
+    {
         return Err(io::Error::other("assignment breadcrumb belongs to another course").into());
     }
     Ok(url
@@ -80,7 +86,7 @@ pub fn update(
 
     // 2. build folder index so that looking for folders in future calls is faster
     let mut folders = FolderMap::new();
-    for course in state().course.courses.values() {
+    for course in &state().course.courses {
         index_folder(
             &course.course_id,
             &course.materials,
@@ -107,11 +113,52 @@ pub fn update(
 }
 
 fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> RequestResult<()> {
+    if n.resource_id.is_empty() {
+        return Err(
+            io::Error::other(format!("Resource id for course {} is empty", n.course_id)).into(),
+        );
+    }
+    if n.course_id.is_empty() {
+        return Err(
+            io::Error::other(format!("Course id for resource {} is empty", n.resource_id)).into(),
+        );
+    }
+
     // Release the state lock before making requests or publishing progress.
     let course = state().course.get_course(&n.course_id).cloned();
-    let mut course = course.ok_or_else(|| {
-        io::Error::other(format!("notification course {} is not loaded", n.course_id))
-    })?;
+
+    let mut course = match course {
+        Some(course) => course,
+        None => {
+            let title = course::courses::section_course_title(&n.course_id)?;
+            let mut state = state();
+            // Another update may have resolved this ID while the request ran.
+            if let Some(course) = state.course.get_course(&n.course_id) {
+                course.clone()
+            } else {
+                let mut matches = state
+                    .course
+                    .courses
+                    .iter_mut()
+                    .filter(|course| !title.is_empty() && course.course_title == title);
+                let course = matches.next().ok_or_else(|| {
+                    io::Error::other(format!(
+                        "notification course {} is not loaded: no course named {title:?}",
+                        n.course_id
+                    ))
+                })?;
+                if matches.next().is_some() {
+                    return Err(io::Error::other(format!(
+                        "notification course {} matches multiple courses named {title:?}",
+                        n.course_id
+                    ))
+                    .into());
+                }
+                course.aliases.push(n.course_id.clone());
+                course.clone()
+            }
+        }
+    };
     // Commit refreshed paths with the course so a failure cannot leave stale paths.
     let mut updated_folders = folders.clone();
     match n.event {
@@ -123,7 +170,19 @@ fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> Reques
         }
         NotificationEvent::Unknown => {}
     }
-    state().course.courses.insert(n.course_id.clone(), course);
+    let mut state = state();
+    let stored = state
+        .course
+        .courses
+        .iter_mut()
+        .find(|stored| stored.course_id == course.course_id)
+        .ok_or_else(|| io::Error::other("notification course was unloaded during update"))?;
+    for alias in &stored.aliases {
+        if !course.aliases.contains(alias) {
+            course.aliases.push(alias.clone());
+        }
+    }
+    *stored = course;
     *folders = updated_folders;
     n.is_processed = true;
     Ok(())
@@ -155,7 +214,7 @@ fn handle_document_posted(
     }
     let document: materials::document::Document = schoology::api_get(&format!(
         "https://api.schoology.com/v1/sections/{}/documents/{}",
-        n.course_id, n.resource_id
+        course.course_id, n.resource_id
     ))?;
     let parent = document.course_fid.0.to_string();
     if let Some(path) = resolve_parent(n, course, folders, &parent)? {
@@ -176,7 +235,7 @@ fn handle_assignment_posted(
     }
     let parent = assignment_parent(
         &schoology::internal_get_html(&format!("/assignment/{}", n.resource_id))?,
-        &n.course_id,
+        course,
     )?;
     let Some(path) = resolve_parent(n, course, folders, &parent)? else {
         return Ok(());
@@ -186,11 +245,11 @@ fn handle_assignment_posted(
     } else {
         "assignment"
     };
-    let meta = descriptor(n, kind, "assignments");
+    let meta = descriptor(n, &course.course_id, kind, "assignments");
     let mut material =
         materials::scrape(&meta)?.ok_or_else(|| io::Error::other("unsupported posted material"))?;
     if let Material::Assignment(a) = &mut material {
-        a.course_id = n.course_id.clone();
+        a.course_id = course.course_id.clone();
     }
     folder_at(&mut course.materials, &path)
         .materials
@@ -206,7 +265,7 @@ fn handle_link_posted(
     if contains_material(n, course) {
         return Ok(());
     }
-    let meta = descriptor(n, "link", "documents");
+    let meta = descriptor(n, &course.course_id, "link", "documents");
     let link = materials::link::scrape(&meta, meta.location.as_deref().unwrap())?;
     let parent = link.course_fid.to_string();
     if let Some(path) = resolve_parent(n, course, folders, &parent)? {
@@ -251,7 +310,7 @@ fn resolve_parent(
     folders: &mut FolderMap,
     parent: &str,
 ) -> RequestResult<Option<Vec<usize>>> {
-    let key = (n.course_id.clone(), parent.to_owned());
+    let key = (course.course_id.clone(), parent.to_owned());
     if !folders.contains_key(&key) {
         refresh_hierarchy(course, folders)?;
         if contains_material(n, course) {
@@ -279,7 +338,7 @@ fn refresh_hierarchy(course: &mut Course, folders: &mut FolderMap) -> RequestRes
     Ok(())
 }
 
-fn descriptor(n: &Notification, kind: &str, endpoint: &str) -> CourseMaterial {
+fn descriptor(n: &Notification, course_id: &str, kind: &str, endpoint: &str) -> CourseMaterial {
     CourseMaterial {
         id: n.resource_id.clone(),
         title: n.title.clone(),
@@ -287,7 +346,7 @@ fn descriptor(n: &Notification, kind: &str, endpoint: &str) -> CourseMaterial {
         material_type: kind.into(),
         location: Some(format!(
             "https://api.schoology.com/v1/sections/{}/{endpoint}/{}",
-            n.course_id, n.resource_id
+            course_id, n.resource_id
         )),
     }
 }

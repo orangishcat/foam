@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, error::Error};
+use std::{error::Error, iter};
 
 use itertools::Itertools;
 use log::error;
@@ -11,20 +11,26 @@ use crate::{
 
 #[derive(Clone, Default)]
 pub struct CourseState {
-    pub courses: BTreeMap<String, Course>,
+    pub courses: Vec<Course>,
 }
 
 impl CourseState {
     pub fn load_courses(&mut self) {
         match read_courses() {
             Ok(courses) => {
-                self.courses = Self::to_btree(courses);
+                self.courses = courses;
                 log::info!(
                     "Loaded {} courses:\n{}",
                     self.courses.len(),
                     self.courses
-                        .values()
-                        .map(|c| format!("\t{} ({})", c.course_title, c.course_id))
+                        .iter()
+                        .map(|c| format!(
+                            "\t{} ({})",
+                            c.course_title,
+                            [vec![c.course_id.clone()], c.aliases.clone()]
+                                .concat()
+                                .join(", ")
+                        ))
                         .sorted()
                         .collect::<Vec<String>>()
                         .join("\n")
@@ -35,33 +41,33 @@ impl CourseState {
                     .scrape_and_write_courses()
                     .inspect_err(|e| error!("An error occured while scraping courses: {}", e))
                 {
-                    self.courses = Self::to_btree(courses);
+                    self.courses = courses;
                 };
             }
         }
     }
     pub fn get_course(&self, course_id: &str) -> Option<&Course> {
-        self.courses.get(course_id)
+        self.courses
+            .iter()
+            .find(|course| course.course_id == course_id)
+            .or_else(|| {
+                self.courses
+                    .iter()
+                    .find(|course| course.aliases.iter().any(|alias| alias == course_id))
+            })
     }
     pub fn walk_materials(&self) -> impl Iterator<Item = &Material> + '_ {
         self.courses
-            .values()
+            .iter()
             .flat_map(|c| c.materials.recursive_iter())
     }
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let courses: Vec<Course> = self.courses.values().cloned().collect();
-        filesystem::write_courses(&courses)?;
+        filesystem::write_courses(&self.courses)?;
         Ok(())
     }
     pub fn scrape_and_write_courses(&self) -> Result<Vec<Course>, Box<dyn Error + Send + Sync>> {
         let courses = schoology::course::courses::scrape_courses()?;
         filesystem::write_courses(&courses)?;
         Ok(courses)
-    }
-    fn to_btree(courses: Vec<Course>) -> BTreeMap<String, Course> {
-        courses
-            .into_iter()
-            .map(|course| (course.course_id.clone(), course))
-            .collect()
     }
 }
