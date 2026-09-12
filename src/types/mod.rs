@@ -8,6 +8,7 @@ pub mod link;
 pub mod loose_str;
 pub mod loose_usize;
 pub mod material;
+pub mod notification;
 pub mod submission;
 
 pub use loose_str::LooseString;

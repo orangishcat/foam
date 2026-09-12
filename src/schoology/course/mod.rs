@@ -8,6 +8,7 @@ use std::{collections::HashSet, io};
 pub mod courses;
 pub mod grades;
 pub mod materials;
+pub mod notifications;
 pub mod submissions;
 const API_ROOT: &str = "https://api.schoology.com/v1/courses";
 
