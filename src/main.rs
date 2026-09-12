@@ -11,11 +11,13 @@ mod api;
 mod config;
 mod filesystem;
 mod state;
+mod thread_manager;
 mod types;
 
 slint::include_modules!();
 
 fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
+    thread_manager::join_all_threads();
     config().save()?;
     Ok(())
 }
