@@ -3,7 +3,7 @@ use std::{
     io,
     sync::{
         LazyLock, Mutex,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc,
     },
     thread::{self, JoinHandle},
@@ -24,6 +24,8 @@ static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(1);
 
 struct RemoveOnDrop(ThreadId);
 
+static CANCELLED: AtomicBool = AtomicBool::new(false);
+
 impl Drop for RemoveOnDrop {
     fn drop(&mut self) {
         let mut registry = THREADS.lock().unwrap_or_else(|e| e.into_inner());
@@ -42,9 +44,7 @@ pub fn spawn_thread(
     let mut registry = THREADS.lock().unwrap_or_else(|e| e.into_inner());
 
     if registry.shutting_down {
-        return Err(io::Error::other(
-            "program is shutting down",
-        ));
+        return Err(io::Error::other("program is shutting down"));
     }
 
     let handle = thread::Builder::new().name(name.into()).spawn(move || {
@@ -75,5 +75,17 @@ pub fn join_all_threads() {
         if let Err(payload) = handle.join() {
             log::error!("thread {id} panicked: {payload:?}");
         }
+    }
+}
+
+// cancel in progress threads when the app is shutting down
+pub fn check_cancelled() -> std::io::Result<()> {
+    if CANCELLED.load(Ordering::Relaxed) {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Interrupted,
+            "shutting down",
+        ))
+    } else {
+        Ok(())
     }
 }

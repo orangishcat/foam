@@ -6,7 +6,7 @@ use crate::{
     api::schoology,
     config::{config, config_write},
     state::{courses::CourseState, state::state},
-    thread_manager,
+    thread_manager::{self, check_cancelled},
     types::notification::Notification,
 };
 
@@ -42,6 +42,9 @@ impl NotificationState {
                 state().notif.notifications = notifs.clone();
                 config_write().last_update = Local::now();
                 log::info!("Finished scraping notifications");
+                if let Err(_) = check_cancelled() {
+                    return;
+                }
                 if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
                     state().notif.is_checking_notifications = false;
                     log::warn!("Starting notification material update failed: {err}");

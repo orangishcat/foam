@@ -8,6 +8,7 @@ use crate::{
         course::{self, CourseMaterial, materials},
     },
     state::state::state,
+    thread_manager::check_cancelled,
     types::{
         course::Course,
         folder::Folder,
@@ -100,6 +101,7 @@ pub fn update(
             );
         }
         publish_progress((i + 1) as f32 / len as f32);
+        check_cancelled()?;
     }
     Ok(())
 }
