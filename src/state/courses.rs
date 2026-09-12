@@ -18,6 +18,15 @@ impl CourseState {
         match read_courses() {
             Ok(courses) => {
                 self.courses = Self::to_btree(courses);
+                log::info!(
+                    "Loaded {} courses:\n{}",
+                    self.courses.len(),
+                    self.courses
+                        .values()
+                        .map(|c| format!("\t{} ({})", c.course_title, c.course_id))
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
             }
             Err(_err) => {
                 if let Ok(courses) = self
