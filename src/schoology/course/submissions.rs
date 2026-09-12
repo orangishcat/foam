@@ -1,59 +1,17 @@
 use log::info;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     config::config,
-    schoology::{RequestResult, api_get_with_query},
-    types::{
-        LooseString, course::Course, folder::Folder, material::Material, submission::Submission,
+    schoology::{
+        RequestResult, api_get_with_query,
+        types::submission::{SubmissionsQuery, SubmissionsResponse},
     },
+    types::{course::Course, folder::Folder, material::Material, submission::Submission},
 };
-
-use super::materials::types::{Attachments, LooseInt};
-
-#[derive(Serialize, oauth::Request)]
-struct SubmissionsQuery {
-    with_attachments: bool,
-}
 
 // The user-specific view returns revisions, rather than the assignment-wide
 // list's default of only the latest revision for each user.
 // https://developers.schoology.com/api-documentation/rest-api-v1/submissions/
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct SubmissionsResponse {
-    revision: Vec<Revision>,
-}
-
-#[derive(Deserialize)]
-struct Revision {
-    revision_id: LooseString,
-    uid: LooseString,
-    created: LooseInt,
-    #[serde(default)]
-    late: LooseInt,
-    #[serde(default)]
-    draft: LooseInt,
-    #[serde(default)]
-    body: String,
-    #[serde(default)]
-    attachments: Attachments,
-}
-
-impl From<Revision> for Submission {
-    fn from(revision: Revision) -> Self {
-        Self {
-            id: revision.revision_id.0,
-            user_id: revision.uid.0,
-            created: chrono::DateTime::from_timestamp(revision.created.0, 0).unwrap_or_default(),
-            late: revision.late.0 != 0,
-            draft: revision.draft.0 != 0,
-            body: revision.body,
-            attachments: revision.attachments.into(),
-        }
-    }
-}
-
 /// Populate the configured user's submission revisions throughout each course.
 pub fn scrape_submissions(courses: &mut [Course]) -> RequestResult<()> {
     let user_id = config().user_id.to_string();

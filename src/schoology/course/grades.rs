@@ -1,49 +1,19 @@
 use std::collections::HashMap;
 
 use log::info;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     config::config,
-    schoology::{RequestResult, api_get_with_query},
-    types::{LooseString, course::Course, folder::Folder, material::Material},
+    schoology::{
+        RequestResult, api_get_with_query,
+        types::grades::{GradesQuery, GradesResponse},
+    },
+    types::{course::Course, folder::Folder, material::Material},
 };
-
-#[derive(Serialize, oauth::Request)]
-struct GradesQuery<'a> {
-    section_id: &'a str,
-}
 
 // Schoology's user endpoint nests assignment grades under section -> period -> assignment.
 // Section totals (`final_grade`) are deliberately not assignment scores.
 // https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct GradesResponse {
-    section: Vec<SectionGrades>,
-}
-
-#[derive(Deserialize)]
-struct SectionGrades {
-    section_id: LooseString,
-    #[serde(default)]
-    period: Vec<PeriodGrades>,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct PeriodGrades {
-    assignment: Vec<AssignmentGrade>,
-}
-
-#[derive(Deserialize)]
-struct AssignmentGrade {
-    assignment_id: LooseString,
-    // The API accepts numeric and grading-scale letter grades. Do not use
-    // LooseFloat: it would lose letter grades and turn empty scores into zero.
-    // https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/#fields
-    grade: Option<LooseString>,
-}
 
 /// Populate scores for the configured user's assignments, matched within each section.
 pub fn scrape_grades(courses: &mut [Course]) -> RequestResult<()> {
