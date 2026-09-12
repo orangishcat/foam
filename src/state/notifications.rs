@@ -28,5 +28,5 @@ impl NotificationState {
         }
         config_write().last_update = Local::now();
     }
-    pub fn sync_ui(&self, _courses: &CourseState, _ui: &slint::Weak<AppWindow>) {}
+    pub fn sync_ui(&self, _courses: &CourseState, _ui: &AppWindow) {}
 }

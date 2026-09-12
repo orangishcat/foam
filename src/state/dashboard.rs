@@ -30,7 +30,7 @@ const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sa
 pub struct DashboardState {}
 
 impl DashboardState {
-    pub fn sync_ui(&self, courses: &CourseState, ui: &slint::Weak<AppWindow>) {
+    pub fn sync_ui(&self, courses: &CourseState, ui: &AppWindow) {
         let assignments = courses
             .walk_materials()
             .filter_map(|material| match material {
@@ -94,9 +94,7 @@ impl DashboardState {
             assignments: sorted_bucket_to_modelrc(4),
         }];
 
-        ui.upgrade()
-            .expect("UI is missing")
-            .global::<crate::UiState>()
+        ui.global::<crate::UiState>()
             .set_dashboard(crate::DashboardUi {
                 assignment_view: ModelRc::new(VecModel::from(
                     [overdue_col, day_cols, future_col].concat(),

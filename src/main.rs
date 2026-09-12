@@ -5,10 +5,7 @@ use std::error::Error;
 
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 
-use crate::{
-    config::config,
-    state::state::state,
-};
+use crate::{config::config, state::state::state};
 
 mod api;
 mod config;
@@ -40,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     state().init();
-    state().sync_ui(&ui.as_weak());
+    state().sync_ui(&ui);
 
     ui.run()?;
     shutdown()?;

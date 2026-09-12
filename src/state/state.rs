@@ -18,7 +18,7 @@ impl AppState {
     pub fn init(&mut self) {
         self.courses.load_courses();
     }
-    pub fn sync_ui(&mut self, ui: &slint::Weak<AppWindow>) {
+    pub fn sync_ui(&mut self, ui: &AppWindow) {
         self.dashboard.sync_ui(&self.courses, ui);
         self.notifs.sync_ui(&self.courses, ui);
     }
