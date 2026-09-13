@@ -37,18 +37,6 @@ impl SchoologyNotification {
                 .unwrap_or_default()
         };
         let created = parse_created(&self.created, now);
-        let placeholders: Vec<_> = self.sentence.split("%s").collect();
-        let context_count = self.args.iter().take_while(|arg| arg.is_context()).count();
-        let mut prefix = placeholders.first().copied().unwrap_or_default().to_owned();
-        for index in 0..context_count {
-            prefix.push_str(&self.args[index].title);
-            prefix.push_str(placeholders.get(index + 1).copied().unwrap_or_default());
-        }
-        let suffix = placeholders
-            .last()
-            .copied()
-            .filter(|_| placeholders.len() > context_count + 1)
-            .unwrap_or_default();
         let mut seen = HashSet::new();
         let mut result = Vec::new();
 
@@ -58,7 +46,7 @@ impl SchoologyNotification {
             }
             result.push(Notification {
                 event: NotificationEvent::GradeUpdated,
-                title: format!("{prefix}{}{suffix}", arg.title),
+                title: arg.title.clone(),
                 viewed: self.viewed,
                 created,
                 resource_id: arg.id.0.clone(),
@@ -70,7 +58,7 @@ impl SchoologyNotification {
         if result.is_empty() {
             result.push(Notification {
                 event: NotificationEvent::GradeUpdated,
-                title: prefix,
+                title: String::new(),
                 viewed: self.viewed,
                 created,
                 resource_id: String::new(),

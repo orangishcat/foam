@@ -1,4 +1,12 @@
-export struct Notification { title: string, course: string, course_id: string }
+export enum NotificationType { new_assignment, new_document, new_grade, new_link, unknown }
+
+export struct Notification {
+    title: string,
+    n_type: NotificationType,
+    icon_color: color,
+    course: string,
+    course_id: string
+}
 
 export struct NotificationUi {
     progress: float,

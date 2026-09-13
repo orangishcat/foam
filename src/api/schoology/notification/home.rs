@@ -66,7 +66,7 @@ fn resource(href: &str) -> Option<(String, String, Option<MaterialType>)> {
 }
 
 // Capture the actor and operation preceding the first resource. Hidden icon
-// labels and timestamps are presentation details rather than title content.
+// labels and timestamps are presentation details rather than event content.
 fn operation_prefix(element: ElementRef<'_>, output: &mut String) -> bool {
     if element
         .value()
@@ -179,7 +179,7 @@ fn parse_home(html: &str, now: DateTime<Local>) -> RequestResult<Vec<Notificatio
                 .unwrap_or(created);
             notifications.push(Notification {
                 event,
-                title: format!("{prefix} {}", text(link)).trim().to_owned(),
+                title: text(link),
                 viewed,
                 created: item_created,
                 resource_id,
@@ -195,7 +195,7 @@ fn parse_home(html: &str, now: DateTime<Local>) -> RequestResult<Vec<Notificatio
         if seen.is_empty() {
             notifications.push(Notification {
                 event: NotificationEvent::Unknown,
-                title: prefix,
+                title: String::new(),
                 viewed,
                 created,
                 resource_id: String::new(),

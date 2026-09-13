@@ -6,38 +6,74 @@ import {
     ListView,
 } from "std-widgets.slint";
 import { UiState } from "../ui-state.slint";
+import { NotificationType } from "../types/notification-ui.slint";
 
 export component Notifications inherits Rectangle {
     background: UiState.theme.background-800;
 
     VerticalBox {
+        padding: 32px;
         ListView {
             for notif in UiState.notif.notifications: Rectangle {
                 height: inner.height + 10px;
                 inner := Rectangle {
                     border-radius: 5px;
-                    border-width: 2px;
+                    border-width: 1px;
                     height: min(120px, max(30px, self.preferred-height));
                     border-color: UiState.theme.background-400;
                     background: UiState.theme.background-700;
 
                     preferred-height: title.preferred-height + course.preferred-height
-                        + content.padding-top + content.padding-bottom + 16px;
+                        + content.padding-top + content.padding-bottom + 32px;
                     clip: true;
 
-                    HorizontalBox {
+                    HorizontalLayout {
+                        padding: 2px;
+                        alignment: start;
+                        spacing: 12px;
 
-                        content := VerticalBox {
-                            spacing: 2px;
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        if notif.n_type == NotificationType.new-assignment: Image {
+                            source: @image-url("../icons/file-plus.svg");
+                            colorize: notif.icon-color;
+                            height: 64px;
+                        }
+                        if notif.n_type == NotificationType.new-document: Image {
+                            source: @image-url("../icons/file-text.svg");
+                            colorize: notif.icon-color;
+                            height: 64px;
+                        }
+                        if notif.n_type == NotificationType.new-grade: Image {
+                            source: @image-url("../icons/circle-check-big.svg");
+                            colorize: notif.icon-color;
+                            height: 64px;
+                        }
+                        if notif.n_type == NotificationType.new_link: Image {
+                            source: @image-url("../icons/link.svg");
+                            colorize: notif.icon-color;
+                            height: 64px;
+                        }
+                        if notif.n_type == NotificationType.unknown: Image {
+                            source: @image-url("../icons/square-plus.svg");
+                            colorize: notif.icon-color;
+                            height: 64px;
+                        }
+                        content := VerticalLayout {
+                            spacing: 4px;
                             title := Text {
                                 text: notif.title;
+                                font-size: 18px;
                                 font-weight: 700;
+                                vertical-alignment: bottom;
                                 wrap: word-wrap;
                             }
 
                             course := Text {
                                 color: UiState.theme.text-400;
+                                font-size: 12px;
                                 text: notif.course;
+                                vertical-alignment: top;
                                 wrap: word-wrap;
                             }
                         }

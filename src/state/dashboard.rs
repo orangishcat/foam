@@ -21,7 +21,9 @@ pub fn due_date_bucket(assignment: &Assignment) -> i64 {
     {
         return EXCLUDED_FROM_DASHBOARD;
     }
-    (assignment.due - Utc::now()).num_days().clamp(-1, 4)
+    (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
+        .num_days()
+        .clamp(-1, 4)
 }
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];

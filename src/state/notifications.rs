@@ -10,13 +10,13 @@ use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
-    AppWindow,
+    AppWindow, UiState,
     api::schoology,
     config::{config, config_write},
     filesystem,
     state::{courses::CourseState, state::state},
     thread_manager::{self, check_cancelled},
-    types::notification::Notification,
+    types::{material::MaterialType, notification::Notification},
 };
 
 const NOTIFICATION_FILE: &str = "notifications.json";
@@ -138,8 +138,21 @@ impl NotificationState {
                     .map_or("Unknown course", |c| c.course_title.as_str())
                     .into(),
                 course_id: notif.course_id.to_owned().into(),
+                n_type: match notif.material_type.unwrap_or(MaterialType::Folder) {
+                    MaterialType::Assignment | MaterialType::Assessment => {
+                        crate::NotificationType::NewAssignment
+                    }
+                    MaterialType::Document => crate::NotificationType::NewDocument,
+                    MaterialType::Link => crate::NotificationType::NewLink,
+                    _ => crate::NotificationType::Unknown,
+                },
+                icon_color: match notif.material_type.unwrap_or(MaterialType::Folder) {
+                    MaterialType::Assignment | MaterialType::Assessment => {
+                        ui.global::<UiState>().get_theme().accent_400
+                    }
+                    _ => ui.global::<UiState>().get_theme().text_400,
+                },
             })
-            .take(20)
             .collect::<Vec<crate::Notification>>();
         ui.global::<crate::UiState>()
             .set_notif(crate::NotificationUi {
