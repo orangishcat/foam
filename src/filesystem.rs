@@ -1,11 +1,11 @@
 use std::{
-    fs::{self, File},
-    io::{self, BufReader, Error},
+    fs::{self, File, OpenOptions},
+    io::{self, BufReader, BufWriter, Error},
     path::{Path, PathBuf},
 };
 
 use log::{error, warn};
-use serde::Serialize;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::{config::config, types::course::Course};
 
@@ -51,9 +51,27 @@ pub fn write_course(course: &Course) -> io::Result<PathBuf> {
     Ok(course_json_path)
 }
 
+pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>
+where
+    T: DeserializeOwned,
+{
+    let reader = BufReader::new(File::open(path)?);
+    serde_json::from_reader(reader).map_err(Error::other)
+}
+
 pub(super) fn write_json(path: &Path, value: &impl Serialize) -> io::Result<()> {
-    let json = serde_json::to_string_pretty(value).map_err(io::Error::other)?;
-    fs::write(path, format!("{json}\n"))
+    create_if_missing(path)?;
+    let writer = BufWriter::new(OpenOptions::new().write(true).truncate(true).open(path)?);
+    serde_json::to_writer_pretty(writer, value)?;
+    Ok(())
+}
+
+pub(super) fn create_if_missing(path: &Path) -> io::Result<()> {
+    match OpenOptions::new().write(true).create_new(true).open(path) {
+        Ok(_) => Ok(()),
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 pub(super) fn sanitized_file(parent: &Path, title: &str, extension: &str) -> PathBuf {

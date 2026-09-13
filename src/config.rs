@@ -9,6 +9,8 @@ use chrono::{DateTime, Local, TimeDelta};
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
+use crate::filesystem;
+
 const APP_NAME: &str = concat!("dev.orangishcat.", env!("CARGO_PKG_NAME"));
 const CONFIG_FILE_NAME: &str = "config.json";
 
@@ -28,9 +30,6 @@ pub struct AppConfig {
     #[derivative(Default(value = "TimeDelta::minutes(5)"))]
     pub refresh_duration: TimeDelta,
 
-    pub last_update: DateTime<Local>,
-    pub last_sync: DateTime<Local>,
-
     #[serde(skip)]
     data_dir: PathBuf,
 }
@@ -44,64 +43,32 @@ impl AppConfig {
         });
         Self::create_data_layout(&data_dir);
 
-        let config_file = data_dir.join(CONFIG_FILE_NAME);
-        Self::create_default_file(&config_file);
-
-        let contents = fs::read_to_string(&config_file).unwrap_or_else(|error| {
-            panic!(
-                "failed to read app configuration at {}: {error}",
-                config_file.display()
-            )
-        });
-        let mut config: Self = serde_json::from_str(&contents).unwrap_or_else(|error| {
-            panic!(
-                "failed to parse app configuration at {}: {error}",
-                config_file.display()
-            )
-        });
+        let mut config: Self = filesystem::read_json(&data_dir.join(CONFIG_FILE_NAME))
+            .inspect_err(|e| log::warn!("Failed to read config, using default: {e}"))
+            .unwrap_or_default();
         config.data_dir = data_dir;
         config
+    }
+
+    pub fn save(&self) -> std::io::Result<()> {
+        filesystem::write_json(&self.config_file(), self)
+            .inspect_err(|e| log::warn!("Failed to write config: {e}"))
     }
 
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
     }
 
+    pub fn config_file(&self) -> PathBuf {
+        self.data_dir.join(CONFIG_FILE_NAME)
+    }
+
     pub fn courses_dir(&self) -> PathBuf {
         self.data_dir().join("courses")
     }
 
-    pub fn save(&self) -> std::io::Result<()> {
-        let contents =
-            serde_json::to_string_pretty(self).expect("failed to serialize app configuration");
-        fs::write(
-            self.data_dir.join(CONFIG_FILE_NAME),
-            format!("{contents}\n"),
-        )
-    }
-
     fn create_data_layout(data_dir: &Path) {
         fs::create_dir_all(data_dir.join("courses")).expect("failed to create app data directory");
-    }
-
-    fn create_default_file(config_file: &Path) {
-        let mut file = match OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(config_file)
-        {
-            Ok(file) => file,
-            Err(error) if error.kind() == ErrorKind::AlreadyExists => return,
-            Err(error) => panic!(
-                "failed to create default app configuration at {}: {error}",
-                config_file.display()
-            ),
-        };
-
-        let contents = serde_json::to_string_pretty(&Self::default())
-            .expect("failed to serialize default app configuration");
-        file.write_all(format!("{contents}\n").as_bytes())
-            .expect("failed to write default app configuration");
     }
 }
 

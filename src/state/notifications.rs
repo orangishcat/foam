@@ -1,24 +1,53 @@
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+};
+
 use chrono::{DateTime, Local};
+use objc2::encode::EncodingBox::Sel;
+use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow,
     api::schoology,
     config::{config, config_write},
+    filesystem,
     state::{courses::CourseState, state::state},
     thread_manager::{self, check_cancelled},
     types::notification::Notification,
 };
 
-#[derive(Default)]
+const NOTIFICATION_FILE: &str = "notifications.json";
+
+#[derive(Default, Serialize, Deserialize)]
 pub struct NotificationState {
     pub notifications: Vec<Notification>,
+
+    pub last_update: DateTime<Local>,
+    pub last_sync: DateTime<Local>,
+
+    #[serde(skip)]
     is_checking_notifications: bool,
 }
 
 impl NotificationState {
+    pub fn load(&mut self) {
+        self.notifications = filesystem::read_json(&Self::notification_path())
+            .inspect_err(|e| log::warn!("Failed to read notifications: {e}"))
+            .unwrap_or_default();
+    }
+    pub fn save(&self) {
+        filesystem::write_json(&Self::notification_path(), &self.notifications)
+            .inspect_err(|e| log::warn!("Failed to write notifications: {e}"))
+            .unwrap_or_default();
+    }
+    pub fn notification_path() -> PathBuf {
+        config().data_dir().join(NOTIFICATION_FILE)
+    }
     pub fn check_notifications(&mut self) {
-        if Local::now() - config().last_update < config().refresh_duration
+        if Local::now() - self.last_update < config().refresh_duration
             || self.is_checking_notifications
         {
             log::debug!("Notifications cache is fresh, skipping fetch");
@@ -35,24 +64,31 @@ impl NotificationState {
 
     fn spawn_notif_scrape() -> std::io::Result<()> {
         thread_manager::spawn_thread("scrape notifications", || {
-            if let Ok(mut notifs) = schoology::notification::scrape_notifications() {
-                let last_sync = config().last_sync;
-                for notif in notifs.iter_mut() {
-                    notif.is_processed = notif.created < last_sync;
+            match schoology::notification::scrape_notifications() {
+                Ok(mut notifs) => {
+                    let last_sync = state().notif.last_sync;
+                    for notif in notifs.iter_mut() {
+                        notif.is_processed = notif.created < last_sync;
+                    }
+                    {
+                        let notif_state = &mut state().notif;
+                        notif_state.notifications = notifs.clone();
+                        notif_state.save();
+                        notif_state.last_update = Local::now();
+                    }
+                    log::info!("Finished scraping notifications");
+                    if let Err(_) = check_cancelled() {
+                        return;
+                    }
+                    if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
+                        state().notif.is_checking_notifications = false;
+                        log::warn!("Starting notification material update failed: {err}");
+                    }
                 }
-                state().notif.notifications = notifs.clone();
-                config_write().last_update = Local::now();
-                log::info!("Finished scraping notifications");
-                if let Err(_) = check_cancelled() {
-                    return;
-                }
-                if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
+                Err(e) => {
                     state().notif.is_checking_notifications = false;
-                    log::warn!("Starting notification material update failed: {err}");
+                    log::warn!("Scraping notifications failed: {e}");
                 }
-            } else {
-                state().notif.is_checking_notifications = false;
-                log::warn!("Scraping notifications failed");
             }
         })
         .map(|_| ())
@@ -83,7 +119,7 @@ impl NotificationState {
             if result.is_ok() && persisted.is_ok() {
                 // notifications arriving during sync are marked as not synced
                 // the logic is here so that last_sync is only updated when sync is successful
-                config_write().last_sync = check_started;
+                state().notif.last_sync = check_started;
             }
             crate::ui::run_on_ui_thread(move |ui| {
                 state().sync_ui(&ui);

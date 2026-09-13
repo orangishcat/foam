@@ -16,7 +16,8 @@ pub struct AppState {
 
 impl AppState {
     pub fn init(&mut self) {
-        self.course.load_courses();
+        self.course.load();
+        self.notif.load();
     }
     pub fn sync_ui(&mut self, ui: &AppWindow) {
         self.dashboard.sync_ui(&self.course, ui);

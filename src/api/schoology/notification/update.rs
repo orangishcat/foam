@@ -109,6 +109,7 @@ pub fn update(
         publish_progress((i + 1) as f32 / len as f32);
         check_cancelled()?;
     }
+    log::info!("Finished processing notifications");
     Ok(())
 }
 

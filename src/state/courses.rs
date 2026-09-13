@@ -15,7 +15,7 @@ pub struct CourseState {
 }
 
 impl CourseState {
-    pub fn load_courses(&mut self) {
+    pub fn load(&mut self) {
         match read_courses() {
             Ok(courses) => {
                 self.courses = courses;
