@@ -1,18 +1,13 @@
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
-use objc2::encode::EncodingBox::Sel;
 use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow, UiState,
     api::schoology,
-    config::{config, config_write},
+    config::config,
     filesystem,
     state::{courses::CourseState, state::state},
     thread_manager::{self, check_cancelled},
@@ -34,12 +29,12 @@ pub struct NotificationState {
 
 impl NotificationState {
     pub fn load(&mut self) {
-        self.notifications = filesystem::read_json(&Self::notification_path())
+        *self = filesystem::read_json(&Self::notification_path())
             .inspect_err(|e| log::warn!("Failed to read notifications: {e}"))
             .unwrap_or_default();
     }
     pub fn save(&self) {
-        filesystem::write_json(&Self::notification_path(), &self.notifications)
+        filesystem::write_json(&Self::notification_path(), &self)
             .inspect_err(|e| log::warn!("Failed to write notifications: {e}"))
             .unwrap_or_default();
     }
@@ -77,13 +72,18 @@ impl NotificationState {
                         notif_state.last_update = Local::now();
                     }
                     log::info!("Finished scraping notifications");
-                    if let Err(_) = check_cancelled() {
+                    if check_cancelled().is_err() {
                         return;
                     }
-                    if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
-                        state().notif.is_checking_notifications = false;
-                        log::warn!("Starting notification material update failed: {err}");
+                    match Self::update_notif_materials(notifs, Local::now()) {
+                        Ok(_) => {
+                            state().notif.save();
+                        }
+                        Err(err) => {
+                            log::warn!("Starting notification material update failed: {err}");
+                        }
                     }
+                    state().notif.is_checking_notifications = false;
                 }
                 Err(e) => {
                     state().notif.is_checking_notifications = false;

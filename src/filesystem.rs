@@ -5,7 +5,7 @@ use std::{
 };
 
 use log::{error, warn};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{config::config, types::course::Course};
 
@@ -77,8 +77,8 @@ pub(super) fn create_if_missing(path: &Path) -> io::Result<()> {
 pub(super) fn sanitized_file(parent: &Path, title: &str, extension: &str) -> PathBuf {
     let stem = safe_stem(title);
     let name = format!("{stem}.{extension}");
-    let path = parent.join(name);
-    path
+    
+    parent.join(name)
 }
 
 fn safe_stem(title: &str) -> String {

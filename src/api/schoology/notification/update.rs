@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{self, Error},
+    io::{self},
 };
 
 use scraper::{Html, Selector};

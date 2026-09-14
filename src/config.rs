@@ -1,11 +1,11 @@
 use std::{
-    fs::{self, OpenOptions},
-    io::{ErrorKind, Write},
+    fs::{self},
+    io::Write,
     path::{Path, PathBuf},
     sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use chrono::{DateTime, Local, TimeDelta};
+use chrono::TimeDelta;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
