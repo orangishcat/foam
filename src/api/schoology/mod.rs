@@ -1,18 +1,19 @@
 use std::{
     error::Error,
     io,
-    sync::{LazyLock, RwLock},
+    sync::{Arc, LazyLock, RwLock},
     time::Duration,
 };
 
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, AUTHORIZATION, COOKIE},
+    header::{ACCEPT, AUTHORIZATION},
 };
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::config::config;
 
+mod cookies;
 pub mod course;
 pub mod notification;
 pub mod types;
@@ -22,7 +23,7 @@ pub type RequestError = Box<dyn Error + Send + Sync>;
 pub type RequestResult<T> = Result<T, RequestError>;
 
 static INTERNAL_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
-    LazyLock::new(|| new_client().map(RwLock::new));
+    LazyLock::new(|| new_internal_client().map(RwLock::new));
 static API_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
     LazyLock::new(|| new_client().map(RwLock::new));
 
@@ -30,6 +31,22 @@ fn new_client() -> RequestResult<Client> {
     Client::builder()
         .user_agent(USER_AGENT)
         .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(Into::into)
+}
+
+fn new_internal_client() -> RequestResult<Client> {
+    let url = internal_url("/")?.parse::<reqwest::Url>()?;
+    let (key, value) = {
+        let config = config();
+        (config.cookie_key.clone(), config.cookie_value.clone())
+    };
+    let jar = Arc::new(cookies::SessionCookies::new(url, key, value));
+
+    Client::builder()
+        .user_agent(USER_AGENT)
+        .timeout(Duration::from_secs(30))
+        .cookie_provider(jar)
         .build()
         .map_err(Into::into)
 }
@@ -72,8 +89,6 @@ fn authorization<R: oauth::Request + ?Sized>(
 
 pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
     let url = internal_url(route)?;
-    let config = config();
-    let cookie = format!("{}={}", config.cookie_key, config.cookie_value);
     INTERNAL_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
@@ -81,7 +96,6 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
         .map_err(|_| io::Error::other("internal client lock is poisoned"))?
         .get(url)
         .header(ACCEPT, "application/json")
-        .header(COOKIE, cookie)
         .send()?
         .error_for_status()?
         .json()
@@ -91,10 +105,6 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
 /// Fetch an authenticated HTML page using the same session as internal JSON requests.
 pub fn internal_get_html(route: &str) -> RequestResult<String> {
     let url = internal_url(route)?;
-    let cookie = {
-        let config = config();
-        format!("{}={}", config.cookie_key, config.cookie_value)
-    };
     Ok(INTERNAL_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
@@ -102,7 +112,6 @@ pub fn internal_get_html(route: &str) -> RequestResult<String> {
         .map_err(|_| io::Error::other("internal client lock is poisoned"))?
         .get(url)
         .header(ACCEPT, "text/html")
-        .header(COOKIE, cookie)
         .send()?
         .error_for_status()?
         .text()?)
@@ -113,8 +122,6 @@ pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(
     body: &B,
 ) -> RequestResult<T> {
     let url = internal_url(route)?;
-    let config = config();
-    let cookie = format!("{}={}", config.cookie_key, config.cookie_value);
     INTERNAL_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
@@ -122,7 +129,6 @@ pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(
         .map_err(|_| io::Error::other("internal client lock is poisoned"))?
         .post(url)
         .header(ACCEPT, "application/json")
-        .header(COOKIE, cookie)
         .json(body)
         .send()?
         .error_for_status()?

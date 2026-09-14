@@ -27,7 +27,13 @@ fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let default_level = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "info"
+    };
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(default_level))
+        .init();
 
     slint::BackendSelector::new()
         .backend_name("winit".into())
