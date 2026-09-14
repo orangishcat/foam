@@ -67,9 +67,12 @@ fn set_scores(folder: &mut Folder, scores: &HashMap<String, Option<String>>) {
                     .cloned()
                     .flatten()
                     .inspect(|score| {
-                        info!(
+                        log::debug!(
                             "Applied grade {}/{} to assignment id {} (\"{}\")",
-                            score, assignment.max_points, assignment.id, assignment.title,
+                            score,
+                            assignment.max_points,
+                            assignment.id,
+                            assignment.title,
                         )
                     });
                 assignment.score = grade

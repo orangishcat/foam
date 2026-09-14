@@ -102,7 +102,7 @@ pub fn update(
         if let Err(err) = process_notification(notif, &mut folders) {
             log::warn!(
                 "Skipping notification for resource {} in course {}: {err}",
-                notif.resource_id,
+                notif.title,
                 notif.course_id
             );
         }
@@ -120,9 +120,34 @@ fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> Reques
         );
     }
     if n.course_id.is_empty() {
-        return Err(
-            io::Error::other(format!("Course id for resource {} is empty", n.resource_id)).into(),
-        );
+        // probably grade posted (doesn't show course in schoology)
+        let course_id_option = state()
+            .course
+            .courses
+            .iter()
+            .flat_map(|c| {
+                c.materials.recursive_iter().filter_map(|m| match m {
+                    Material::Assignment(a) => {
+                        if a.id == n.resource_id {
+                            Some(a.course_id.to_owned())
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+            })
+            .next();
+
+        if let Some(course_id) = course_id_option {
+            n.course_id = course_id;
+        } else {
+            return Err(io::Error::other(format!(
+                "Course id for resource {} is empty",
+                n.resource_id
+            ))
+            .into());
+        }
     }
 
     // Release the state lock before making requests or publishing progress.
