@@ -123,19 +123,13 @@ fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> Reques
         // probably grade posted (doesn't show course in schoology)
         let course_id_option = state()
             .course
-            .courses
-            .iter()
-            .flat_map(|c| {
-                c.materials.recursive_iter().filter_map(|m| match m {
-                    Material::Assignment(a) => {
-                        if a.id == n.resource_id {
-                            Some(a.course_id.to_owned())
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None,
-                })
+            .walk_assignments()
+            .filter_map(|a| {
+                if a.id == n.resource_id {
+                    Some(a.course_id.to_owned())
+                } else {
+                    None
+                }
             })
             .next();
 

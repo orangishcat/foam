@@ -1,29 +1,24 @@
 use std::collections::BTreeMap;
 
-use chrono::{Datelike, Days, Local, Utc};
+use chrono::{Datelike, Days, Local};
 use slint::{Color, ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow, AssignmentCol,
-    types::{assignment::Assignment, material::Material},
+    types::assignment::Assignment,
 };
 
 use super::courses::CourseState;
 
-const EXCLUDED_FROM_DASHBOARD: i64 = -5;
-
-pub fn due_date_bucket(assignment: &Assignment) -> i64 {
-    if assignment.due < Utc::now()
-        && (assignment.score.is_some()
-            || assignment.letter_grade.is_some()
-            || !assignment.allow_submissions
-            || !assignment.submissions.is_empty())
-    {
-        return EXCLUDED_FROM_DASHBOARD;
+pub fn due_date_bucket(assignment: &Assignment) -> Option<i64> {
+    if assignment.is_past_due() && assignment.is_completed() {
+        return None;
     }
-    (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
-        .num_days()
-        .clamp(-1, 4)
+    Some(
+        (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
+            .num_days()
+            .clamp(-1, 4),
+    )
 }
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
@@ -33,19 +28,18 @@ pub struct DashboardState {}
 
 impl DashboardState {
     pub fn sync_ui(&self, courses: &CourseState, ui: &AppWindow) {
-        let assignments = courses
-            .walk_materials()
-            .filter_map(|material| match material {
-                Material::Assignment(assignment) => Some(assignment),
-                _ => None,
-            })
-            .fold(BTreeMap::new(), |mut groups, assignment| {
-                groups
-                    .entry(due_date_bucket(assignment))
-                    .or_insert_with(Vec::new)
-                    .push(assignment);
-                groups
-            });
+        let assignments =
+            courses
+                .walk_assignments()
+                .fold(BTreeMap::new(), |mut groups, assignment| {
+                    if let Some(bucket) = due_date_bucket(assignment) {
+                        groups
+                            .entry(bucket)
+                            .or_insert_with(Vec::new)
+                            .push(assignment);
+                    }
+                    groups
+                });
 
         let sorted_bucket_to_modelrc = |bucket: i64| {
             let mut assign_vec = assignments.get(&bucket).cloned().unwrap_or_default();
@@ -58,7 +52,7 @@ impl DashboardState {
                         course_id: a.course_id.clone().into(),
                         color: if a.is_completed() {
                             Color::from_rgb_u8(70, 130, 90)
-                        } else if a.is_overdue() {
+                        } else if a.is_past_due() {
                             Color::from_rgb_u8(130, 90, 60)
                         } else {
                             Color::from_rgb_u8(70, 90, 130)

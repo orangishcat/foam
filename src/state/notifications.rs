@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,11 @@ use crate::{
     filesystem,
     state::{courses::CourseState, state::state},
     thread_manager::{self, check_cancelled},
-    types::{material::MaterialType, notification::Notification},
+    types::{
+        material::{Material, MaterialType},
+        notification::Notification,
+    },
+    ui,
 };
 
 const NOTIFICATION_FILE: &str = "notifications.json";
@@ -22,9 +26,12 @@ pub struct NotificationState {
 
     pub last_update: DateTime<Local>,
     pub last_sync: DateTime<Local>,
+    pub last_submission_sync: DateTime<Local>,
 
     #[serde(skip)]
     is_checking_notifications: bool,
+    #[serde(skip)]
+    is_checking_submissions: bool,
 }
 
 impl NotificationState {
@@ -55,6 +62,19 @@ impl NotificationState {
             self.is_checking_notifications = false;
             log::warn!("Scraping notifications failed: {err}");
         }
+
+        if Local::now() - self.last_submission_sync < config().submission_refresh_duration
+            || self.is_checking_notifications
+        {
+            log::debug!("Submissions cache is fresh, skipping fetch");
+            return;
+        }
+
+        self.is_checking_submissions = true;
+        if let Err(err) = Self::spawn_submission_sync() {
+            self.is_checking_submissions = false;
+            log::warn!("Updating submissions failed: {err}");
+        }
     }
 
     fn spawn_notif_scrape() -> std::io::Result<()> {
@@ -75,15 +95,10 @@ impl NotificationState {
                     if check_cancelled().is_err() {
                         return;
                     }
-                    match Self::update_notif_materials(notifs, Local::now()) {
-                        Ok(_) => {
-                            state().notif.save();
-                        }
-                        Err(err) => {
-                            log::warn!("Starting notification material update failed: {err}");
-                        }
+                    if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
+                        log::warn!("Starting notification material update failed: {err}");
+                        state().notif.is_checking_notifications = false;
                     }
-                    state().notif.is_checking_notifications = false;
                 }
                 Err(e) => {
                     state().notif.is_checking_notifications = false;
@@ -119,11 +134,56 @@ impl NotificationState {
             if result.is_ok() && persisted.is_ok() {
                 // notifications arriving during sync are marked as not synced
                 // the logic is here so that last_sync is only updated when sync is successful
-                state().notif.last_sync = check_started;
+                let mut state = state();
+                state.notif.last_sync = check_started;
+                state.notif.save();
             }
-            crate::ui::run_on_ui_thread(move |ui| {
-                state().sync_ui(&ui);
-            });
+            ui::sync_ui();
+        })
+        .map(|_| ())
+    }
+    fn spawn_submission_sync() -> Result<(), std::io::Error> {
+        let check_started = Local::now();
+
+        thread_manager::spawn_thread("update submissions", move || {
+            let mut assignments = {
+                let app_state = state();
+                app_state
+                    .course
+                    .walk_assignments()
+                    .filter(|a| a.is_past_due() && !a.is_completed())
+                    .cloned()
+                    .collect::<Vec<_>>()
+            };
+            let _ = schoology::course::submissions::scrape_submissions(&mut assignments)
+                .inspect_err(|err| log::warn!("Updating overdue submissions failed: {err}"));
+            let mut submissions = assignments
+                .into_iter()
+                .map(|assignment| {
+                    (
+                        (assignment.course_id, assignment.id),
+                        assignment.submissions,
+                    )
+                })
+                .collect::<HashMap<_, _>>();
+            {
+                let mut s = state();
+                for course in &mut s.course.courses {
+                    for material in course.materials.recursive_iter_mut() {
+                        if let Material::Assignment(assignment) = material {
+                            if let Some(updated) = submissions
+                                .remove(&(assignment.course_id.clone(), assignment.id.clone()))
+                            {
+                                assignment.submissions = updated;
+                            }
+                        }
+                    }
+                }
+                s.notif.last_submission_sync = check_started;
+                s.notif.is_checking_submissions = false;
+                s.notif.save();
+            }
+            ui::sync_ui();
         })
         .map(|_| ())
     }

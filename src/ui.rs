@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::AppWindow;
+use crate::{AppWindow, state::state::state};
 
 pub(super) static WEAK_UI: Mutex<Option<slint::Weak<AppWindow>>> = Mutex::new(None);
 
@@ -14,4 +14,8 @@ pub fn run_on_ui_thread(func: impl FnOnce(AppWindow) + Send + 'static) {
 
     ui.upgrade_in_event_loop(func)
         .expect("event loop is not available");
+}
+
+pub fn sync_ui() {
+    run_on_ui_thread(|ui| state().sync_ui(&ui));
 }

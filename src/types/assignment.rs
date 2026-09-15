@@ -25,9 +25,14 @@ impl Assignment {
         if let Some(mark) = self.manual_mark {
             return mark;
         }
-        (self.is_overdue() && !self.allow_submissions) || !self.submissions.is_empty()
+        (self.is_past_due() && !self.allow_submissions)
+            || !self.submissions.is_empty()
+            || self.is_scored()
     }
-    pub fn is_overdue(&self) -> bool {
+    pub fn is_past_due(&self) -> bool {
         self.due < Utc::now()
+    }
+    pub fn is_scored(&self) -> bool {
+        self.score.is_some() || self.letter_grade.is_some()
     }
 }

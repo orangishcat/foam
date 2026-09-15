@@ -29,6 +29,8 @@ pub struct AppConfig {
 
     #[derivative(Default(value = "TimeDelta::minutes(5)"))]
     pub refresh_duration: TimeDelta,
+    #[derivative(Default(value = "TimeDelta::minutes(60)"))]
+    pub submission_refresh_duration: TimeDelta,
 
     #[serde(skip)]
     data_dir: PathBuf,

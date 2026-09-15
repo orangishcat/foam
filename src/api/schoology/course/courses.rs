@@ -11,7 +11,7 @@ use crate::{
         types::{LooseString, LooseUsize},
     },
     config::config,
-    types::course::Course,
+    types::{course::Course, material::Material},
 };
 
 const PAGE_LIMIT: usize = 50;
@@ -69,7 +69,15 @@ struct Links {
 pub fn scrape_courses() -> RequestResult<Vec<Course>> {
     let mut courses = scrape_materials()?;
     scrape_grades(&mut courses)?;
-    scrape_submissions(&mut courses)?;
+    scrape_submissions(courses.iter_mut().flat_map(|course| {
+        course
+            .materials
+            .recursive_iter_mut()
+            .filter_map(|material| match material {
+                Material::Assignment(assignment) => Some(assignment),
+                _ => None,
+            })
+    }))?;
     Ok(courses)
 }
 

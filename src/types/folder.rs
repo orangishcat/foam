@@ -14,7 +14,6 @@ pub struct Folder {
 }
 
 impl Folder {
-    /// Associate assignments, including nested ones, with their containing course.
     pub fn set_course_id(&mut self, course_id: &str) {
         for material in &mut self.materials {
             match material {
@@ -30,5 +29,16 @@ impl Folder {
             Material::Folder(folder_box) => folder_box.recursive_iter(),
             _ => Box::new(once(material)),
         }))
+    }
+
+    pub fn recursive_iter_mut(&mut self) -> Box<dyn Iterator<Item = &mut Material> + '_> {
+        Box::new(
+            self.materials
+                .iter_mut()
+                .flat_map(|material| match material {
+                    Material::Folder(folder) => folder.recursive_iter_mut(),
+                    _ => Box::new(once(material)),
+                }),
+        )
     }
 }

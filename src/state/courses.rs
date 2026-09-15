@@ -6,7 +6,7 @@ use log::error;
 use crate::{
     api::schoology,
     filesystem::{self, read_courses},
-    types::{course::Course, material::Material},
+    types::{assignment::Assignment, course::Course, material::Material},
 };
 
 #[derive(Clone, Default)]
@@ -60,6 +60,12 @@ impl CourseState {
         self.courses
             .iter()
             .flat_map(|c| c.materials.recursive_iter())
+    }
+    pub fn walk_assignments(&self) -> impl Iterator<Item = &Assignment> {
+        self.walk_materials().filter_map(|mat| match mat {
+            Material::Assignment(a) => Some(a),
+            _ => None,
+        })
     }
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         filesystem::write_courses(&self.courses)?;
