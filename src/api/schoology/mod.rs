@@ -13,6 +13,7 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use crate::config::config;
 
+pub mod calendar;
 mod cookies;
 pub mod course;
 pub mod notification;
@@ -89,7 +90,7 @@ fn authorization<R: oauth::Request + ?Sized>(
 
 pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
     let url = internal_url(route)?;
-    INTERNAL_CLIENT
+    let text = INTERNAL_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
         .read()
@@ -98,23 +99,9 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
         .header(ACCEPT, "application/json")
         .send()?
         .error_for_status()?
-        .json()
-        .map_err(Into::into)
-}
-
-/// Fetch an authenticated HTML page using the same session as internal JSON requests.
-pub fn internal_get_html(route: &str) -> RequestResult<String> {
-    let url = internal_url(route)?;
-    Ok(INTERNAL_CLIENT
-        .as_ref()
-        .map_err(|error| io::Error::other(error.to_string()))?
-        .read()
-        .map_err(|_| io::Error::other("internal client lock is poisoned"))?
-        .get(url)
-        .header(ACCEPT, "text/html")
-        .send()?
-        .error_for_status()?
-        .text()?)
+        .text()?;
+    log::debug!("{route} body: {}", text);
+    serde_json::from_str(&text).map_err(Into::into)
 }
 
 pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(

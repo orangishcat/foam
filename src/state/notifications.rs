@@ -99,10 +99,12 @@ impl NotificationState {
                         log::warn!("Starting notification material update failed: {err}");
                         state().notif.is_checking_notifications = false;
                     }
+                    Self::sync_calendar();
                 }
                 Err(e) => {
-                    state().notif.is_checking_notifications = false;
                     log::warn!("Scraping notifications failed: {e}");
+                    state().notif.is_checking_notifications = false;
+                    ui::sync_ui();
                 }
             }
         })
@@ -124,6 +126,7 @@ impl NotificationState {
             };
             publish_progress(1.0);
             let result = schoology::notification::update::update(&mut notifs, publish_progress);
+            Self::sync_calendar();
             let persisted = state().course.save();
             if let Err(err) = &result {
                 log::warn!("Updating notification materials failed: {err}");
@@ -138,9 +141,29 @@ impl NotificationState {
                 state.notif.last_sync = check_started;
                 state.notif.save();
             }
+            state().notif.is_checking_notifications = false;
             ui::sync_ui();
         })
         .map(|_| ())
+    }
+    fn sync_calendar() {
+        // Fetch without holding the app/config locks, then update only due dates.
+        match schoology::calendar::fetch() {
+            Ok(dates) => {
+                let fetched = schoology::calendar::fetch_missing(&dates);
+                let mut app = state();
+                let updated = schoology::calendar::apply(&mut app.course.courses, &dates);
+                if updated > 0 || fetched > 0 {
+                    if let Err(err) = app.course.save() {
+                        log::warn!("Saving calendar due dates failed: {err}");
+                    }
+                    log::info!(
+                        "Fetched {fetched} assignments and updated {updated} due dates from calendar"
+                    );
+                }
+            }
+            Err(err) => log::warn!("Updating calendar due dates failed: {err}"),
+        }
     }
     fn spawn_submission_sync() -> Result<(), std::io::Error> {
         let check_started = Local::now();

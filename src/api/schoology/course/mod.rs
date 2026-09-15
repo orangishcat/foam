@@ -56,6 +56,34 @@ pub fn hierarchy(course_id: &str, existing: &Folder) -> RequestResult<Folder> {
     scrape_folder(course_id, "0", None, &mut HashSet::new(), Some(&cached))
 }
 
+/// Find an assignment's parent from folder metadata, including uncached assignments.
+pub fn assignment_parent(course_id: &str, assignment_id: &str) -> RequestResult<Option<String>> {
+    let mut pending = vec![("0".to_owned(), None::<String>)];
+    let mut visited = HashSet::new();
+    while let Some((folder_id, url)) = pending.pop() {
+        crate::thread_manager::check_cancelled()?;
+        if !visited.insert(folder_id.clone()) {
+            return Err(io::Error::other(format!("course folder cycle at {folder_id}")).into());
+        }
+        let fallback_url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
+        let raw: RawFolderResponse = api_get(url.as_deref().unwrap_or(&fallback_url))?;
+        for item in raw.folder_items {
+            let material = CourseMaterial::from_raw(item)?;
+            if material.material_type == "folder" {
+                pending.push((material.id, material.location));
+            } else if material.id == assignment_id
+                && matches!(
+                    material.material_type.as_str(),
+                    "assignment" | "assessment" | "test/quiz" | "quiz"
+                )
+            {
+                return Ok(Some(folder_id));
+            }
+        }
+    }
+    Ok(None)
+}
+
 pub(crate) fn material_id(material: &Material) -> &str {
     match material {
         Material::Folder(m) => &m.id,

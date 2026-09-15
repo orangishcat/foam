@@ -21,6 +21,7 @@ pub mod web_package;
 /// Fetch and coerce a Schoology material into the provider-independent model.
 pub fn scrape(material: &CourseMaterial) -> RequestResult<Option<Material>> {
     let material_type = material.material_type.as_str();
+    crate::thread_manager::check_cancelled()?;
     info!(
         "scraping Schoology material: id={}, type={material_type}",
         material.id

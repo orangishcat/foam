@@ -1,7 +1,7 @@
 [
   {
     "label": "run",
-    "command": "RUST_BACKTRACE=1 cargo run",
+    "command": "RUST_BACKTRACE=1 RUST_LOG=off,foam=debug cargo run",
   },
   {
     "label": "check",

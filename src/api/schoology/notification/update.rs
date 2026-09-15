@@ -114,6 +114,7 @@ pub fn update(
 }
 
 fn process_notification(n: &mut Notification, folders: &mut FolderMap) -> RequestResult<()> {
+    crate::thread_manager::check_cancelled();
     if n.resource_id.is_empty() {
         return Err(
             io::Error::other(format!("Resource id for course {} is empty", n.course_id)).into(),
@@ -253,10 +254,7 @@ fn handle_assignment_posted(
     if contains_material(n, course) {
         return Ok(());
     }
-    let parent = assignment_parent(
-        &schoology::internal_get_html(&format!("/assignment/{}", n.resource_id))?,
-        course,
-    )?;
+    let (_, parent) = assignment_location(&n.resource_id, std::slice::from_ref(course))?;
     let Some(path) = resolve_parent(n, course, folders, &parent)? else {
         return Ok(());
     };
