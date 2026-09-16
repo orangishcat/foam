@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{cmp::min, collections::HashMap, path::PathBuf};
 
 use chrono::{DateTime, Local, TimeDelta};
 use serde::{Deserialize, Serialize};
@@ -94,7 +94,10 @@ impl NotificationState {
         if self.last_update_success {
             config().refresh_duration
         } else {
-            api::exponential_retry(self.scrape_attempts)
+            min(
+                api::exponential_retry(self.scrape_attempts),
+                config().refresh_duration,
+            )
         }
     }
 
