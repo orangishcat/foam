@@ -1,7 +1,7 @@
 import { VerticalBox } from "std-widgets.slint";
-import { ProgressRing } from "components/progress-ring.slint";
-import { Screen } from "screen/screens.slint";
-import { UiState } from "ui-state.slint";
+import { ProgressRing } from "progress-ring.slint";
+import { Screen } from "../screen/screens.slint";
+import { UiState } from "../ui-state.slint";
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
@@ -55,15 +55,28 @@ component NavigationItem inherits Rectangle {
 
         NavigationItem {
             label: "Dashboard";
-            icon: @image-url("icons/calendar-days.svg");
+            icon: @image-url("../icons/calendar-days.svg");
             change-to: dashboard;
         }
 
         NavigationItem {
             label: "Notifications";
-            icon: @image-url("icons/bell.svg");
+            icon: @image-url("../icons/bell.svg");
             progress: UiState.notif.progress;
             change-to: notifs;
+        }
+
+        NavigationItem {
+            label: "Courses";
+            icon: @image-url("../icons/school.svg");
+            change-to: courses;
+        }
+
+        Rectangle {
+            border-width: 1px;
+            padding: 5px;
+            border-color: UiState.theme.background-700;
+            height: 1px;
         }
 
         Rectangle {
@@ -72,7 +85,7 @@ component NavigationItem inherits Rectangle {
 
         NavigationItem {
             label: "Settings";
-            icon: @image-url("icons/settings.svg");
+            icon: @image-url("../icons/settings.svg");
             change-to: settings;
         }
     }

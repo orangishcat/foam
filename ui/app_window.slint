@@ -1,7 +1,8 @@
 import { HorizontalBox } from "std-widgets.slint";
 import { Dashboard } from "screen/dashboard.slint";
 import { Screen } from "screen/screens.slint";
-import { Sidebar } from "sidebar.slint";
+import { Courses } from "screen/courses.slint";
+import { Sidebar } from "components/sidebar.slint";
 import { UiState } from "ui-state.slint";
 export { UiState }from "ui-state.slint";
 import "./fonts/MozillaText.ttf";
@@ -24,16 +25,19 @@ export component AppWindow inherits Window {
         Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            Dashboard {
+            if UiState.screen == Screen.dashboard: Dashboard {
                 width: parent.width;
                 height: parent.height;
-                visible: UiState.screen == Screen.dashboard;
             }
 
-            Notifications {
+            if UiState.screen == Screen.notifs: Notifications {
                 width: parent.width;
                 height: parent.height;
-                visible: UiState.screen == Screen.notifs;
+            }
+
+            if UiState.screen == Screen.courses: Courses {
+                width: parent.width;
+                height: parent.height;
             }
         }
     }
