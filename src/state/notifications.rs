@@ -206,13 +206,12 @@ impl NotificationState {
                 let mut s = state();
                 for course in &mut s.course.courses {
                     for material in course.materials.recursive_iter_mut() {
-                        if let Material::Assignment(assignment) = material {
-                            if let Some(updated) = submissions
+                        if let Material::Assignment(assignment) = material
+                            && let Some(updated) = submissions
                                 .remove(&(assignment.course_id.clone(), assignment.id.clone()))
                             {
                                 assignment.submissions = updated;
                             }
-                        }
                     }
                 }
                 s.notif.last_submission_sync = check_started;

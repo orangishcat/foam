@@ -76,25 +76,32 @@ pub fn update(
 }
 
 fn resolve_course(n: &Notification) -> RequestResult<Course> {
-    let app = state();
+    if n.course_id.is_empty() {
+        return Err(io::Error::other("notification course ID is empty").into());
+    }
+    if let Some(course) = state().course.get_course(&n.course_id).cloned() {
+        return Ok(course);
+    }
+    // fetch without holding the state lock; schoology section ids are sometimes incorrect for some reason
+    let title = course::courses::section_course_title(&n.course_id)?;
+    let mut app = state();
+    // Another worker may have resolved the alias while the request ran.
     if let Some(course) = app.course.get_course(&n.course_id) {
         return Ok(course.clone());
     }
-    let mut matches = app.course.courses.iter().filter(|c| {
-        !n.course_title.is_empty()
-            && (n.course_title == c.course_title
-                || n.course_title == format!("{}: {}", c.course_title, c.section_title))
-    });
-    let mut course = matches
-        .next()
-        .cloned()
-        .ok_or_else(|| io::Error::other("notification course is not loaded"))?;
+    let mut matches = app
+        .course
+        .courses
+        .iter_mut()
+        .filter(|c| !title.is_empty() && c.course_title == title);
+    let course = matches.next().ok_or_else(|| {
+        io::Error::other(format!("no cached course matches section title {title:?}"))
+    })?;
     if matches.next().is_some() {
         return Err(io::Error::other("ambiguous notification course title").into());
     }
-    if !n.course_id.is_empty() {
-        course.aliases.push(n.course_id.clone());
-    }
+    course.aliases.push(n.course_id.clone());
+    let course = course.clone();
     Ok(course)
 }
 
@@ -111,7 +118,8 @@ fn process(
         NotificationEvent::MaterialPosted => {
             let course = resolve_course(n)?;
             if !refreshed.contains(&course.course_id) {
-                let mut materials = course::hierarchy(&n.course_id, &course.materials, posted)?;
+                let mut materials =
+                    course::hierarchy(&course.course_id, &course.materials, posted)?;
                 materials.set_course_id(&course.course_id);
                 check_cancelled()?;
                 let mut app = state();
@@ -122,22 +130,16 @@ fn process(
                     .find(|c| c.course_id == course.course_id)
                     .ok_or_else(|| io::Error::other("notification course was unloaded"))?;
                 for material in materials.recursive_iter_mut() {
-                    if let Material::Assignment(a) = material {
-                        if let Some(Material::Assignment(current)) = stored
+                    if let Material::Assignment(a) = material
+                        && let Some(Material::Assignment(current)) = stored
                             .materials
                             .recursive_iter()
                             .find(|m| course::material_id(m) == a.id)
-                        {
-                            *a = current.clone();
-                        }
+                    {
+                        *a = current.clone();
                     }
                 }
                 stored.materials = materials;
-                for alias in &course.aliases {
-                    if !stored.aliases.contains(alias) {
-                        stored.aliases.push(alias.clone());
-                    }
-                }
                 refreshed.insert(course.course_id.clone());
             }
             let app = state();

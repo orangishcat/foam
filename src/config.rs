@@ -28,7 +28,7 @@ pub struct AppConfig {
     pub api_key: Option<String>,
     pub api_secret: Option<String>,
 
-    #[derivative(Default(value = "TimeDelta::minutes(5)"))]
+    #[derivative(Default(value = "TimeDelta::minutes(10)"))]
     pub refresh_duration: TimeDelta,
     #[derivative(Default(value = "TimeDelta::minutes(60)"))]
     pub submission_refresh_duration: TimeDelta,

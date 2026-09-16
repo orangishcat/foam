@@ -16,6 +16,12 @@ use crate::{
 
 const PAGE_LIMIT: usize = 50;
 
+pub fn section_course_title(id: &str) -> RequestResult<String> {
+    let section: SchoologyCourse =
+        super::super::api_get(&format!("https://api.schoology.com/v1/sections/{id}"))?;
+    Ok(section.course_title)
+}
+
 #[derive(Serialize, oauth::Request)]
 struct CoursesQuery {
     start: usize,
