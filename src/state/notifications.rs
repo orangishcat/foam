@@ -1,12 +1,12 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, TimeDelta};
 use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow, UiState,
-    api::schoology,
+    api::{self, schoology},
     config::config,
     filesystem,
     state::{courses::CourseState, state::state},
@@ -29,6 +29,10 @@ pub struct NotificationState {
     pub last_submission_sync: DateTime<Local>,
 
     #[serde(skip)]
+    last_update_success: bool,
+    #[serde(skip)]
+    scrape_attempts: u32,
+    #[serde(skip)]
     is_checking_notifications: bool,
     #[serde(skip)]
     is_checking_submissions: bool,
@@ -49,14 +53,17 @@ impl NotificationState {
         config().data_dir().join(NOTIFICATION_FILE)
     }
     pub fn check_notifications(&mut self) {
-        if Local::now() - self.last_update < config().refresh_duration
-            || self.is_checking_notifications
-        {
+        if self.is_checking_notifications {
+            log::debug!("Currently checking notifications, skipping duplicate fetch");
+            return;
+        }
+        if Local::now() - self.last_update < self.refresh_duration() {
             log::debug!("Notifications cache is fresh, skipping fetch");
             return;
         }
 
         self.is_checking_notifications = true;
+        self.scrape_attempts += 1;
 
         if let Err(err) = Self::spawn_notif_scrape() {
             self.is_checking_notifications = false;
@@ -74,6 +81,20 @@ impl NotificationState {
         if let Err(err) = Self::spawn_submission_sync() {
             self.is_checking_submissions = false;
             log::warn!("Updating submissions failed: {err}");
+        }
+    }
+    fn on_scrape_success(&mut self, notifs: Vec<Notification>) {
+        self.notifications = notifs;
+        self.scrape_attempts = 0;
+        self.last_update_success = true;
+        self.last_update = Local::now();
+        self.save();
+    }
+    fn refresh_duration(&self) -> TimeDelta {
+        if self.last_update_success {
+            config().refresh_duration
+        } else {
+            api::exponential_retry(self.scrape_attempts)
         }
     }
 
@@ -95,12 +116,7 @@ impl NotificationState {
                             })
                             .map_or(notif.created < last_sync, |old| old.is_processed);
                     }
-                    {
-                        let notif_state = &mut state().notif;
-                        notif_state.notifications = notifs.clone();
-                        notif_state.save();
-                        notif_state.last_update = Local::now();
-                    }
+                    state().notif.on_scrape_success(notifs.clone());
                     log::info!("Finished scraping notifications");
                     if check_cancelled().is_err() {
                         return;
