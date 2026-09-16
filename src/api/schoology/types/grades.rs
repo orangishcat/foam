@@ -1,11 +1,6 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::api::types::LooseString;
-
-#[derive(Serialize, oauth::Request)]
-pub(crate) struct GradesQuery<'a> {
-    pub section_id: &'a str,
-}
 
 #[derive(Default, Deserialize)]
 #[serde(default)]

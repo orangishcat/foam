@@ -1,11 +1,7 @@
 use std::collections::HashMap;
 
-
 use crate::{
-    api::schoology::{
-        RequestResult, api_get_with_query,
-        types::grades::{GradesQuery, GradesResponse},
-    },
+    api::schoology::{RequestResult, api_get, types::grades::GradesResponse},
     config::config,
     types::{course::Course, folder::Folder, material::Material},
 };
@@ -16,39 +12,41 @@ use crate::{
 
 /// Populate scores for the configured user's assignments, matched within each section.
 pub fn scrape_grades(courses: &mut [Course]) -> RequestResult<()> {
+    apply(courses, &fetch()?);
+    Ok(())
+}
+
+pub(crate) fn fetch() -> RequestResult<GradesResponse> {
     let url = format!(
         "https://api.schoology.com/v1/users/{}/grades",
         config().user_id
     );
-    for course in courses {
-        // The default endpoint returns active enrollments and supports section_id.
-        // Pagination by enrollment is documented for timestamp/include_all_enrollments;
-        // neither is requested here. No grading-period filter means all periods.
-        // https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/
-        let response: GradesResponse = api_get_with_query(
-            &url,
-            &GradesQuery {
-                section_id: &course.course_id,
-            },
-        )?;
-        apply_grades(course, response);
-    }
-    Ok(())
+    api_get(&url)
 }
 
-fn apply_grades(course: &mut Course, response: GradesResponse) {
+pub(crate) fn apply(courses: &mut [Course], response: &GradesResponse) {
+    for course in courses {
+        apply_grades(course, response);
+    }
+}
+
+fn apply_grades(course: &mut Course, response: &GradesResponse) {
     let scores: HashMap<String, Option<String>> = response
         .section
-        .into_iter()
-        .filter(|section| section.section_id.0 == course.course_id)
-        .flat_map(|section| section.period)
-        .flat_map(|period| period.assignment)
+        .iter()
+        .filter(|section| {
+            section.section_id.0 == course.course_id
+                || course.aliases.contains(&section.section_id.0)
+        })
+        .flat_map(|section| &section.period)
+        .flat_map(|period| &period.assignment)
         .map(|grade| {
             (
-                grade.assignment_id.0,
+                grade.assignment_id.0.clone(),
                 grade
                     .grade
-                    .map(|grade| grade.0)
+                    .as_ref()
+                    .map(|grade| grade.0.clone())
                     .filter(|grade| !grade.trim().is_empty()),
             )
         })

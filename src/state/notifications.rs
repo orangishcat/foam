@@ -81,9 +81,19 @@ impl NotificationState {
         thread_manager::spawn_thread("scrape notifications", || {
             match schoology::notification::scrape_notifications() {
                 Ok(mut notifs) => {
-                    let last_sync = state().notif.last_sync;
+                    let (last_sync, previous) = {
+                        let app = state();
+                        (app.notif.last_sync, app.notif.notifications.clone())
+                    };
                     for notif in notifs.iter_mut() {
-                        notif.is_processed = notif.created < last_sync;
+                        notif.is_processed = previous
+                            .iter()
+                            .find(|old| {
+                                old.event == notif.event
+                                    && old.resource_id == notif.resource_id
+                                    && old.created == notif.created
+                            })
+                            .map_or(notif.created < last_sync, |old| old.is_processed);
                     }
                     {
                         let notif_state = &mut state().notif;
@@ -99,7 +109,6 @@ impl NotificationState {
                         log::warn!("Starting notification material update failed: {err}");
                         state().notif.is_checking_notifications = false;
                     }
-                    Self::sync_calendar();
                 }
                 Err(e) => {
                     log::warn!("Scraping notifications failed: {e}");
@@ -134,11 +143,14 @@ impl NotificationState {
             if let Err(err) = &persisted {
                 log::warn!("Saving notification materials failed: {err}");
             }
-            if result.is_ok() && persisted.is_ok() {
+            if persisted.is_ok() {
                 // notifications arriving during sync are marked as not synced
                 // the logic is here so that last_sync is only updated when sync is successful
                 let mut state = state();
-                state.notif.last_sync = check_started;
+                if result.is_ok() && notifs.iter().all(|n| n.is_processed) {
+                    state.notif.last_sync = check_started;
+                }
+                state.notif.notifications = notifs;
                 state.notif.save();
             }
             state().notif.is_checking_notifications = false;
@@ -147,22 +159,23 @@ impl NotificationState {
         .map(|_| ())
     }
     fn sync_calendar() {
-        // Fetch without holding the app/config locks, then update only due dates.
+        // Fetch without holding locks, then update metadata of existing assignments.
         match schoology::calendar::fetch() {
             Ok(dates) => {
-                let fetched = schoology::calendar::fetch_missing(&dates);
                 let mut app = state();
                 let updated = schoology::calendar::apply(&mut app.course.courses, &dates);
-                if updated > 0 || fetched > 0 {
-                    if let Err(err) = app.course.save() {
-                        log::warn!("Saving calendar due dates failed: {err}");
+                match app.course.save() {
+                    Ok(_) => {
+                        log::info!("Updated {updated} assignments from calendar");
                     }
-                    log::info!(
-                        "Fetched {fetched} assignments and updated {updated} due dates from calendar"
-                    );
+                    Err(err) => {
+                        if updated > 0 {
+                            log::warn!("Saving calendar assignment updates failed: {err}");
+                        }
+                    }
                 }
             }
-            Err(err) => log::warn!("Updating calendar due dates failed: {err}"),
+            Err(err) => log::warn!("Updating calendar assignments failed: {err}"),
         }
     }
     fn spawn_submission_sync() -> Result<(), std::io::Error> {

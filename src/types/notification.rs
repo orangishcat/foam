@@ -23,4 +23,5 @@ pub struct Notification {
     pub resource_id: String,
     pub material_type: Option<MaterialType>,
     pub course_id: String,
+    pub course_title: String,
 }

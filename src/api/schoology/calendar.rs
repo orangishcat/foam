@@ -1,9 +1,5 @@
-//! Assignment due dates from Schoology's calendar export.
-use std::{
-    collections::{HashMap, HashSet},
-    io,
-    sync::LazyLock,
-};
+//! Updates to cached assignments from Schoology's calendar export.
+use std::{collections::HashMap, io, sync::LazyLock};
 
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use ical::{IcalParser, property::Property};
@@ -21,7 +17,7 @@ static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// The feed URL is a bearer credential; never include it in request errors.
-pub fn fetch() -> RequestResult<HashMap<String, DateTime<Utc>>> {
+pub fn fetch() -> RequestResult<HashMap<String, CalendarAssignment>> {
     let url = config().calendar_url.clone();
     if url.trim().is_empty() {
         return Ok(HashMap::new());
@@ -106,8 +102,32 @@ fn due_date(start: &Property, default_timezone: Option<&str>) -> Option<DateTime
     }
 }
 
-fn parse(body: &str) -> RequestResult<HashMap<String, DateTime<Utc>>> {
-    let mut dates = HashMap::new();
+#[derive(Debug, PartialEq, Eq)]
+pub struct CalendarAssignment {
+    due: DateTime<Utc>,
+    title: Option<String>,
+    description: Option<String>,
+}
+
+fn unescape(value: &str) -> String {
+    let mut result = String::new();
+    let mut chars = value.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some('n' | 'N') => result.push('\n'),
+                Some(c) => result.push(c),
+                None => result.push('\\'),
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+fn parse(body: &str) -> RequestResult<HashMap<String, CalendarAssignment>> {
+    let mut dates: HashMap<String, Option<CalendarAssignment>> = HashMap::new();
     let mut seen_calendar = false;
     for calendar in IcalParser::new(io::Cursor::new(body)) {
         let calendar = calendar.map_err(|_| io::Error::other("invalid iCalendar feed"))?;
@@ -135,14 +155,19 @@ fn parse(body: &str) -> RequestResult<HashMap<String, DateTime<Utc>>> {
                 continue;
             };
             // Conflicting occurrences cannot be represented by a single assignment due date.
+            let update = CalendarAssignment {
+                due,
+                title: value(props, "SUMMARY").map(unescape),
+                description: value(props, "DESCRIPTION").map(unescape),
+            };
             dates
                 .entry(id)
                 .and_modify(|old| {
-                    if *old != Some(due) {
+                    if old.as_ref() != Some(&update) {
                         *old = None;
                     }
                 })
-                .or_insert(Some(due));
+                .or_insert(Some(update));
         }
     }
     if !seen_calendar {
@@ -154,53 +179,32 @@ fn parse(body: &str) -> RequestResult<HashMap<String, DateTime<Utc>>> {
         .collect())
 }
 
-pub fn apply(courses: &mut [Course], dates: &HashMap<String, DateTime<Utc>>) -> usize {
+pub fn apply(courses: &mut [Course], dates: &HashMap<String, CalendarAssignment>) -> usize {
     let mut updated = 0;
     for course in courses {
         for material in course.materials.recursive_iter_mut() {
             if let Material::Assignment(assignment) = material
-                && let Some(&due) = dates.get(&assignment.id)
-                && assignment.due != due
+                && let Some(update) = dates.get(&assignment.id)
             {
-                assignment.due = due;
-                updated += 1;
+                let changed = assignment.due != update.due
+                    || update
+                        .title
+                        .as_ref()
+                        .is_some_and(|v| v != &assignment.title)
+                    || update
+                        .description
+                        .as_ref()
+                        .is_some_and(|v| v != &assignment.description);
+                assignment.due = update.due;
+                if let Some(title) = &update.title {
+                    assignment.title.clone_from(title);
+                }
+                if let Some(description) = &update.description {
+                    assignment.description.clone_from(description);
+                }
+                updated += usize::from(changed);
             }
         }
     }
     updated
-}
-
-fn missing_ids(courses: &[Course], dates: &HashMap<String, DateTime<Utc>>) -> Vec<String> {
-    let existing: HashSet<&str> = courses
-        .iter()
-        .flat_map(|course| course.materials.recursive_iter())
-        .filter_map(|material| match material {
-            Material::Assignment(a) => Some(a.id.as_str()),
-            _ => None,
-        })
-        .collect();
-    let mut missing: Vec<_> = dates
-        .keys()
-        .filter(|id| !existing.contains(id.as_str()))
-        .cloned()
-        .collect();
-    missing.sort();
-    missing
-}
-
-/// Fetch outside the state lock. A failure affects only that calendar item.
-pub fn fetch_missing(dates: &HashMap<String, DateTime<Utc>>) -> usize {
-    let missing = missing_ids(&crate::state::state::state().course.courses, dates);
-    let mut fetched = 0;
-    for id in missing {
-        if crate::thread_manager::check_cancelled().is_err() {
-            break;
-        }
-        match super::notification::update::fetch_calendar_assignment(&id) {
-            Ok(true) => fetched += 1,
-            Ok(false) => {}
-            Err(err) => log::warn!("Fetching calendar assignment {id} failed: {err}"),
-        }
-    }
-    fetched
 }

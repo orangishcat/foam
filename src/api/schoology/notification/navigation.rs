@@ -5,7 +5,10 @@ use chrono::{DateTime, Days, Local, NaiveTime, TimeZone};
 use super::super::{RequestResult, internal_get};
 use crate::{
     api::schoology::types::notification::{NotificationsResponse, SchoologyNotification},
-    types::notification::{Notification, NotificationEvent},
+    types::{
+        material::MaterialType,
+        notification::{Notification, NotificationEvent},
+    },
 };
 
 const ROUTE: &str = "/iapi2/site-navigation/notifications";
@@ -22,48 +25,45 @@ pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
 
 impl SchoologyNotification {
     fn into_notifications(self, now: DateTime<Local>) -> Vec<Notification> {
-        // Resource argument types describe the material, not the operation.
-        // Only grade events belong to this feed's contribution.
-        if !matches!(self.kind.as_str(), "grade_add" | "grade_update") {
-            return Vec::new();
-        }
-        let course_id = if self.realm == "course" {
-            self.realm_id.0.clone()
-        } else {
-            self.args
-                .iter()
-                .find(|arg| arg.kind == "s_content_course_section")
-                .map(|arg| arg.id.0.clone())
-                .unwrap_or_default()
+        let event = match self.kind.as_str() {
+            "course_materials_add" => NotificationEvent::MaterialPosted,
+            "grade_add" | "grade_update" => NotificationEvent::GradeUpdated,
+            _ => return Vec::new(),
         };
+        let section = self
+            .args
+            .iter()
+            .find(|arg| arg.kind == "s_content_course_section");
+        let course_id = section.map(|arg| arg.id.0.clone()).unwrap_or_default();
+        let course_title = section
+            .map(|arg| decode_title(&arg.title))
+            .unwrap_or_default();
         let created = parse_created(&self.created, now);
         let mut seen = HashSet::new();
         let mut result = Vec::new();
 
-        for arg in self.args.iter().filter(|arg| !arg.is_context()) {
+        for arg in self.args.iter().filter(|arg| {
+            arg.kind == "s_content_grade_item"
+                || (event == NotificationEvent::MaterialPosted
+                    && arg.kind == "s_content_generic_post")
+        }) {
             if !seen.insert((&arg.kind, &arg.id.0)) {
                 continue;
             }
             result.push(Notification {
-                event: NotificationEvent::GradeUpdated,
-                title: arg.title.clone(),
+                event,
+                title: decode_title(&arg.title),
                 viewed: self.viewed,
                 created,
                 resource_id: arg.id.0.clone(),
-                material_type: super::material_type::parse(&arg.kind),
+                material_type: match (arg.kind.as_str(), arg.document_type.as_str()) {
+                    ("s_content_grade_item", _) => Some(MaterialType::Assignment),
+                    (_, "file") => Some(MaterialType::Document),
+                    (_, "link") => Some(MaterialType::Link),
+                    _ => None,
+                },
                 course_id: course_id.clone(),
-                is_processed: false,
-            });
-        }
-        if result.is_empty() {
-            result.push(Notification {
-                event: NotificationEvent::GradeUpdated,
-                title: String::new(),
-                viewed: self.viewed,
-                created,
-                resource_id: String::new(),
-                material_type: None,
-                course_id,
+                course_title: course_title.clone(),
                 is_processed: false,
             });
         }
@@ -71,7 +71,32 @@ impl SchoologyNotification {
     }
 }
 
+fn decode_title(value: &str) -> String {
+    scraper::Html::parse_fragment(value)
+        .root_element()
+        .text()
+        .collect()
+}
+
 fn parse_created(value: &str, now: DateTime<Local>) -> DateTime<Local> {
+    if let Some(relative) = value.strip_suffix(" ago") {
+        let mut parts = relative.split_whitespace();
+        if let (Some(amount), Some(unit)) = (
+            parts.next().and_then(|v| v.parse::<i64>().ok()),
+            parts.next(),
+        ) {
+            let duration = match unit {
+                "second" | "seconds" => chrono::Duration::try_seconds(amount),
+                "minute" | "minutes" => chrono::Duration::try_minutes(amount),
+                "hour" | "hours" => chrono::Duration::try_hours(amount),
+                "day" | "days" => chrono::Duration::try_days(amount),
+                _ => None,
+            };
+            if let Some(parsed) = duration.and_then(|d| now.checked_sub_signed(d)) {
+                return parsed;
+            }
+        }
+    }
     let parsed = (|| {
         let (day, time) = value.split_once(" at ")?;
         let date = match day {
