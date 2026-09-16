@@ -37,12 +37,12 @@ pub struct NotificationState {
 impl NotificationState {
     pub fn load(&mut self) {
         *self = filesystem::read_json(&Self::notification_path())
-            .inspect_err(|e| log::warn!("Failed to read notifications: {e}"))
+            .inspect_err(|e| log::warn!("Failed to read notifications from file: {e}"))
             .unwrap_or_default();
     }
     pub fn save(&self) {
         filesystem::write_json(&Self::notification_path(), &self)
-            .inspect_err(|e| log::warn!("Failed to write notifications: {e}"))
+            .inspect_err(|e| log::warn!("Failed to write notifications to file: {e}"))
             .unwrap_or_default();
     }
     pub fn notification_path() -> PathBuf {
@@ -164,15 +164,17 @@ impl NotificationState {
             Ok(dates) => {
                 let mut app = state();
                 let updated = schoology::calendar::apply(&mut app.course.courses, &dates);
-                match app.course.save() {
-                    Ok(_) => {
-                        log::info!("Updated {updated} assignments from calendar");
-                    }
-                    Err(err) => {
-                        if updated > 0 {
+                if updated > 0 {
+                    match app.course.save() {
+                        Ok(_) => {
+                            log::info!("Updated {updated} assignments from calendar");
+                        }
+                        Err(err) => {
                             log::warn!("Saving calendar assignment updates failed: {err}");
                         }
                     }
+                } else {
+                    log::info!("Calendar is up to date")
                 }
             }
             Err(err) => log::warn!("Updating calendar assignments failed: {err}"),
@@ -209,9 +211,9 @@ impl NotificationState {
                         if let Material::Assignment(assignment) = material
                             && let Some(updated) = submissions
                                 .remove(&(assignment.course_id.clone(), assignment.id.clone()))
-                            {
-                                assignment.submissions = updated;
-                            }
+                        {
+                            assignment.submissions = updated;
+                        }
                     }
                 }
                 s.notif.last_submission_sync = check_started;

@@ -195,6 +195,9 @@ pub fn apply(courses: &mut [Course], dates: &HashMap<String, CalendarAssignment>
                         .description
                         .as_ref()
                         .is_some_and(|v| v != &assignment.description);
+                if !changed {
+                    continue;
+                }
                 assignment.due = update.due;
                 if let Some(title) = &update.title {
                     assignment.title.clone_from(title);
@@ -202,7 +205,7 @@ pub fn apply(courses: &mut [Course], dates: &HashMap<String, CalendarAssignment>
                 if let Some(description) = &update.description {
                     assignment.description.clone_from(description);
                 }
-                updated += usize::from(changed);
+                updated += 1;
             }
         }
     }
