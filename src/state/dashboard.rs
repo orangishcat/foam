@@ -5,11 +5,9 @@ use std::{
 
 use chrono::{Datelike, Days, Local};
 use rusqlite::params;
-use slint::{Color, ComponentHandle, ModelRc, VecModel};
+use slint::{Color, ComponentHandle, ModelRc, ToSharedString, VecModel};
 
 use crate::{AppWindow, AssignmentCol, database, types::assignment::Assignment};
-
-use super::courses::CourseState;
 
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
     (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
@@ -23,8 +21,8 @@ const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sa
 pub struct DashboardState {}
 
 impl DashboardState {
-    pub fn sync_ui(&self, courses: &CourseState, ui: &AppWindow) -> io::Result<()> {
-        let assignments = database::from_sql_map(
+    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        let assignments_on_dashboard = database::from_sql_map::<(Assignment, String)>(
             format!(
                 "SELECT a.*, COALESCE(c.course_title, 'Unknown') FROM assignments a
                 WHERE NOT {} OR julianday(due) > julianday('now')
@@ -40,17 +38,20 @@ impl DashboardState {
                 ))
             },
         )?
-        .iter()
+        .into_iter()
         .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
             groups
-                .entry(due_date_bucket(assignment))
+                .entry(due_date_bucket(&assignment))
                 .or_insert_with(Vec::new)
                 .push((assignment, course_title));
             groups
         });
 
         let sorted_bucket_to_modelrc = |bucket: i64| {
-            let mut assign_vec = assignments.get(&bucket).cloned().unwrap_or_default();
+            let mut assign_vec = assignments_on_dashboard
+                .get(&bucket)
+                .cloned()
+                .unwrap_or_default();
             assign_vec.sort_by_key(|(a, _)| a.due);
             ModelRc::new(VecModel::from(
                 assign_vec
@@ -65,7 +66,7 @@ impl DashboardState {
                         } else {
                             Color::from_rgb_u8(70, 90, 130)
                         },
-                        course_name: course_name,
+                        course_name: course_name.to_shared_string(),
                     })
                     .collect::<Vec<crate::Assignment>>(),
             ))

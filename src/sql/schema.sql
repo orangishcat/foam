@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS assignments (
     id TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    due INTEGER NOT NULL,
+    due STRING NOT NULL,
     manual_mark INTEGER,
     max_points REAL NOT NULL,
     score REAL,
@@ -42,4 +42,17 @@ CREATE TABLE IF NOT EXISTS assignments (
     PRIMARY KEY (course_id, id),
     FOREIGN KEY (course_id, type, id)
         REFERENCES materials(course_id, type, material_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    title TEXT NOT NULL,
+    viewed INTEGER NOT NULL,
+    is_processed INTEGER NOT NULL,
+    created STRING NOT NULL,
+    resource_id STRING NOT NULL,
+    material_type STRING,
+    course_id STRING REFERENCES courses(course_id),
+    course_title STRING,
+    PRIMARY KEY (id),
 );

@@ -19,8 +19,8 @@ impl AppState {
         self.notif.load();
     }
     pub fn sync_ui(&mut self, ui: &AppWindow) {
-        self.dashboard.sync_ui(&self.course, ui);
-        self.notif.sync_ui(&self.course, ui);
+        self.dashboard.sync_ui(ui);
+        self.notif.sync_ui(ui);
     }
     pub fn on_focus(&mut self) {
         self.notif.check_notifications();

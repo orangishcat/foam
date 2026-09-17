@@ -1,10 +1,12 @@
 use std::{
     io::{self, Error, Result},
     sync::{Mutex, MutexGuard, OnceLock},
+    vec,
 };
 
-use rusqlite::{Connection, fallible_iterator::FallibleIterator};
-use serde::de::DeserializeOwned;
+use rusqlite::{Connection, Params, fallible_iterator::FallibleIterator};
+use serde::{Serialize, de::DeserializeOwned};
+use serde_with::SerializeAs;
 
 use crate::{config::config, types::course::Course};
 
@@ -59,4 +61,29 @@ pub fn from_sql_map<T>(
         results.push(map_row(row)?);
     }
     Ok(results)
+}
+
+pub fn bulk_execute<P>(query: String, params: Vec<P>) -> io::Result<usize>
+where
+    P: rusqlite::Params,
+{
+    let mut updated = 0;
+    let mut connection = connection()?;
+    let transaction = connection.transaction().map_err(Error::other)?;
+    let mut statement = transaction.prepare_cached(&query).map_err(Error::other)?;
+    for entry in params {
+        updated += statement.execute(entry).map_err(Error::other)?;
+    }
+    drop(statement);
+    transaction.commit();
+    Ok(updated)
+}
+
+pub fn execute(query: String, params: &[&dyn rusqlite::ToSql]) -> io::Result<usize> {
+    let connection = connection()?;
+    connection
+        .prepare_cached(&query)
+        .map_err(Error::other)?
+        .execute(params)
+        .map_err(Error::other)
 }

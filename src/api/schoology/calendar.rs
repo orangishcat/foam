@@ -3,12 +3,20 @@ use std::{collections::HashMap, io, sync::LazyLock};
 
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use ical::{IcalParser, property::Property};
+use itertools::Itertools;
 use regex::Regex;
+use rusqlite::{Params, ToSql, params, params_from_iter};
+use serde_rusqlite::NamedParamSlice;
 
 use super::RequestResult;
 use crate::{
     config::config,
-    types::{course::Course, material::Material},
+    database,
+    types::{
+        assignment::{self, Assignment},
+        course::Course,
+        material::Material,
+    },
 };
 
 static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
@@ -17,10 +25,10 @@ static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// The feed URL is a bearer credential; never include it in request errors.
-pub fn fetch() -> RequestResult<HashMap<String, CalendarAssignment>> {
+pub fn fetch() -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
     let url = config().calendar_url.clone();
     if url.trim().is_empty() {
-        return Ok(HashMap::new());
+        return Ok((Vec::new(), Vec::new()));
     }
     crate::thread_manager::check_cancelled()?;
     let url = feed_url(&url)?;
@@ -126,8 +134,9 @@ fn unescape(value: &str) -> String {
     result
 }
 
-fn parse(body: &str) -> RequestResult<HashMap<String, CalendarAssignment>> {
-    let mut dates: HashMap<String, Option<CalendarAssignment>> = HashMap::new();
+fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
+    let mut ids: Vec<String> = Vec::new();
+    let mut assignments: Vec<CalendarAssignment> = Vec::new();
     let mut seen_calendar = false;
     for calendar in IcalParser::new(io::Cursor::new(body)) {
         let calendar = calendar.map_err(|_| io::Error::other("invalid iCalendar feed"))?;
@@ -154,60 +163,75 @@ fn parse(body: &str) -> RequestResult<HashMap<String, CalendarAssignment>> {
                 log::warn!("Skipping calendar assignment {id}: unsupported or invalid DTSTART");
                 continue;
             };
-            // Conflicting occurrences cannot be represented by a single assignment due date.
-            let update = CalendarAssignment {
+            ids.push(id);
+            assignments.push(CalendarAssignment {
                 due,
                 title: value(props, "SUMMARY").map(unescape),
                 description: value(props, "DESCRIPTION").map(unescape),
-            };
-            dates
-                .entry(id)
-                .and_modify(|old| {
-                    if old.as_ref() != Some(&update) {
-                        *old = None;
-                    }
-                })
-                .or_insert(Some(update));
+            });
         }
     }
     if !seen_calendar {
         return Err(io::Error::other("response does not contain an iCalendar calendar").into());
     }
-    Ok(dates
-        .into_iter()
-        .filter_map(|(id, due)| due.map(|due| (id, due)))
-        .collect())
+    Ok((ids, assignments))
 }
 
-pub fn apply(courses: &mut [Course], dates: &HashMap<String, CalendarAssignment>) -> usize {
-    let mut updated = 0;
-    for course in courses {
-        for material in course.materials.recursive_iter_mut() {
-            if let Material::Assignment(assignment) = material
-                && let Some(update) = dates.get(&assignment.id)
-            {
-                let changed = assignment.due != update.due
-                    || update
-                        .title
-                        .as_ref()
-                        .is_some_and(|v| v != &assignment.title)
-                    || update
-                        .description
-                        .as_ref()
-                        .is_some_and(|v| v != &assignment.description);
-                if !changed {
-                    continue;
-                }
-                assignment.due = update.due;
-                if let Some(title) = &update.title {
-                    assignment.title.clone_from(title);
-                }
-                if let Some(description) = &update.description {
-                    assignment.description.clone_from(description);
-                }
-                updated += 1;
-            }
+pub fn apply(ids: &Vec<String>, cal_assignments: &Vec<CalendarAssignment>) -> io::Result<usize> {
+    let assignments = database::from_sql::<Assignment>(
+        "SELECT * FROM assignments WHERE ID = (?, ?, ?)".to_owned(),
+        &ids.iter()
+            .map(|id| id as &dyn rusqlite::ToSql) // <-- convert to tosql borrow to fix type
+            .collect::<Vec<_>>(),
+    )?;
+
+    let mut changed_assignments = vec![];
+    for (i, (old, new)) in assignments
+        .into_iter()
+        .zip(cal_assignments.into_iter())
+        .enumerate()
+    {
+        if old.id != ids[i] {
+            return Err(io::Error::other(format!(
+                "ids do not match: old={}, new={}",
+                old.id, ids[i]
+            )));
         }
+
+        let changed = new.title.clone().is_some_and(|s| old.title != s)
+            || new
+                .description
+                .clone()
+                .is_some_and(|d| old.description != d)
+            || old.due != new.due;
+        if !changed {
+            continue;
+        }
+
+        changed_assignments.push(Assignment {
+            title: new.title.clone().unwrap_or(old.title),
+            due: new.due,
+            description: new.description.clone().unwrap_or(old.description),
+            ..old
+        });
     }
-    updated
+    if !changed_assignments.is_empty() {
+        let serialized = changed_assignments
+            .iter()
+            .map(|assignment| {
+                serde_rusqlite::to_params_named_with_fields(
+                    assignment,
+                    &["title", "due", "description", "id"],
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(io::Error::other)?;
+        let slices = serialized.iter().map(|p| p.to_slice()).collect::<Vec<_>>();
+        database::bulk_execute(
+            "UPDATE assignments SET title = :title, due = :due, description = :description WHERE id = :id"
+                .to_owned(),
+            slices.iter().map(|p| p.as_slice()).collect(),
+        )?;
+    }
+    Ok(changed_assignments.len())
 }
