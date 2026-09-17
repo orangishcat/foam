@@ -1,4 +1,3 @@
-use log::info;
 
 use crate::{
     api::schoology::{
@@ -23,7 +22,7 @@ pub fn scrape_submissions<'a>(
             "https://api.schoology.com/v1/sections/{}/submissions/{assignment_id}/{user_id}",
             assignment.course_id
         );
-        info!("scraping Schoology submissions: {url}");
+        log::debug!("scraping Schoology submissions: {url}");
         let response: SubmissionsResponse = api_get_with_query(
             &url,
             &SubmissionsQuery {

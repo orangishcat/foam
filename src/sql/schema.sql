@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS assignments (
     id TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    due STRING NOT NULL,
+    due TEXT NOT NULL,
     manual_mark INTEGER,
     max_points REAL NOT NULL,
     score REAL,
@@ -49,11 +49,11 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT NOT NULL,
     viewed INTEGER NOT NULL,
     is_processed INTEGER NOT NULL,
-    created STRING NOT NULL,
-    resource_id STRING NOT NULL,
-    material_type STRING,
-    course_id STRING NOT NULL,
-    course_title STRING,
+    created TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    material_type TEXT,
+    course_id TEXT NOT NULL,
+    course_title TEXT,
     PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS sync_state (

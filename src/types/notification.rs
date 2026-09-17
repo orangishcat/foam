@@ -1,4 +1,4 @@
-use crate::database;
+use crate::{database, state::notifications::save_sync_state_on};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::io::{Error, Result};
@@ -63,6 +63,6 @@ pub(crate) fn save_notifications_on(
             VALUES (:id, :event, :title, :viewed, :is_processed, :created, :resource_id, :material_type, :course_id, :course_title)
             ON CONFLICT(id) DO UPDATE SET viewed = excluded.viewed, is_processed = excluded.is_processed, title = excluded.title, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title", values.as_slice()).map_err(Error::other)?;
     }
-    super::super::state::notifications::save_sync_state_on(&transaction, state)?;
+    save_sync_state_on(&transaction, state)?;
     transaction.commit().map_err(Error::other)
 }

@@ -11,9 +11,6 @@ use crate::config::config;
 static DB_CONNECTION: OnceLock<Mutex<Connection>> = OnceLock::new();
 const DB_NAME: &str = "foam.db";
 
-#[cfg(test)]
-mod tests;
-
 pub fn init() -> Result<()> {
     let data_dir = config().data_dir().to_owned();
     let connection = Connection::open(data_dir.join(DB_NAME)).map_err(Error::other)?;
@@ -51,7 +48,7 @@ pub(crate) fn read_from<M: DeserializeOwned>(
     query: &str,
     params: &[&dyn rusqlite::ToSql],
 ) -> io::Result<Vec<M>> {
-    let mut statement = connection.prepare_cached(&query).map_err(Error::other)?;
+    let mut statement = connection.prepare_cached(query).map_err(Error::other)?;
     let rows = statement.query(params).map_err(Error::other)?;
     serde_rusqlite::from_rows::<M>(rows)
         .map(|r| r.map_err(Error::other))
@@ -88,7 +85,7 @@ pub(crate) fn bulk_execute_on<P: rusqlite::Params>(
 ) -> io::Result<usize> {
     let mut updated = 0;
     let transaction = connection.transaction().map_err(Error::other)?;
-    let mut statement = transaction.prepare_cached(&query).map_err(Error::other)?;
+    let mut statement = transaction.prepare_cached(query).map_err(Error::other)?;
     for entry in params {
         updated += statement.execute(entry).map_err(Error::other)?;
     }
