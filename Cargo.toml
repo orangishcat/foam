@@ -21,6 +21,9 @@ env_logger = "0.11"
 derivative = "2.2.0"
 scraper = "0.27.0"
 itertools = "0.15.0"
+rusqlite = "0.40.2"
+serde_rusqlite = "0.43.0"
+serde_with = { version = "3", features = ["json", "chrono_0_4"] }
 
 [build-dependencies]
 slint-build = "1.16.1"

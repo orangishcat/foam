@@ -148,7 +148,7 @@ impl NotificationState {
                 crate::ui::run_on_ui_thread(move |ui| {
                     let global = ui.global::<crate::UiState>();
                     let mut notif = global.get_notif();
-                    notif.progress = progress;
+                    notif.progress = progress / 2.0;
                     global.set_notif(notif);
                 })
             };

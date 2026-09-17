@@ -1,8 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::{PickFirst, Same, TimestampSeconds, json::JsonString, serde_as};
 
 use crate::types::{attachment::Attachments, submission::Submission};
 
+#[serde_as]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Assignment {
@@ -16,7 +18,9 @@ pub struct Assignment {
     pub score: Option<f64>,
     pub letter_grade: Option<String>, // why on earth does schoology allow letter grades
     pub allow_submissions: bool,
+    #[serde_as(as = "PickFirst<(JsonString, Same)>")]
     pub attachments: Attachments,
+    #[serde_as(as = "PickFirst<(JsonString, Same)>")]
     pub submissions: Vec<Submission>, // schoology revisions + drafts
 }
 

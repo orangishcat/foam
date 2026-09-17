@@ -1,5 +1,6 @@
 use crate::{
     api::schoology::{RequestResult, course},
+    database,
     state::state::state,
     thread_manager::check_cancelled,
     types::{
@@ -79,7 +80,7 @@ fn resolve_course(n: &Notification) -> RequestResult<Course> {
     if n.course_id.is_empty() {
         return Err(io::Error::other("notification course ID is empty").into());
     }
-    if let Some(course) = state().course.get_course(&n.course_id).cloned() {
+    if let Some(course) = database::from_sql(query, params).cloned() {
         return Ok(course);
     }
     // fetch without holding the state lock; schoology section ids are sometimes incorrect for some reason

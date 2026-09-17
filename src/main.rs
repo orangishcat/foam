@@ -11,6 +11,7 @@ use crate::{config::config, state::state::state, ui::WEAK_UI};
 
 mod api;
 mod config;
+mod database;
 mod filesystem;
 mod platform;
 mod state;
@@ -50,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         EventResult::Propagate
     });
 
+    database::init()?;
     state().init();
     state().sync_ui(&ui);
 
