@@ -17,5 +17,6 @@ pub fn run_on_ui_thread(func: impl FnOnce(AppWindow) + Send + 'static) {
 }
 
 pub fn sync_ui() {
-    run_on_ui_thread(|ui| state().sync_ui(&ui));
+    let snapshot = state().clone();
+    run_on_ui_thread(move |ui| snapshot.sync_ui(&ui));
 }

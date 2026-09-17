@@ -49,11 +49,11 @@ pub fn course(course_id: &str, folder_id: &str) -> RequestResult<Folder> {
 /// Refresh placement and fetch only notified materials absent from the cache.
 pub fn hierarchy(
     course_id: &str,
-    existing: &Folder,
+    existing: &[Material],
     posted: &HashSet<String>,
 ) -> RequestResult<Folder> {
     let cached = existing
-        .recursive_iter()
+        .iter()
         .map(|m| {
             (
                 (

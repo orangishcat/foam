@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{PickFirst, Same, TimestampSeconds, json::JsonString, serde_as};
+use serde_with::{PickFirst, Same, json::JsonString, serde_as};
 
 use crate::types::{attachment::Attachments, submission::Submission};
 
@@ -25,6 +25,23 @@ pub struct Assignment {
 }
 
 impl Assignment {
+    pub(crate) fn insert_on(
+        &self,
+        connection: &rusqlite::Connection,
+        course_id: &str,
+    ) -> std::io::Result<()> {
+        let mut assignment = self.clone();
+        assignment.course_id = course_id.to_owned();
+        let serialized =
+            serde_rusqlite::to_params_named(&assignment).map_err(std::io::Error::other)?;
+        connection
+            .execute(
+                include_str!("../sql/assignment/write.sql"),
+                serialized.to_slice().as_slice(),
+            )
+            .map_err(std::io::Error::other)?;
+        Ok(())
+    }
     pub fn is_completed(&self) -> bool {
         if let Some(mark) = self.manual_mark {
             return mark;

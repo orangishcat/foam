@@ -4,12 +4,11 @@ static STATE: LazyLock<Mutex<AppState>> = LazyLock::new(|| Mutex::new(AppState::
 
 use crate::{
     AppWindow,
-    state::{courses::CourseState, dashboard::DashboardState, notifications::NotificationState},
+    state::{dashboard::DashboardState, notifications::NotificationState},
 };
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct AppState {
-    pub course: CourseState,
     pub dashboard: DashboardState,
     pub notif: NotificationState,
 }
@@ -18,9 +17,13 @@ impl AppState {
     pub fn init(&mut self) {
         self.notif.load();
     }
-    pub fn sync_ui(&mut self, ui: &AppWindow) {
-        self.dashboard.sync_ui(ui);
-        self.notif.sync_ui(ui);
+    pub fn sync_ui(&self, ui: &AppWindow) {
+        if let Err(err) = self.dashboard.sync_ui(ui) {
+            log::warn!("Loading dashboard failed: {err}");
+        }
+        if let Err(err) = self.notif.sync_ui(ui) {
+            log::warn!("Loading notifications failed: {err}");
+        }
     }
     pub fn on_focus(&mut self) {
         self.notif.check_notifications();

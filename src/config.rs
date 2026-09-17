@@ -1,6 +1,5 @@
 use std::{
     fs::{self},
-    io::Write,
     path::{Path, PathBuf},
     sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
@@ -66,12 +65,8 @@ impl AppConfig {
         self.data_dir.join(CONFIG_FILE_NAME)
     }
 
-    pub fn courses_dir(&self) -> PathBuf {
-        self.data_dir().join("courses")
-    }
-
     fn create_data_layout(data_dir: &Path) {
-        fs::create_dir_all(data_dir.join("courses")).expect("failed to create app data directory");
+        fs::create_dir_all(data_dir).expect("failed to create app data directory");
     }
 }
 

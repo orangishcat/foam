@@ -1,5 +1,3 @@
-use std::iter::once;
-
 use serde::{Deserialize, Serialize};
 
 use super::material::Material;
@@ -22,23 +20,5 @@ impl Folder {
                 _ => {}
             }
         }
-    }
-
-    pub fn recursive_iter(&self) -> Box<dyn Iterator<Item = &Material> + '_> {
-        Box::new(self.materials.iter().flat_map(|material| match material {
-            Material::Folder(folder_box) => folder_box.recursive_iter(),
-            _ => Box::new(once(material)),
-        }))
-    }
-
-    pub fn recursive_iter_mut(&mut self) -> Box<dyn Iterator<Item = &mut Material> + '_> {
-        Box::new(
-            self.materials
-                .iter_mut()
-                .flat_map(|material| match material {
-                    Material::Folder(folder) => folder.recursive_iter_mut(),
-                    _ => Box::new(once(material)),
-                }),
-        )
     }
 }

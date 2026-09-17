@@ -52,7 +52,18 @@ CREATE TABLE IF NOT EXISTS notifications (
     created STRING NOT NULL,
     resource_id STRING NOT NULL,
     material_type STRING,
-    course_id STRING REFERENCES courses(course_id),
+    course_id STRING NOT NULL,
     course_title STRING,
-    PRIMARY KEY (id),
+    PRIMARY KEY (id)
 );
+CREATE TABLE IF NOT EXISTS sync_state (
+    key TEXT PRIMARY KEY NOT NULL,
+    data TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS assignments_id ON assignments(id);
+CREATE INDEX IF NOT EXISTS materials_parent ON materials(course_id, parent_id);
+CREATE TRIGGER IF NOT EXISTS assignment_title_updated AFTER UPDATE OF title ON assignments
+BEGIN
+    UPDATE materials SET title = NEW.title
+    WHERE course_id = NEW.course_id AND type = 'assignment' AND material_id = NEW.id;
+END;

@@ -1,18 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
+
+use rusqlite::Connection;
 
 use crate::{
     api::schoology::{RequestResult, api_get, types::grades::GradesResponse},
     config::config,
-    types::{course::Course, folder::Folder, material::Material},
+    database,
 };
 
-// Schoology's user endpoint nests assignment grades under section -> period -> assignment.
-// Section totals (`final_grade`) are deliberately not assignment scores.
-// https://developers.schoology.com/api-documentation/rest-api-v1/user-grades/
-
-/// Populate scores for the configured user's assignments, matched within each section.
-pub fn scrape_grades(courses: &mut [Course]) -> RequestResult<()> {
-    apply(courses, &fetch()?);
+pub fn scrape_grades() -> RequestResult<()> {
+    apply(&fetch()?)?;
     Ok(())
 }
 
@@ -24,61 +21,47 @@ pub(crate) fn fetch() -> RequestResult<GradesResponse> {
     api_get(&url)
 }
 
-pub(crate) fn apply(courses: &mut [Course], response: &GradesResponse) {
-    for course in courses {
-        apply_grades(course, response);
-    }
+pub(crate) fn apply(response: &GradesResponse) -> io::Result<()> {
+    let updates = {
+        let connection = database::connection()?;
+        grade_updates(&connection, response)?
+    };
+    database::bulk_execute(UPDATE_GRADES.to_owned(), updates)?;
+    Ok(())
 }
 
-fn apply_grades(course: &mut Course, response: &GradesResponse) {
-    let scores: HashMap<String, Option<String>> = response
-        .section
-        .iter()
-        .filter(|section| {
-            section.section_id.0 == course.course_id
-                || course.aliases.contains(&section.section_id.0)
-        })
-        .flat_map(|section| &section.period)
-        .flat_map(|period| &period.assignment)
-        .map(|grade| {
-            (
-                grade.assignment_id.0.clone(),
-                grade
-                    .grade
-                    .as_ref()
-                    .map(|grade| grade.0.clone())
-                    .filter(|grade| !grade.trim().is_empty()),
-            )
-        })
-        .collect();
-    set_scores(&mut course.materials, &scores);
-}
+pub(crate) const UPDATE_GRADES: &str =
+    "UPDATE assignments SET score = ?, letter_grade = ? WHERE course_id = ? AND id = ?";
+type GradeUpdate = (Option<f64>, Option<String>, String, String);
 
-fn set_scores(folder: &mut Folder, scores: &HashMap<String, Option<String>>) {
-    for material in &mut folder.materials {
-        match material {
-            Material::Folder(folder) => set_scores(folder, scores),
-            Material::Assignment(assignment) => {
-                let grade = scores
-                    .get(&assignment.id)
-                    .cloned()
-                    .flatten()
-                    .inspect(|score| {
-                        log::debug!(
-                            "Applied grade {}/{} to assignment id {} (\"{}\")",
-                            score,
-                            assignment.max_points,
-                            assignment.id,
-                            assignment.title,
-                        )
-                    });
-                assignment.score = grade
-                    .as_deref()
-                    .and_then(|grade| grade.trim().parse::<f64>().ok())
-                    .filter(|score| score.is_finite());
-                assignment.letter_grade = grade.filter(|_| assignment.score.is_none());
-            }
-            _ => {}
+pub(crate) fn grade_updates(
+    connection: &Connection,
+    response: &GradesResponse,
+) -> io::Result<Vec<GradeUpdate>> {
+    let mut scores = HashMap::new();
+    for section in &response.section {
+        let Some(course) = crate::types::course::course_from(connection, &section.section_id.0)?
+        else {
+            continue;
+        };
+        for grade in section.period.iter().flat_map(|period| &period.assignment) {
+            let value = grade
+                .grade
+                .as_ref()
+                .map(|grade| grade.0.trim())
+                .filter(|grade| !grade.is_empty());
+            let score = value
+                .and_then(|grade| grade.parse::<f64>().ok())
+                .filter(|score| score.is_finite());
+            let letter = value.filter(|_| score.is_none()).map(str::to_owned);
+            scores.insert(
+                (course.course_id.clone(), grade.assignment_id.0.clone()),
+                (score, letter),
+            );
         }
     }
+    Ok(scores
+        .into_iter()
+        .map(|((course_id, id), (score, letter))| (score, letter, course_id, id))
+        .collect())
 }

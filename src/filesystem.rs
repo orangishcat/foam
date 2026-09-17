@@ -1,13 +1,10 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{File, OpenOptions},
     io::{self, BufReader, BufWriter, Error},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
-use log::{error, warn};
 use serde::{Serialize, de::DeserializeOwned};
-
-use crate::{config::config, types::course::Course};
 
 pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>
 where

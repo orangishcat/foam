@@ -53,7 +53,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     database::init()?;
     state().init();
-    state().sync_ui(&ui);
+    let snapshot = state().clone();
+    snapshot.sync_ui(&ui);
 
     match ui.run() {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),

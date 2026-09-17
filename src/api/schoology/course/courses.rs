@@ -11,7 +11,8 @@ use crate::{
         types::{LooseString, LooseUsize},
     },
     config::config,
-    types::{course::Course, material::Material},
+    database,
+    types::{assignment::Assignment, course::Course},
 };
 
 const PAGE_LIMIT: usize = 50;
@@ -67,17 +68,16 @@ struct Links {
 /// Fetch every configured-user section and coerce it, including its complete
 /// material tree, into unified course models.
 pub fn scrape_courses() -> RequestResult<Vec<Course>> {
-    let mut courses = scrape_materials()?;
-    scrape_grades(&mut courses)?;
-    scrape_submissions(courses.iter_mut().flat_map(|course| {
-        course
-            .materials
-            .recursive_iter_mut()
-            .filter_map(|material| match material {
-                Material::Assignment(assignment) => Some(assignment),
-                _ => None,
-            })
-    }))?;
+    let courses = scrape_materials()?;
+    scrape_grades()?;
+    for course in &courses {
+        let mut assignments = database::from_sql::<Assignment>(
+            "SELECT * FROM assignments WHERE course_id = ?".to_owned(),
+            &[&course.course_id],
+        )?;
+        scrape_submissions(&mut assignments)?;
+        crate::types::submission::update_submissions(&assignments)?;
+    }
     Ok(courses)
 }
 
@@ -110,7 +110,7 @@ pub fn scrape_materials() -> RequestResult<Vec<Course>> {
         .into_iter()
         .map(|section| {
             let materials = course(&section.nid.0, "0")?;
-            Ok(Course {
+            let course = Course {
                 course_id: section.nid.0,
                 aliases: Vec::new(),
                 course_title: section.course_title,
@@ -134,8 +134,9 @@ pub fn scrape_materials() -> RequestResult<Vec<Course>> {
                 start_time: section.start_time,
                 end_time: section.end_time,
                 weight: section.weight.0,
-                materials,
-            })
+            };
+            crate::types::course::store_course(&course, &materials)?;
+            Ok(course)
         })
         .collect()
 }

@@ -17,35 +17,35 @@ pub fn due_date_bucket(assignment: &Assignment) -> i64 {
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
 
-#[derive(Default)]
+pub(crate) fn dashboard_query() -> String {
+    format!(
+        "SELECT a.*, COALESCE(c.course_title, 'Unknown') AS course_title FROM assignments a
+             LEFT JOIN courses c ON a.course_id = c.course_id
+             WHERE NOT ({}) OR julianday(due) > julianday('now')",
+        include_str!("../sql/assignment/completed.sql")
+    )
+}
+
+#[derive(Clone, Default)]
 pub struct DashboardState {}
 
 impl DashboardState {
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        let assignments_on_dashboard = database::from_sql_map::<(Assignment, String)>(
-            format!(
-                "SELECT a.*, COALESCE(c.course_title, 'Unknown') FROM assignments a
-                WHERE NOT {} OR julianday(due) > julianday('now')
-                LEFT JOIN course c
-                WHERE a.course_id = c.course_id",
-                include_str!("../sql/assignment/completed.sql")
-            ),
-            params![],
-            |row| {
+        let assignments_on_dashboard =
+            database::from_sql_map::<(Assignment, String)>(dashboard_query(), params![], |row| {
                 Ok((
                     serde_rusqlite::from_row(row).map_err(Error::other)?,
                     row.get("course_title").map_err(Error::other)?,
                 ))
-            },
-        )?
-        .into_iter()
-        .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
-            groups
-                .entry(due_date_bucket(&assignment))
-                .or_insert_with(Vec::new)
-                .push((assignment, course_title));
-            groups
-        });
+            })?
+            .into_iter()
+            .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
+                groups
+                    .entry(due_date_bucket(&assignment))
+                    .or_insert_with(Vec::new)
+                    .push((assignment, course_title));
+                groups
+            });
 
         let sorted_bucket_to_modelrc = |bucket: i64| {
             let mut assign_vec = assignments_on_dashboard

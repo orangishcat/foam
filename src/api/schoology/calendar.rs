@@ -3,21 +3,10 @@ use std::{collections::HashMap, io, sync::LazyLock};
 
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use ical::{IcalParser, property::Property};
-use itertools::Itertools;
 use regex::Regex;
-use rusqlite::{Params, ToSql, params, params_from_iter};
-use serde_rusqlite::NamedParamSlice;
 
 use super::RequestResult;
-use crate::{
-    config::config,
-    database,
-    types::{
-        assignment::{self, Assignment},
-        course::Course,
-        material::Material,
-    },
-};
+use crate::{config::config, database};
 
 static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?i)https?://(?:[a-z0-9-]+\.)*schoology\.com/assignment/(\d+)(?:[/?#\s<>"']|$)"#)
@@ -112,9 +101,9 @@ fn due_date(start: &Property, default_timezone: Option<&str>) -> Option<DateTime
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CalendarAssignment {
-    due: DateTime<Utc>,
-    title: Option<String>,
-    description: Option<String>,
+    pub(crate) due: DateTime<Utc>,
+    pub(crate) title: Option<String>,
+    pub(crate) description: Option<String>,
 }
 
 fn unescape(value: &str) -> String {
@@ -177,61 +166,39 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
     Ok((ids, assignments))
 }
 
-pub fn apply(ids: &Vec<String>, cal_assignments: &Vec<CalendarAssignment>) -> io::Result<usize> {
-    let assignments = database::from_sql::<Assignment>(
-        "SELECT * FROM assignments WHERE ID = (?, ?, ?)".to_owned(),
-        &ids.iter()
-            .map(|id| id as &dyn rusqlite::ToSql) // <-- convert to tosql borrow to fix type
-            .collect::<Vec<_>>(),
-    )?;
+pub fn apply(ids: &[String], cal_assignments: &[CalendarAssignment]) -> io::Result<usize> {
+    database::bulk_execute(
+        UPDATE_CALENDAR.to_owned(),
+        calendar_updates(ids, cal_assignments)?,
+    )
+}
 
-    let mut changed_assignments = vec![];
-    for (i, (old, new)) in assignments
+pub(crate) const UPDATE_CALENDAR: &str =
+    "UPDATE assignments SET title = COALESCE(?1, title), due = ?2, description = COALESCE(?3, description)
+     WHERE id = ?4 AND (title IS NOT COALESCE(?1, title) OR due IS NOT ?2 OR description IS NOT COALESCE(?3, description))";
+
+type CalendarUpdate = (Option<String>, String, Option<String>, String);
+
+pub(crate) fn calendar_updates(
+    ids: &[String],
+    assignments: &[CalendarAssignment],
+) -> io::Result<Vec<CalendarUpdate>> {
+    if ids.len() != assignments.len() {
+        return Err(io::Error::other(
+            "calendar IDs and assignments have different lengths",
+        ));
+    }
+    // A feed may repeat an event. Match by ID and let its last occurrence win.
+    let updates: HashMap<_, _> = ids.iter().zip(assignments).collect();
+    Ok(updates
         .into_iter()
-        .zip(cal_assignments.into_iter())
-        .enumerate()
-    {
-        if old.id != ids[i] {
-            return Err(io::Error::other(format!(
-                "ids do not match: old={}, new={}",
-                old.id, ids[i]
-            )));
-        }
-
-        let changed = new.title.clone().is_some_and(|s| old.title != s)
-            || new
-                .description
-                .clone()
-                .is_some_and(|d| old.description != d)
-            || old.due != new.due;
-        if !changed {
-            continue;
-        }
-
-        changed_assignments.push(Assignment {
-            title: new.title.clone().unwrap_or(old.title),
-            due: new.due,
-            description: new.description.clone().unwrap_or(old.description),
-            ..old
-        });
-    }
-    if !changed_assignments.is_empty() {
-        let serialized = changed_assignments
-            .iter()
-            .map(|assignment| {
-                serde_rusqlite::to_params_named_with_fields(
-                    assignment,
-                    &["title", "due", "description", "id"],
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(io::Error::other)?;
-        let slices = serialized.iter().map(|p| p.to_slice()).collect::<Vec<_>>();
-        database::bulk_execute(
-            "UPDATE assignments SET title = :title, due = :due, description = :description WHERE id = :id"
-                .to_owned(),
-            slices.iter().map(|p| p.as_slice()).collect(),
-        )?;
-    }
-    Ok(changed_assignments.len())
+        .map(|(id, a)| {
+            (
+                a.title.clone(),
+                a.due.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
+                a.description.clone(),
+                id.clone(),
+            )
+        })
+        .collect())
 }

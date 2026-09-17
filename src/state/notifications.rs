@@ -1,33 +1,34 @@
-use std::{cmp::min, collections::HashMap, path::PathBuf};
+use std::{
+    cmp::min,
+    io::{self, Error, Result},
+};
 
 use chrono::{DateTime, Local, TimeDelta};
-use serde::{Deserialize, Serialize};
+use rusqlite::{Connection, params};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
     AppWindow, UiState,
     api::{self, schoology},
     config::config,
-    filesystem,
-    state::{courses::CourseState, state::state},
+    database,
+    state::{courses, state::state},
     thread_manager::{self, check_cancelled},
     types::{
-        material::{Material, MaterialType},
-        notification::Notification,
+        assignment::Assignment,
+        material::MaterialType,
+        notification::{self, Notification},
+        submission,
     },
     ui,
 };
 
-const NOTIFICATION_FILE: &str = "notifications.json";
-
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NotificationState {
-    pub notifications: Vec<Notification>,
-
     pub last_update: DateTime<Local>,
     pub last_sync: DateTime<Local>,
     pub last_submission_sync: DateTime<Local>,
-
     #[serde(skip)]
     last_update_success: bool,
     #[serde(skip)]
@@ -40,56 +41,39 @@ pub struct NotificationState {
 
 impl NotificationState {
     pub fn load(&mut self) {
-        *self = filesystem::read_json(&Self::notification_path())
-            .inspect_err(|e| log::warn!("Failed to read notifications from file: {e}"))
-            .unwrap_or_default();
+        match load_sync_state() {
+            Ok(saved) => *self = saved,
+            Err(err) => log::warn!("Loading notification sync state failed: {err}"),
+        }
     }
-    pub fn save(&self) {
-        filesystem::write_json(&Self::notification_path(), &self)
-            .inspect_err(|e| log::warn!("Failed to write notifications to file: {e}"))
-            .unwrap_or_default();
-    }
-    pub fn notification_path() -> PathBuf {
-        config().data_dir().join(NOTIFICATION_FILE)
-    }
+
     pub fn check_notifications(&mut self) {
-        if self.is_checking_notifications {
-            log::debug!("Currently checking notifications, skipping duplicate fetch");
-            return;
-        }
-        if Local::now() - self.last_update < self.refresh_duration() {
-            log::debug!("Notifications cache is fresh, skipping fetch");
-            return;
-        }
-
-        self.is_checking_notifications = true;
-        self.scrape_attempts += 1;
-
-        if let Err(err) = Self::spawn_notif_scrape() {
-            self.is_checking_notifications = false;
-            log::warn!("Scraping notifications failed: {err}");
-        }
-
-        if Local::now() - self.last_submission_sync < config().submission_refresh_duration
-            || self.is_checking_notifications
+        if !self.is_checking_notifications
+            && Local::now() - self.last_update >= self.refresh_duration()
         {
-            log::debug!("Submissions cache is fresh, skipping fetch");
-            return;
+            self.is_checking_notifications = true;
+            self.scrape_attempts += 1;
+            if let Err(err) =
+                thread_manager::spawn_thread("sync notifications", Self::sync_notifications)
+            {
+                self.is_checking_notifications = false;
+                log::warn!("Starting notification sync failed: {err}");
+            }
         }
+        // Submission sync can run alongside notifications: each updates only its own SQL columns.
+        if !self.is_checking_submissions
+            && Local::now() - self.last_submission_sync >= config().submission_refresh_duration
+        {
+            self.is_checking_submissions = true;
+            if let Err(err) =
+                thread_manager::spawn_thread("sync submissions", Self::sync_submissions)
+            {
+                self.is_checking_submissions = false;
+                log::warn!("Starting submission sync failed: {err}");
+            }
+        }
+    }
 
-        self.is_checking_submissions = true;
-        if let Err(err) = Self::spawn_submission_sync() {
-            self.is_checking_submissions = false;
-            log::warn!("Updating submissions failed: {err}");
-        }
-    }
-    fn on_scrape_success(&mut self, notifs: Vec<Notification>) {
-        self.notifications = notifs;
-        self.scrape_attempts = 0;
-        self.last_update_success = true;
-        self.last_update = Local::now();
-        self.save();
-    }
     fn refresh_duration(&self) -> TimeDelta {
         if self.last_update_success {
             config().refresh_duration
@@ -101,182 +85,167 @@ impl NotificationState {
         }
     }
 
-    fn spawn_notif_scrape() -> std::io::Result<()> {
-        thread_manager::spawn_thread("scrape notifications", || {
-            match schoology::notification::scrape_notifications() {
-                Ok(mut notifs) => {
-                    let (last_sync, previous) = {
-                        let app = state();
-                        (app.notif.last_sync, app.notif.notifications.clone())
-                    };
-                    for notif in notifs.iter_mut() {
-                        notif.is_processed = previous
-                            .iter()
-                            .find(|old| {
-                                old.event == notif.event
-                                    && old.resource_id == notif.resource_id
-                                    && old.created == notif.created
-                            })
-                            .map_or(notif.created < last_sync, |old| old.is_processed);
-                    }
-                    state().notif.on_scrape_success(notifs.clone());
-                    log::info!("Finished scraping notifications");
-                    if check_cancelled().is_err() {
-                        return;
-                    }
-                    if let Err(err) = Self::update_notif_materials(notifs, Local::now()) {
-                        log::warn!("Starting notification material update failed: {err}");
-                        state().notif.is_checking_notifications = false;
-                    }
-                }
-                Err(e) => {
-                    log::warn!("Scraping notifications failed: {e}");
-                    state().notif.is_checking_notifications = false;
-                    ui::sync_ui();
-                }
+    fn sync_notifications() {
+        let check_started = Local::now();
+        let result = (|| -> schoology::RequestResult<()> {
+            courses::ensure_loaded()?;
+            let mut notifications = schoology::notification::scrape_notifications()?;
+            let previous = notification::notifications()?;
+            let last_sync = state().notif.last_sync;
+            for n in &mut notifications {
+                n.is_processed = previous
+                    .iter()
+                    .find(|old| {
+                        old.event == n.event
+                            && old.resource_id == n.resource_id
+                            && old.created == n.created
+                    })
+                    .map_or(n.created < last_sync, |old| old.is_processed);
             }
-        })
-        .map(|_| ())
-    }
-
-    fn update_notif_materials(
-        mut notifs: Vec<Notification>,
-        check_started: DateTime<Local>,
-    ) -> std::io::Result<()> {
-        thread_manager::spawn_thread("update notification materials", move || {
-            let publish_progress = |progress| {
-                crate::ui::run_on_ui_thread(move |ui| {
-                    let global = ui.global::<crate::UiState>();
-                    let mut notif = global.get_notif();
-                    notif.progress = progress / 2.0;
-                    global.set_notif(notif);
-                })
-            };
-            publish_progress(1.0);
-            let result = schoology::notification::update::update(&mut notifs, publish_progress);
+            check_cancelled()?;
+            let update_result =
+                schoology::notification::update::update(&mut notifications, Self::publish_progress);
             Self::sync_calendar();
-            if let Err(err) = &result {
-                log::warn!("Updating notification materials failed: {err}");
+            let mut app = state();
+            let mut next = app.notif.clone();
+            if update_result.is_ok() && notifications.iter().all(|n| n.is_processed) {
+                next.last_sync = check_started;
             }
-
-            // notifications arriving during sync are marked as not synced
-            // the logic is here so that last_sync is only updated when sync is successful
-            let mut state = state();
-            if result.is_ok() && notifs.iter().all(|n| n.is_processed) {
-                state.notif.last_sync = check_started;
+            next.last_update = Local::now();
+            next.last_update_success =
+                update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
+            if next.last_update_success {
+                next.scrape_attempts = 0;
             }
-            state.notif.notifications = notifs;
-            state.notif.save();
-
-            state.notif.is_checking_notifications = false;
-            ui::sync_ui();
-        })
-        .map(|_| ())
+            notification::save_notifications(&notifications, &next)?;
+            app.notif = next;
+            update_result
+        })();
+        {
+            let mut app = state();
+            app.notif.is_checking_notifications = false;
+            if let Err(err) = result {
+                app.notif.last_update_success = false;
+                app.notif.last_update = Local::now();
+                log::warn!("Notification sync failed: {err}");
+            }
+        }
+        ui::sync_ui();
     }
+
     fn sync_calendar() {
-        // Fetch without holding locks, then update metadata of existing assignments.
-        match schoology::calendar::fetch() {
-            Ok((ids, assignments)) => {
-                match schoology::calendar::apply(&ids, &assignments) {
-                    Ok(updated) => {
-                        if updated > 0 {
-                            log::info!("Updated {updated} assignments");
-                        } else {
-                            log::debug!("Calendar is up to date");
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!("Applying calendar updates failed: {e}")
-                    }
-                };
-            }
-            Err(err) => log::warn!("Updating calendar assignments failed: {err}"),
+        match schoology::calendar::fetch()
+            .and_then(|(ids, assignments)| Ok(schoology::calendar::apply(&ids, &assignments)?))
+        {
+            Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
+            Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
     }
-    fn spawn_submission_sync() -> Result<(), std::io::Error> {
-        let check_started = Local::now();
 
-        thread_manager::spawn_thread("update submissions", move || {
-            let mut assignments = {
-                let app_state = state();
-                app_state
-                    .course
-                    .walk_assignments()
-                    .filter(|a| a.is_past_due() && !a.is_completed())
-                    .cloned()
-                    .collect::<Vec<_>>()
-            };
-            let _ = schoology::course::submissions::scrape_submissions(&mut assignments)
-                .inspect_err(|err| log::warn!("Updating overdue submissions failed: {err}"));
-            let mut submissions = assignments
-                .into_iter()
-                .map(|assignment| {
-                    (
-                        (assignment.course_id, assignment.id),
-                        assignment.submissions,
-                    )
-                })
-                .collect::<HashMap<_, _>>();
-            {
-                let mut s = state();
-                for course in &mut s.course.courses {
-                    for material in course.materials.recursive_iter_mut() {
-                        if let Material::Assignment(assignment) = material
-                            && let Some(updated) = submissions
-                                .remove(&(assignment.course_id.clone(), assignment.id.clone()))
-                        {
-                            assignment.submissions = updated;
-                        }
-                    }
-                }
-                s.notif.last_submission_sync = check_started;
-                s.notif.is_checking_submissions = false;
-                s.notif.save();
+    fn sync_submissions() {
+        let check_started = Local::now();
+        let result = (|| -> schoology::RequestResult<()> {
+            // Initial course loading fetches submissions itself; do not mark an empty cache synced.
+            let loaded = database::from_sql_map(
+                "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
+                &[],
+                |row| row.get::<_, String>(0).map_err(Error::other),
+            )?;
+            if loaded.is_empty() {
+                return Ok(());
             }
-            ui::sync_ui();
-        })
-        .map(|_| ())
+            let mut assignments = database::from_sql::<Assignment>(
+                format!(
+                    "SELECT * FROM assignments WHERE julianday(due) < julianday('now') AND NOT ({})",
+                    include_str!("../sql/assignment/completed.sql")
+                ),
+                &[],
+            )?;
+            schoology::course::submissions::scrape_submissions(&mut assignments)?;
+            check_cancelled()?;
+            submission::update_submissions(&assignments)?;
+            let mut app = state();
+            let mut next = app.notif.clone();
+            next.last_submission_sync = check_started;
+            save_sync_state(&next)?;
+            app.notif = next;
+            Ok(())
+        })();
+        state().notif.is_checking_submissions = false;
+        if let Err(err) = result {
+            log::warn!("Submission sync failed: {err}");
+        }
+        ui::sync_ui();
     }
-    pub fn sync_ui(&self, ui: &AppWindow) {
-        let notification_models = self
-            .notifications
-            .iter()
-            .map(|notif| crate::Notification {
-                title: notif.title.to_owned().into(),
-                course: courses
-                    .get_course(&notif.course_id)
-                    .map_or("Unknown course", |c| c.course_title.as_str())
-                    .into(),
-                course_id: notif.course_id.to_owned().into(),
-                n_type: match notif.material_type.unwrap_or(MaterialType::Folder) {
-                    MaterialType::Assignment | MaterialType::Assessment => {
+
+    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        // Persisted canonical course IDs are preferred; the feed title covers unresolved IDs.
+        let notifications = database::from_sql_map(
+            "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
+             FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
+             ORDER BY julianday(n.created) DESC, n.id".to_owned(), &[], |row| {
+                Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
+                    row.get::<_, String>("display_course").map_err(Error::other)?))
+            })?;
+        let models = notifications
+            .into_iter()
+            .map(|(n, course)| crate::Notification {
+                title: n.title.into(),
+                course: course.into(),
+                course_id: n.course_id.into(),
+                n_type: match n.material_type {
+                    Some(MaterialType::Assignment | MaterialType::Assessment) => {
                         crate::NotificationType::NewAssignment
                     }
-                    MaterialType::Document => crate::NotificationType::NewDocument,
-                    MaterialType::Link => crate::NotificationType::NewLink,
+                    Some(MaterialType::Document) => crate::NotificationType::NewDocument,
+                    Some(MaterialType::Link) => crate::NotificationType::NewLink,
                     _ => crate::NotificationType::Unknown,
                 },
-                icon_color: match notif.material_type.unwrap_or(MaterialType::Folder) {
-                    MaterialType::Assignment | MaterialType::Assessment => {
+                icon_color: match n.material_type {
+                    Some(MaterialType::Assignment | MaterialType::Assessment) => {
                         ui.global::<UiState>().get_theme().accent_400
                     }
                     _ => ui.global::<UiState>().get_theme().text_400,
                 },
             })
-            .collect::<Vec<crate::Notification>>();
-        ui.global::<crate::UiState>()
-            .set_notif(crate::NotificationUi {
-                progress: 0.0,
-                temp_notifs: ModelRc::new(VecModel::from(Vec::new())), // todo!
-                notifications: ModelRc::new(VecModel::from(notification_models)),
-            });
+            .collect::<Vec<_>>();
+        ui.global::<UiState>().set_notif(crate::NotificationUi {
+            progress: 0.0,
+            temp_notifs: ModelRc::new(VecModel::from(Vec::new())),
+            notifications: ModelRc::new(VecModel::from(models)),
+        });
+        Ok(())
     }
+
     fn publish_progress(progress: f32) {
-        crate::ui::run_on_ui_thread(move |ui| {
-            let global = ui.global::<crate::UiState>();
-            let mut notif = global.get_notif();
-            notif.progress = progress / 2.0;
-            global.set_notif(notif);
-        })
+        ui::run_on_ui_thread(move |ui| {
+            let global = ui.global::<UiState>();
+            let mut notification = global.get_notif();
+            notification.progress = progress;
+            global.set_notif(notification);
+        });
     }
+}
+
+pub fn load_sync_state<T: DeserializeOwned + Default>() -> Result<T> {
+    let values = database::from_sql_map(
+        "SELECT data FROM sync_state WHERE key = 'notifications'".to_owned(),
+        &[],
+        |row| {
+            let data: String = row.get(0).map_err(Error::other)?;
+            serde_json::from_str(&data).map_err(Error::other)
+        },
+    )?;
+    Ok(values.into_iter().next().unwrap_or_default())
+}
+
+pub fn save_sync_state(state: &impl Serialize) -> Result<()> {
+    let connection = database::connection()?;
+    save_sync_state_on(&connection, state)
+}
+
+pub(crate) fn save_sync_state_on(connection: &Connection, state: &impl Serialize) -> Result<()> {
+    connection.execute("INSERT INTO sync_state (key, data) VALUES ('notifications', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data",
+        params![serde_json::to_string(state).map_err(Error::other)?]).map_err(Error::other)?;
+    Ok(())
 }

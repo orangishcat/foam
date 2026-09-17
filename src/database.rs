@@ -1,20 +1,22 @@
 use std::{
     io::{self, Error, Result},
     sync::{Mutex, MutexGuard, OnceLock},
-    vec,
 };
 
-use rusqlite::{Connection, Params, fallible_iterator::FallibleIterator};
-use serde::{Serialize, de::DeserializeOwned};
-use serde_with::SerializeAs;
+use rusqlite::Connection;
+use serde::de::DeserializeOwned;
 
-use crate::{config::config, types::course::Course};
+use crate::config::config;
 
 static DB_CONNECTION: OnceLock<Mutex<Connection>> = OnceLock::new();
 const DB_NAME: &str = "foam.db";
 
+#[cfg(test)]
+mod tests;
+
 pub fn init() -> Result<()> {
-    let connection = Connection::open(config().data_dir().join(DB_NAME)).map_err(Error::other)?;
+    let data_dir = config().data_dir().to_owned();
+    let connection = Connection::open(data_dir.join(DB_NAME)).map_err(Error::other)?;
     create_schema(&connection)?;
     DB_CONNECTION
         .set(Mutex::new(connection))
@@ -41,6 +43,14 @@ pub fn from_sql<M: DeserializeOwned>(
     params: &[&dyn rusqlite::ToSql],
 ) -> io::Result<Vec<M>> {
     let connection = connection()?;
+    read_from(&connection, &query, params)
+}
+
+pub(crate) fn read_from<M: DeserializeOwned>(
+    connection: &Connection,
+    query: &str,
+    params: &[&dyn rusqlite::ToSql],
+) -> io::Result<Vec<M>> {
     let mut statement = connection.prepare_cached(&query).map_err(Error::other)?;
     let rows = statement.query(params).map_err(Error::other)?;
     serde_rusqlite::from_rows::<M>(rows)
@@ -67,15 +77,23 @@ pub fn bulk_execute<P>(query: String, params: Vec<P>) -> io::Result<usize>
 where
     P: rusqlite::Params,
 {
-    let mut updated = 0;
     let mut connection = connection()?;
+    bulk_execute_on(&mut connection, &query, params)
+}
+
+pub(crate) fn bulk_execute_on<P: rusqlite::Params>(
+    connection: &mut Connection,
+    query: &str,
+    params: Vec<P>,
+) -> io::Result<usize> {
+    let mut updated = 0;
     let transaction = connection.transaction().map_err(Error::other)?;
     let mut statement = transaction.prepare_cached(&query).map_err(Error::other)?;
     for entry in params {
         updated += statement.execute(entry).map_err(Error::other)?;
     }
     drop(statement);
-    transaction.commit();
+    transaction.commit().map_err(Error::other)?;
     Ok(updated)
 }
 

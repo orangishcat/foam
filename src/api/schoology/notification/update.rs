@@ -1,11 +1,10 @@
 use crate::{
     api::schoology::{RequestResult, course},
     database,
-    state::state::state,
     thread_manager::check_cancelled,
     types::{
+        assignment::Assignment,
         course::Course,
-        material::Material,
         notification::{Notification, NotificationEvent},
     },
 };
@@ -50,20 +49,25 @@ pub fn update(
     {
         check_cancelled()?;
         // One unfiltered request for this entire notification batch, including on failure.
-        match course::grades::fetch() {
-            Ok(grades) => {
-                let mut app = state();
-                course::grades::apply(&mut app.course.courses, &grades);
+        match course::grades::fetch().and_then(|grades| {
+            course::grades::apply(&grades)?;
+            Ok(())
+        }) {
+            Ok(()) => {
                 for n in notifications
                     .iter_mut()
                     .filter(|n| !n.is_processed && n.event == NotificationEvent::GradeUpdated)
                 {
-                    if let Some(a) = app
-                        .course
-                        .walk_assignments()
-                        .find(|a| a.id == n.resource_id)
-                    {
-                        n.course_id = a.course_id.clone();
+                    if let Some(course) = crate::types::course::course(&n.course_id)? {
+                        n.course_id = course.course_id;
+                    } else {
+                        let assignments = database::from_sql::<Assignment>(
+                            "SELECT * FROM assignments WHERE id = ?".to_owned(),
+                            &[&n.resource_id],
+                        )?;
+                        if assignments.len() == 1 {
+                            n.course_id = assignments[0].course_id.clone();
+                        }
                     }
                     n.is_processed = true;
                 }
@@ -80,30 +84,15 @@ fn resolve_course(n: &Notification) -> RequestResult<Course> {
     if n.course_id.is_empty() {
         return Err(io::Error::other("notification course ID is empty").into());
     }
-    if let Some(course) = database::from_sql(query, params).cloned() {
+    if let Some(course) = crate::types::course::course(&n.course_id)? {
         return Ok(course);
     }
     // fetch without holding the state lock; schoology section ids are sometimes incorrect for some reason
     let title = course::courses::section_course_title(&n.course_id)?;
-    let mut app = state();
-    // Another worker may have resolved the alias while the request ran.
-    if let Some(course) = app.course.get_course(&n.course_id) {
-        return Ok(course.clone());
-    }
-    let mut matches = app
-        .course
-        .courses
-        .iter_mut()
-        .filter(|c| !title.is_empty() && c.course_title == title);
-    let course = matches.next().ok_or_else(|| {
-        io::Error::other(format!("no cached course matches section title {title:?}"))
-    })?;
-    if matches.next().is_some() {
-        return Err(io::Error::other("ambiguous notification course title").into());
-    }
-    course.aliases.push(n.course_id.clone());
-    let course = course.clone();
-    Ok(course)
+    Ok(crate::types::course::resolve_course_alias(
+        &n.course_id,
+        &title,
+    )?)
 }
 
 fn process(
@@ -119,41 +108,26 @@ fn process(
         NotificationEvent::MaterialPosted => {
             let course = resolve_course(n)?;
             if !refreshed.contains(&course.course_id) {
-                let mut materials =
-                    course::hierarchy(&course.course_id, &course.materials, posted)?;
-                materials.set_course_id(&course.course_id);
+                let cached = crate::types::material::materials(&course.course_id)?;
+                let materials = course::hierarchy(&course.course_id, &cached, posted)?;
                 check_cancelled()?;
-                let mut app = state();
-                let stored = app
-                    .course
-                    .courses
-                    .iter_mut()
-                    .find(|c| c.course_id == course.course_id)
-                    .ok_or_else(|| io::Error::other("notification course was unloaded"))?;
-                for material in materials.recursive_iter_mut() {
-                    if let Material::Assignment(a) = material
-                        && let Some(Material::Assignment(current)) = stored
-                            .materials
-                            .recursive_iter()
-                            .find(|m| course::material_id(m) == a.id)
-                    {
-                        *a = current.clone();
-                    }
-                }
-                stored.materials = materials;
+                crate::types::material::store_hierarchy(&course.course_id, &materials)?;
                 refreshed.insert(course.course_id.clone());
             }
-            let app = state();
-            let material = app
-                .course
-                .get_course(&course.course_id)
-                .and_then(|c| {
-                    c.materials
-                        .recursive_iter()
-                        .find(|m| course::material_id(m) == n.resource_id)
-                })
+            let kinds = database::from_sql_map(
+                "SELECT type FROM materials WHERE course_id = ? AND material_id = ?".to_owned(),
+                &[&course.course_id, &n.resource_id],
+                |row| {
+                    let kind: String = row.get(0).map_err(io::Error::other)?;
+                    serde_json::from_value(serde_json::Value::String(kind))
+                        .map_err(io::Error::other)
+                },
+            )?;
+            let kind = kinds
+                .into_iter()
+                .next()
                 .ok_or_else(|| io::Error::other("posted material was not loaded from hierarchy"))?;
-            n.material_type = Some(material.into());
+            n.material_type = Some(kind);
             n.course_id = course.course_id;
         }
         NotificationEvent::Unknown => {
