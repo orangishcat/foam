@@ -1,10 +1,8 @@
-export struct Assignment { title: string, course_id: string, course_name: string, color: color }
+export struct Assignment { title: string, course-id: string, course-name: string, done: bool, overdue: bool }
 
 export struct AssignmentCol {
     title: string,
     assignments: [Assignment],
 }
 
-export struct DashboardUi {
-    assignment-view: [AssignmentCol],
-}
+export struct DashboardUi { assignment-view: [AssignmentCol], selected-assignment: Assignment }

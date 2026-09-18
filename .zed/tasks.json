@@ -9,7 +9,7 @@
   },
   {
     "label": "live-preview",
-    "command": "SLINT_LIVE_PREVIEW=1 cargo run --features slint/live-preview",
+    "command": "RUST_BACKTRACE=1 RUST_LOG=off,foam=debug SLINT_LIVE_PREVIEW=1 cargo run --features slint/live-preview",
   },
   {
     "label": "convert-svg",

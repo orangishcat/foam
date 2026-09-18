@@ -7,48 +7,141 @@ import {
 import { Theme } from "../palette.slint";
 import { UiState } from "../ui-state.slint";
 
-export component Dashboard inherits Rectangle {
-    background: UiState.theme.background-800;
+export component SelectedItemAction {
+    in property <string> hotkey_name;
+    in property <string> action;
 
-    HorizontalBox {
-        for col in UiState.dashboard.assignment-view: VerticalBox {
-            alignment: start;
-
-            Text {
-                text: col.title;
-                horizontal-alignment: center;
-            }
-
-            ListView {
-                preferred-width: 320px;
-                preferred-height: 540px;
-                horizontal-scrollbar-policy: always-off;
-                for assignment in col.assignments: Rectangle {
-                    height: inner.height + 8px;
-                    inner := Rectangle {
-                        background: assignment.color;
+    touch := TouchArea {
+        Rectangle {
+            border-radius: 5px;
+            background: {
+                let hoverBg = UiState.theme.background-600.to-oklch();
+                touch.has-hover ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
+            };
+            vl := VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    Rectangle {
+                        border-width: 1px;
                         border-radius: 5px;
-                        height: min(120px, max(40px, self.preferred-height));
-                        // Text measurements include font size, weight, and wrapping.
-                        preferred-height: title.preferred-height + course.preferred-height
-                            + content.padding-top + content.padding-bottom + 16px;
-                        clip: true;
+                        border-color: UiState.theme.background-400;
+                        VerticalLayout {
+                            padding-top: 4px;
+                            padding-bottom: 4px;
+                            padding-left: 8px;
+                            padding-right: 8px;
 
-                        content := VerticalBox {
-                            spacing: 2px;
-                            title := Text {
-                                text: assignment.title;
+                            Text {
+                                text: hotkey_name;
                                 font-weight: 700;
-                                wrap: word-wrap;
-                            }
-
-                            course := Text {
-                                color: UiState.theme.text-400;
-                                text: assignment.course_name;
-                                wrap: word-wrap;
                             }
                         }
                     }
+
+                    Rectangle {
+                        Text {
+                            text: action;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component Dashboard inherits Rectangle {
+    background: UiState.theme.background-800;
+
+    VerticalLayout {
+        HorizontalBox {
+            for col in UiState.dashboard.assignment-view: VerticalBox {
+                alignment: start;
+
+                Text {
+                    text: col.title;
+                    horizontal-alignment: center;
+                }
+
+                ListView {
+                    preferred-width: 320px;
+                    preferred-height: 540px;
+                    horizontal-scrollbar-policy: always-off;
+                    for assignment in col.assignments: Rectangle {
+                        height: inner.height + 8px;
+                        touch := TouchArea {
+                            clicked => {
+                                UiState.dashboard.selected-assignment = assignment;
+                            }
+                            inner := Rectangle {
+                                background: {
+                                    let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
+                                        (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
+                                        oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
+                                    let selected = UiState.dashboard.selected-assignment == assignment;
+
+                                    oklch(
+                                    c.lightness + (touch.has-hover ? 0.1 : 0) + (selected ? 0.2 : 0),
+                                    c.chroma + (touch.has-hover ? 0.02 : 0) + (selected ? 0.06 : 0),
+                                    c.hue,
+                                    c.alpha)
+                                };
+                                animate background { duration: 50ms; }
+                                border-radius: 5px;
+                                height: min(120px, max(40px, self.preferred-height));
+                            // Text measurements include font size, weight, and wrapping.
+                            preferred-height: title.preferred-height + course.preferred-height
+                                    + content.padding-top + content.padding-bottom + 16px;
+                                clip: true;
+
+                                content := VerticalBox {
+                                    spacing: 2px;
+                                    title := Text {
+                                        text: assignment.title;
+                                        font-weight: 700;
+                                        wrap: word-wrap;
+                                    }
+
+                                    course := Text {
+                                        color: UiState.theme.text-400;
+                                        text: assignment.course-name;
+                                        wrap: word-wrap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+
+        if !UiState.dashboard.selected-assignment.course-id.is-empty: Rectangle {
+            background: {
+                let c = UiState.theme.background-800.to-oklch();
+                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
+            }
+            height: 40px;
+            HorizontalLayout {
+                alignment: center;
+                spacing: 32px;
+                SelectedItemAction {
+                    hotkey_name: "V";
+                    action: "View item";
+                }
+
+                SelectedItemAction {
+                    hotkey_name: "D";
+                    action: UiState.dashboard.selected-assignment.done ? "Unmark as done" : "Mark as done";
+                }
+
+                SelectedItemAction {
+                    hotkey_name: "Esc";
+                    action: "Unselect item";
                 }
             }
         }

@@ -59,14 +59,9 @@ impl DashboardState {
                     .map(|(a, course_name)| crate::Assignment {
                         title: a.title.clone().into(),
                         course_id: a.course_id.clone().into(),
-                        color: if a.is_completed() {
-                            Color::from_rgb_u8(70, 130, 90)
-                        } else if a.is_past_due() {
-                            Color::from_rgb_u8(130, 90, 60)
-                        } else {
-                            Color::from_rgb_u8(70, 90, 130)
-                        },
                         course_name: course_name.to_shared_string(),
+                        done: a.is_completed(),
+                        overdue: a.is_past_due(),
                     })
                     .collect::<Vec<crate::Assignment>>(),
             ))
@@ -100,6 +95,13 @@ impl DashboardState {
                 assignment_view: ModelRc::new(VecModel::from(
                     [overdue_col, day_cols, future_col].concat(),
                 )),
+                selected_assignment: crate::Assignment {
+                    title: "".into(),
+                    course_id: "".into(),
+                    course_name: "".into(),
+                    done: false,
+                    overdue: false,
+                },
             });
         Ok(())
     }
