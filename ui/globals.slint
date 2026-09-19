@@ -1,0 +1,24 @@
+import { Screen } from "screen/screens.slint";
+import { Theme, ColorPalette } from "palette.slint";
+import { Assignment, AssignmentCol } from "types/dashboard-ui.slint";
+import { Notification } from "types/notification-ui.slint";
+
+export global UiState {
+    in-out property <Screen> screen: Screen.dashboard;
+    in-out property <ColorPalette> theme: Theme.dark;
+}
+
+export global DashboardUi {
+    in-out property <[AssignmentCol]> assignment-view;
+    in-out property <Assignment> selected-assignment;
+    in-out property <int> sel-row;
+    in-out property <int> sel-col;
+    callback view-item();
+    callback set-done(bool, string);
+}
+
+export global NotificationUi {
+    in-out property <float> progress;
+    in-out property <[Notification]> temp-notifs;
+    in-out property <[Notification]> notifications;
+}

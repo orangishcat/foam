@@ -209,20 +209,16 @@ impl NotificationState {
                 },
             })
             .collect::<Vec<_>>();
-        ui.global::<UiState>().set_notif(crate::NotificationUi {
-            progress: 0.0,
-            temp_notifs: ModelRc::new(VecModel::from(Vec::new())),
-            notifications: ModelRc::new(VecModel::from(models)),
-        });
+        let global = ui.global::<crate::NotificationUi>();
+        global.set_progress(0.0);
+        global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
+        global.set_notifications(ModelRc::new(VecModel::from(models)));
         Ok(())
     }
 
     fn publish_progress(progress: f32) {
         ui::run_on_ui_thread(move |ui| {
-            let global = ui.global::<UiState>();
-            let mut notification = global.get_notif();
-            notification.progress = progress;
-            global.set_notif(notification);
+            ui.global::<crate::NotificationUi>().set_progress(progress);
         });
     }
 }

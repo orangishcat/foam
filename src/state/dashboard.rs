@@ -5,7 +5,7 @@ use std::{
 
 use chrono::{Datelike, Days, Local};
 use rusqlite::params;
-use slint::{Color, ComponentHandle, ModelRc, ToSharedString, VecModel};
+use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
 use crate::{AppWindow, AssignmentCol, database, types::assignment::Assignment};
 
@@ -57,6 +57,7 @@ impl DashboardState {
                 assign_vec
                     .iter()
                     .map(|(a, course_name)| crate::Assignment {
+                        id: a.id.to_shared_string(),
                         title: a.title.clone().into(),
                         course_id: a.course_id.clone().into(),
                         course_name: course_name.to_shared_string(),
@@ -89,20 +90,18 @@ impl DashboardState {
             title: "Future".into(),
             assignments: sorted_bucket_to_modelrc(4),
         }];
-
-        ui.global::<crate::UiState>()
-            .set_dashboard(crate::DashboardUi {
-                assignment_view: ModelRc::new(VecModel::from(
-                    [overdue_col, day_cols, future_col].concat(),
-                )),
-                selected_assignment: crate::Assignment {
-                    title: "".into(),
-                    course_id: "".into(),
-                    course_name: "".into(),
-                    done: false,
-                    overdue: false,
-                },
-            });
+        let g = ui.global::<crate::DashboardUi>();
+        g.set_assignment_view(ModelRc::new(VecModel::from(
+            [overdue_col, day_cols, future_col].concat(),
+        )));
+        g.on_set_done(|done, id| {
+            database::execute(
+                include_str!("../sql/assignment/set-done.sql").to_owned(),
+                params![done, id.to_string()],
+            )
+            .inspect_err(|err| log::warn!("Error marking assignment {id} as done: {err}"))
+            .ok();
+        });
         Ok(())
     }
 }

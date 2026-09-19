@@ -5,7 +5,7 @@ import {
     VerticalBox,
     ListView,
 } from "std-widgets.slint";
-import { UiState } from "../ui-state.slint";
+import { UiState, NotificationUi } from "../globals.slint";
 import { NotificationType } from "../types/notification-ui.slint";
 
 export component Notifications inherits Rectangle {
@@ -14,7 +14,7 @@ export component Notifications inherits Rectangle {
     VerticalBox {
         padding: 32px;
         ListView {
-            for notif in UiState.notif.notifications: Rectangle {
+            for notif in NotificationUi.notifications: Rectangle {
                 height: inner.height + 10px;
                 inner := Rectangle {
                     border-radius: 5px;

@@ -1,7 +1,7 @@
 import { VerticalBox } from "std-widgets.slint";
 import { ProgressRing } from "progress-ring.slint";
 import { Screen } from "../screen/screens.slint";
-import { UiState } from "../ui-state.slint";
+import { UiState, NotificationUi } from "../globals.slint";
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
@@ -62,7 +62,7 @@ component NavigationItem inherits Rectangle {
         NavigationItem {
             label: "Notifications";
             icon: @image-url("../icons/bell.svg");
-            progress: UiState.notif.progress;
+            progress: NotificationUi.progress;
             change-to: notifs;
         }
 
