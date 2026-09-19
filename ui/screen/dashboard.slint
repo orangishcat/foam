@@ -34,7 +34,7 @@ export component SelectedItemAction {
                     Rectangle {
                         border-width: 1px;
                         border-radius: 5px;
-                        border-color: UiState.theme.background-400;
+                        border-color: UiState.theme.background-600;
                         VerticalLayout {
                             padding-top: 2px;
                             padding-bottom: 2px;
@@ -43,7 +43,6 @@ export component SelectedItemAction {
 
                             Text {
                                 text: hotkey-name;
-                                font-weight: 700;
                                 font-size: 12px;
                             }
                         }
@@ -66,9 +65,10 @@ export component Dashboard inherits Rectangle {
     vertical-stretch: 1;
 
     VerticalLayout {
+        vertical-stretch: 1;
         HorizontalBox {
             for col[x] in DashboardUi.assignment-view: VerticalBox {
-                alignment: start;
+                alignment: stretch;
                 vertical-stretch: 1;
 
                 Text {
@@ -79,7 +79,6 @@ export component Dashboard inherits Rectangle {
                 Rectangle {
                     background: UiState.theme.background-750;
                     ListView {
-                        preferred-height: 540px;
                         vertical-stretch: 1;
                         horizontal-scrollbar-policy: always-off;
                         for assignment[y] in col.assignments: Rectangle {
@@ -134,16 +133,12 @@ export component Dashboard inherits Rectangle {
         }
 
         Rectangle {
-            vertical-stretch: 1;
-        }
-
-        if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
             background: {
                 let c = UiState.theme.background-800.to-oklch();
                 oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
             }
             height: 32px;
-            focus := FocusScope {
+            if !DashboardUi.selected-assignment.course-id.is-empty: focus := FocusScope {
                 init => { focus.focus() }
                 KeyBinding {
                     keys: view-item.hotkey;
