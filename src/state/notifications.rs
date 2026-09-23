@@ -160,7 +160,7 @@ impl NotificationState {
             }
             let mut assignments = database::from_sql::<Assignment>(
                 format!(
-                    "SELECT * FROM assignments WHERE julianday(due) < julianday('now') AND NOT ({})",
+                    "SELECT * FROM assignments WHERE NOT ({})",
                     include_str!("../sql/assignment/completed.sql")
                 ),
                 &[],
