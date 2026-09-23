@@ -47,6 +47,64 @@ pub fn store_hierarchy(course_id: &str, root: &Folder) -> Result<()> {
     transaction.commit().map_err(Error::other)
 }
 
+/// Insert one assignment without replacing the rest of the course hierarchy.
+pub fn store_assignment(course_id: &str, parent_id: &str, assignment: &Assignment) -> Result<()> {
+    let mut connection = database::connection()?;
+    let transaction = connection.transaction().map_err(Error::other)?;
+    store_material_on(
+        &transaction,
+        course_id,
+        parent_id,
+        &Material::Assignment(assignment.clone()),
+    )?;
+    transaction.commit().map_err(Error::other)
+}
+
+/// Add calendar assignments and their folder paths without pruning other materials.
+pub fn store_calendar_assignments(
+    course_id: &str,
+    root: &Folder,
+    wanted: &std::collections::HashSet<String>,
+) -> Result<()> {
+    let mut connection = database::connection()?;
+    let transaction = connection.transaction().map_err(Error::other)?;
+    store_calendar_folder_on(&transaction, course_id, "", root, wanted)?;
+    transaction.commit().map_err(Error::other)
+}
+
+fn store_calendar_folder_on(
+    connection: &Connection,
+    course_id: &str,
+    parent_id: &str,
+    folder: &Folder,
+    wanted: &std::collections::HashSet<String>,
+) -> Result<()> {
+    let metadata = Folder {
+        id: folder.id.clone(),
+        title: folder.title.clone(),
+        body: folder.body.clone(),
+        materials: Vec::new(),
+    };
+    store_material_on(
+        connection,
+        course_id,
+        parent_id,
+        &Material::Folder(Box::new(metadata)),
+    )?;
+    for material in &folder.materials {
+        match material {
+            Material::Folder(child) => {
+                store_calendar_folder_on(connection, course_id, &folder.id, child, wanted)?;
+            }
+            Material::Assignment(assignment) if wanted.contains(&assignment.id) => {
+                store_material_on(connection, course_id, &folder.id, material)?;
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn store_hierarchy_on(
     connection: &Connection,
     course_id: &str,

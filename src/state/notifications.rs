@@ -134,9 +134,13 @@ impl NotificationState {
     }
 
     fn sync_calendar() {
-        match schoology::calendar::fetch()
-            .and_then(|(ids, assignments)| Ok(schoology::calendar::apply(&ids, &assignments)?))
-        {
+        match schoology::calendar::fetch().and_then(|(ids, assignments)| {
+            Ok(schoology::calendar::apply(
+                &ids,
+                &assignments,
+                Self::publish_progress,
+            )?)
+        }) {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
