@@ -1,1 +1,53 @@
-export component Courses { }
+import { ScrollView } from "std-widgets.slint";
+import { UiState, CoursesUi } from "../globals.slint";
+
+export component Courses inherits Rectangle {
+    background: UiState.theme.background-800;
+
+    VerticalLayout {
+        padding: 32px;
+        spacing: 20px;
+
+        scroll := ScrollView {
+            vertical-stretch: 1;
+            horizontal-scrollbar-policy: always-off;
+            Rectangle {
+                width: scroll.visible-width;
+                height: Math.ceil(CoursesUi.courses.length / 3) * 166px;
+                for course[i] in CoursesUi.courses: Rectangle {
+                    x: Math.mod(i, 3) * (self.width + 16px);
+                    y: Math.floor(i / 3) * 166px;
+                    width: (parent.width - 32px) / 3;
+                    height: 150px;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: UiState.theme.background-500;
+                    background: UiState.theme.background-700;
+
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 8px;
+                        Text {
+                            text: course.title;
+                            font-size: 18px;
+                            font-weight: 700;
+                            color: UiState.theme.text-50;
+                            wrap: word-wrap;
+                        }
+
+                        Text {
+                            text: course.section;
+                            color: UiState.theme.text-200;
+                            wrap: word-wrap;
+                        }
+
+                        Text {
+                            text: course.code;
+                            color: UiState.theme.text-400;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

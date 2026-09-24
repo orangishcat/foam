@@ -2,6 +2,7 @@ import { Screen } from "screen/screens.slint";
 import { Theme, ColorPalette } from "palette.slint";
 import { Assignment, AssignmentCol } from "types/dashboard-ui.slint";
 import { Notification } from "types/notification-ui.slint";
+import { CourseItem } from "types/course-ui.slint";
 
 export global UiState {
     in-out property <Screen> screen: Screen.dashboard;
@@ -21,4 +22,8 @@ export global NotificationUi {
     in-out property <float> progress;
     in-out property <[Notification]> temp-notifs;
     in-out property <[Notification]> notifications;
+}
+
+export global CoursesUi {
+    in-out property <[CourseItem]> courses;
 }

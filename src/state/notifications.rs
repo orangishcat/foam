@@ -127,6 +127,9 @@ impl NotificationState {
             if let Err(err) = result {
                 app.notif.last_update_success = false;
                 app.notif.last_update = Local::now();
+                if let Err(save_err) = save_sync_state(&app.notif) {
+                    log::warn!("Saving notification sync state failed: {save_err}");
+                }
                 log::warn!("Notification sync failed: {err}");
             }
         }
@@ -183,7 +186,6 @@ impl NotificationState {
     }
 
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        // Persisted canonical course IDs are preferred; the feed title covers unresolved IDs.
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id

@@ -23,6 +23,9 @@ pub struct Course {
     pub description: String,
     pub logo_img_src: String,
     pub location: String,
+
+    pub period: u8,
+
     #[serde_as(as = "PickFirst<(JsonString, Same)>")]
     pub meeting_days: Vec<i8>,
     pub start_time: String,

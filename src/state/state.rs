@@ -18,6 +18,9 @@ impl AppState {
         self.notif.load();
     }
     pub fn sync_ui(&self, ui: &AppWindow) {
+        if let Err(err) = crate::state::courses::sync_ui(ui) {
+            log::warn!("Loading courses failed: {err}");
+        }
         if let Err(err) = self.dashboard.sync_ui(ui) {
             log::warn!("Loading dashboard failed: {err}");
         }
