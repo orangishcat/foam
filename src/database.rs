@@ -14,19 +14,17 @@ const DB_NAME: &str = "foam.db";
 pub fn init() -> Result<()> {
     let data_dir = config().data_dir().to_owned();
     let connection = Connection::open(data_dir.join(DB_NAME)).map_err(Error::other)?;
-    create_schema(&connection)?;
     DB_CONNECTION
         .set(Mutex::new(connection))
         .map_err(|_| Error::other("setting oncelock failed"))?;
+    create_schema()?;
     Ok(())
 }
 
-fn create_schema(connection: &Connection) -> Result<()> {
-    connection
+fn create_schema() -> Result<()> {
+    connection()?
         .execute_batch(include_str!("sql/schema.sql"))
         .map_err(Error::other)?;
-    add_column_if_missing("courses", "period", "STRING")?;
-    add_column_if_missing("courses", "order", "INTEGER NOT NULL")?;
     Ok(())
 }
 
