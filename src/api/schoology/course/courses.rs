@@ -122,6 +122,8 @@ pub fn scrape_materials() -> RequestResult<Vec<Course>> {
                 description: section.description,
                 logo_img_src: section.logo_img_src,
                 location: section.location,
+                period: None,
+                order: 0,
                 meeting_days: section
                     .meeting_days
                     .into_iter()

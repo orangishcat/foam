@@ -24,7 +24,10 @@ pub fn init() -> Result<()> {
 fn create_schema(connection: &Connection) -> Result<()> {
     connection
         .execute_batch(include_str!("sql/schema.sql"))
-        .map_err(Error::other)
+        .map_err(Error::other)?;
+    add_column_if_missing("courses", "period", "STRING")?;
+    add_column_if_missing("courses", "order", "INTEGER NOT NULL")?;
+    Ok(())
 }
 
 pub fn connection() -> Result<MutexGuard<'static, Connection>> {
@@ -101,4 +104,26 @@ pub fn execute(query: String, params: &[&dyn rusqlite::ToSql]) -> io::Result<usi
         .map_err(Error::other)?
         .execute(params)
         .map_err(Error::other)
+}
+
+pub fn add_column_if_missing(table: &str, column: &str, definition: &str) -> io::Result<bool> {
+    let connection = connection()?;
+    let exists: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_xinfo(?1) WHERE name = ?2)",
+            (table, column),
+            |row| row.get(0),
+        )
+        .map_err(Error::other)?;
+    if exists {
+        return Ok(false);
+    }
+
+    connection
+        .execute(
+            &format!("ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition}"),
+            [],
+        )
+        .map_err(Error::other)?;
+    Ok(true)
 }

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS courses (
     section_title TEXT NOT NULL,
     section_code TEXT NOT NULL,
     active INTEGER NOT NULL,
+    period STRING NOT NULL,
     description TEXT NOT NULL,
     logo_img_src TEXT NOT NULL,
     location TEXT NOT NULL,
