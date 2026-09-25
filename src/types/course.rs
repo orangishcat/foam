@@ -26,6 +26,7 @@ pub struct Course {
 
     pub period: Option<String>,
     pub order: u8,
+    pub hidden: bool,
 
     #[serde_as(as = "PickFirst<(JsonString, Same)>")]
     pub meeting_days: Vec<i8>,
@@ -40,7 +41,6 @@ pub fn course(id: &str) -> Result<Option<Course>> {
 }
 
 pub(crate) fn course_from(connection: &Connection, id: &str) -> Result<Option<Course>> {
-    // Canonical IDs win over aliases. Ambiguous aliases must not select an arbitrary course.
     let exact = database::read_from::<Course>(
         connection,
         "SELECT * FROM courses WHERE course_id = ?",

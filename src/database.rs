@@ -25,6 +25,7 @@ fn create_schema() -> Result<()> {
     connection()?
         .execute_batch(include_str!("sql/schema.sql"))
         .map_err(Error::other)?;
+    add_column_if_missing("courses", "hidden", "INTEGER NOT NULL DEFAULT 0")?;
     Ok(())
 }
 

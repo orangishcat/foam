@@ -26,4 +26,7 @@ export global NotificationUi {
 
 export global CoursesUi {
     in-out property <[CourseItem]> courses;
+    callback reorder(int, int);
+    pure callback drag-data(int) -> data-transfer;
+    pure callback drag-index(data-transfer) -> int;
 }

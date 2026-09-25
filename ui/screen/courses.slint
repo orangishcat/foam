@@ -1,51 +1,142 @@
-import { ScrollView } from "std-widgets.slint";
+import { ListView } from "std-widgets.slint";
 import { UiState, CoursesUi } from "../globals.slint";
+import { CourseItem } from "../types/course-ui.slint";
 
 export component Courses inherits Rectangle {
-    background: UiState.theme.background-800;
+    private property <int> drag-from: -1;
+    private property <int> drag-to: -1;
+    private property <length> drag-pointer-y: 0px;
+    private property <CourseItem> dragged-course;
 
-    VerticalLayout {
-        padding: 32px;
-        spacing: 20px;
+    list := ListView {
+        x: 32px;
+        y: 32px;
+        width: parent.width - 64px;
+        height: parent.height - 64px;
+        horizontal-scrollbar-policy: always-off;
+        mouse-drag-pan-enabled: false;
 
-        scroll := ScrollView {
-            vertical-stretch: 1;
-            horizontal-scrollbar-policy: always-off;
+        for course[i] in CoursesUi.courses: Rectangle {
+            width: list.visible-width;
+            height: 82px;
+            background: transparent;
+
             Rectangle {
-                width: scroll.visible-width;
-                height: Math.ceil(CoursesUi.courses.length / 3) * 166px;
-                for course[i] in CoursesUi.courses: Rectangle {
-                    x: Math.mod(i, 3) * (self.width + 16px);
-                    y: Math.floor(i / 3) * 166px;
-                    width: (parent.width - 32px) / 3;
-                    height: 150px;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: UiState.theme.background-500;
-                    background: UiState.theme.background-700;
+                y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
+                    : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
+                    : 0px;
+                width: parent.width;
+                height: 74px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: UiState.theme.background-500;
+                background: UiState.theme.background-700;
+                opacity: root.drag-from == i ? 0 : 1;
+
+                HorizontalLayout {
+                    padding: 16px;
+                    spacing: 16px;
 
                     VerticalLayout {
-                        padding: 16px;
-                        spacing: 8px;
+                        spacing: 4px;
                         Text {
                             text: course.title;
                             font-size: 18px;
                             font-weight: 700;
                             color: UiState.theme.text-50;
-                            wrap: word-wrap;
+                            overflow: elide;
                         }
 
                         Text {
-                            text: course.section;
+                            text: course.section + "  ·  " + course.code;
                             color: UiState.theme.text-200;
-                            wrap: word-wrap;
-                        }
-
-                        Text {
-                            text: course.code;
-                            color: UiState.theme.text-400;
+                            overflow: elide;
                         }
                     }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "≡";
+                            width: 32px;
+                            color: UiState.theme.text-200;
+                            font-size: 24px;
+                            vertical-alignment: center;
+                            horizontal-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            drag-area := DragArea {
+                width: parent.width;
+                height: 74px;
+                data: CoursesUi.drag-data(i);
+                allow-move: true;
+                drag-finished(_action) => {
+                    root.drag-from = -1;
+                    root.drag-to = -1;
+                }
+            }
+        }
+    }
+
+    drop-area := DropArea {
+        x: list.x;
+        y: list.y;
+        width: list.visible-width;
+        height: list.height;
+        can-drop(event) => {
+            let source = CoursesUi.drag-index(event.data);
+            if (source < 0 || source >= CoursesUi.courses.length) {
+                return DragAction.none;
+            }
+            root.drag-from = source;
+            root.dragged-course = CoursesUi.courses[source];
+            root.drag-pointer-y = event.position.y;
+            root.drag-to = Math.max(0, Math.min(CoursesUi.courses.length - 1,
+        Math.round((event.position.y - list.viewport-y - 37px) / 82px)));
+            return DragAction.move;
+        }
+        dropped(event) => {
+            if (root.drag-from >= 0) {
+                CoursesUi.reorder(root.drag-from, root.drag-to);
+            }
+            root.drag-from = -1;
+            root.drag-to = -1;
+            return DragAction.move;
+        }
+    }
+
+    Rectangle {
+        visible: root.drag-from >= 0;
+        x: list.x;
+        y: list.y + root.drag-pointer-y - 37px;
+        width: list.visible-width;
+        height: 74px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: UiState.theme.background-500;
+        background: UiState.theme.background-700;
+        opacity: 0.65;
+
+        HorizontalLayout {
+            padding: 16px;
+            spacing: 16px;
+
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: root.dragged-course.title;
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: UiState.theme.text-50;
+                    overflow: elide;
+                }
+
+                Text {
+                    text: root.dragged-course.section + "  ·  " + root.dragged-course.code;
+                    color: UiState.theme.text-200;
+                    overflow: elide;
                 }
             }
         }

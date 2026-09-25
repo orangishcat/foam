@@ -123,6 +123,7 @@ pub fn scrape_materials() -> RequestResult<Vec<Course>> {
                 logo_img_src: section.logo_img_src,
                 location: section.location,
                 period: None,
+                hidden: false,
                 order: 0,
                 meeting_days: section
                     .meeting_days
