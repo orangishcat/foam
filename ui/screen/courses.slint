@@ -21,62 +21,74 @@ export component Courses inherits Rectangle {
             height: 82px;
             background: transparent;
 
-            Rectangle {
-                y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
-                    : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
-                    : 0px;
-                width: parent.width;
-                height: 74px;
-                border-radius: 8px;
-                border-width: 1px;
-                border-color: UiState.theme.background-500;
-                background: UiState.theme.background-700;
-                opacity: root.drag-from == i ? 0 : 1;
-
-                HorizontalLayout {
-                    padding: 16px;
-                    spacing: 16px;
-
-                    VerticalLayout {
-                        spacing: 4px;
-                        Text {
-                            text: course.title;
-                            font-size: 18px;
-                            font-weight: 700;
-                            color: UiState.theme.text-50;
-                            overflow: elide;
-                        }
-
-                        Text {
-                            text: course.section + "  ·  " + course.code;
-                            color: UiState.theme.text-200;
-                            overflow: elide;
-                        }
-                    }
+            course-touch := TouchArea {
+                Rectangle {
+                    y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
+                        : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
+                        : 0px;
+                    width: parent.width;
+                    height: 74px;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: UiState.theme.background-500;
+                    background: UiState.theme.background-700;
+                    opacity: root.drag-from == i ? 0 : 1;
 
                     HorizontalLayout {
-                        Text {
-                            text: "≡";
-                            width: 32px;
-                            color: UiState.theme.text-200;
-                            font-size: 24px;
-                            vertical-alignment: center;
-                            horizontal-alignment: center;
+                        padding: 16px;
+                        spacing: 16px;
+
+                        VerticalLayout {
+                            spacing: 4px;
+                            Text {
+                                text: course.title;
+                                font-size: 18px;
+                                font-weight: 700;
+                                color: UiState.theme.text-50;
+                                overflow: elide;
+                            }
+
+                            Text {
+                                text: course.section + "  ·  " + course.code;
+                                color: UiState.theme.text-200;
+                                overflow: elide;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            visible: course-touch.has-hover;
+                            drag-layout := Rectangle {
+                                width: 32px;
+                                border-radius: 10px;
+                                background: {
+                                    let color = UiState.theme.background-400.to-oklch();
+                                    drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                };
+                                drag-touch := TouchArea {
+                                    mouse-cursor: grab;
+                                    Image {
+                                        source: @image-url("../icons/grip-horizontal.svg");
+                                        colorize: UiState.theme.background-400;
+                                        vertical-alignment: center;
+                                        horizontal-alignment: center;
+                                    }
+                                    drag-area := DragArea {
+                                        width: parent.width;
+                                        height: parent.height;
+                                        data: CoursesUi.drag-data(i);
+                                        allow-move: true;
+                                        drag-finished(_action) => {
+                                            root.drag-from = -1;
+                                            root.drag-to = -1;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            drag-area := DragArea {
-                width: parent.width;
-                height: 74px;
-                data: CoursesUi.drag-data(i);
-                allow-move: true;
-                drag-finished(_action) => {
-                    root.drag-from = -1;
-                    root.drag-to = -1;
-                }
-            }
         }
     }
 
