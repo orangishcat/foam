@@ -25,7 +25,7 @@ pub struct Course {
     pub location: String,
 
     pub period: Option<String>,
-    pub order: u8,
+    pub course_order: u8,
     pub hidden: bool,
 
     #[serde_as(as = "PickFirst<(JsonString, Same)>")]

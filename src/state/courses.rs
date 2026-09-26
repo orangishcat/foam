@@ -3,19 +3,19 @@ use crate::{
     api::schoology::{self, RequestResult},
     database,
     types::course::Course,
+    ui::{self},
 };
+use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::io;
 
-const ORDER_KEY: &str = "course_order";
-
 pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
     let courses = database::from_sql::<Course>(
-        "SELECT * FROM courses ORDER BY course_title COLLATE NOCASE, section_title COLLATE NOCASE"
+        "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NOCASE, section_title COLLATE NOCASE"
             .to_owned(),
         &[],
     )?;
-    let mut items = courses
+    let items = courses
         .into_iter()
         .map(|course| CourseItem {
             id: course.course_id.into(),
@@ -23,23 +23,9 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
             section: course.section_title.into(),
             code: course.section_code.into(),
             period: course.period.unwrap_or("".to_string()).into(),
+            hidden: course.hidden,
         })
         .collect::<Vec<_>>();
-    let saved_order = database::from_sql_map(
-        "SELECT data FROM sync_state WHERE key = ?".to_owned(),
-        &[&ORDER_KEY],
-        |row| row.get::<_, String>(0).map_err(io::Error::other),
-    )?;
-    if let Some(order) = saved_order.first() {
-        match serde_json::from_str::<Vec<String>>(order) {
-            Ok(ids) => items.sort_by_key(|item| {
-                ids.iter()
-                    .position(|id| id == item.id.as_str())
-                    .unwrap_or(usize::MAX)
-            }),
-            Err(error) => log::warn!("Ignoring invalid saved course order: {error}"),
-        }
-    }
     let global = ui.global::<CoursesUi>();
     global.set_courses(ModelRc::new(VecModel::from(items)));
     global.on_drag_data(|index| {
@@ -62,23 +48,37 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         let mut items: Vec<CourseItem> = (0..model.row_count())
             .filter_map(|index| model.row_data(index))
             .collect();
-        if from < 0 || from as usize >= items.len() { return; }
-        let target = to.clamp(0, items.len() as i32 - 1) as usize;
-        if from as usize == target { return; }
-        let item = items.remove(from as usize);
-        items.insert(target, item);
-        let ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
-        let result = serde_json::to_string(&ids).map_err(io::Error::other).and_then(|order| {
-            database::execute(
-                "INSERT INTO sync_state (key, data) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data".to_owned(),
-                &[&ORDER_KEY, &order],
-            ).map(|_| ())
-        });
-        if let Err(error) = result {
-            log::warn!("Saving course order failed: {error}");
+        if from < 0 || from as usize >= items.len() {
             return;
         }
+        let target = to.clamp(0, items.len() as i32 - 1) as usize;
+        if from as usize == target {
+            return;
+        }
+        let item = items.remove(from as usize);
+        items.insert(target, item);
+        database::bulk_execute(
+            "UPDATE courses SET course_order = ? WHERE course_id = ?".to_owned(),
+            items
+                .iter()
+                .enumerate()
+                .map(|(order, item)| (order as i64, item.id.to_string()))
+                .collect(),
+        )
+        .inspect(|_| log::debug!("Reordered course {from} to {to}"))
+        .inspect_err(|err| log::warn!("Saving course order failed: {err}"))
+        .ok();
         global.set_courses(ModelRc::new(VecModel::from(items)));
+    });
+    global.on_hide(move |id| {
+        database::execute(
+            "UPDATE courses SET hidden = 1 WHERE course_id = ?".to_owned(),
+            params![id.to_string()],
+        )
+        .inspect(|_| log::debug!("Hid course with id {}", id))
+        .inspect_err(|err| log::warn!("Hiding course failed: {err}"))
+        .ok();
+        ui::sync_ui();
     });
     Ok(())
 }

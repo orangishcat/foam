@@ -25,7 +25,6 @@ fn create_schema() -> Result<()> {
     connection()?
         .execute_batch(include_str!("sql/schema.sql"))
         .map_err(Error::other)?;
-    add_column_if_missing("courses", "hidden", "INTEGER NOT NULL DEFAULT 0")?;
     Ok(())
 }
 
@@ -105,6 +104,7 @@ pub fn execute(query: String, params: &[&dyn rusqlite::ToSql]) -> io::Result<usi
         .map_err(Error::other)
 }
 
+// for use in database migration only, function will be unused most of the time
 pub fn add_column_if_missing(table: &str, column: &str, definition: &str) -> io::Result<bool> {
     let connection = connection()?;
     let exists: bool = connection

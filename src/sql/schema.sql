@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS courses (
     active INTEGER NOT NULL,
     period STRING NOT NULL,
     hidden INTEGER NOT NULL,
+    course_order INTEGER NOT NULL,
     description TEXT NOT NULL,
     logo_img_src TEXT NOT NULL,
     location TEXT NOT NULL,

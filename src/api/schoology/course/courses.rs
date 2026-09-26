@@ -124,7 +124,7 @@ pub fn scrape_materials() -> RequestResult<Vec<Course>> {
                 location: section.location,
                 period: None,
                 hidden: false,
-                order: 0,
+                course_order: 0,
                 meeting_days: section
                     .meeting_days
                     .into_iter()
