@@ -90,7 +90,7 @@ fn authorization<R: oauth::Request + ?Sized>(
 
 pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
     let url = internal_url(route)?;
-    let text = INTERNAL_CLIENT
+    INTERNAL_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
         .read()
@@ -99,9 +99,8 @@ pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
         .header(ACCEPT, "application/json")
         .send()?
         .error_for_status()?
-        .text()?;
-    log::debug!("{route} body: {}", text);
-    serde_json::from_str(&text).map_err(Into::into)
+        .json()
+        .map_err(Into::into)
 }
 
 pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(

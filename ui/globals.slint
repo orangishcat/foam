@@ -2,7 +2,7 @@ import { Screen } from "screen/screens.slint";
 import { Theme, ColorPalette } from "palette.slint";
 import { Assignment, AssignmentCol } from "types/dashboard-ui.slint";
 import { Notification } from "types/notification-ui.slint";
-import { CourseItem } from "types/course-ui.slint";
+import { CourseItem, MaterialItem } from "types/course-ui.slint";
 
 export global UiState {
     in-out property <Screen> screen: Screen.dashboard;
@@ -25,6 +25,15 @@ export global NotificationUi {
 }
 
 export global CoursesUi {
+    in-out property <string> course-id;
+    in-out property <string> folder-id;
+    in-out property <string> folder-title: "Courses";
+    in-out property <string> parent-title: "Courses";
+    in-out property <string> browser-error;
+    in-out property <[MaterialItem]> materials;
+    in-out property <[MaterialItem]> parent-materials;
+    callback open(string, string, string);
+    callback up();
     in-out property <[CourseItem]> courses;
     callback reorder(int, int);
     callback hide(string);

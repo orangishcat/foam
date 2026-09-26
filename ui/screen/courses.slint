@@ -25,6 +25,10 @@ export component Courses inherits Rectangle {
                 background: transparent;
 
                 course-touch := TouchArea {
+                    clicked => {
+                        CoursesUi.open(course.id, "", "course");
+                    }
+                    mouse-cursor: pointer;
                     Rectangle {
                         y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
                             : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
@@ -34,7 +38,7 @@ export component Courses inherits Rectangle {
                         border-radius: 8px;
                         border-width: 1px;
                         border-color: UiState.theme.background-500;
-                        background: UiState.theme.background-700;
+                        background: course-touch.has-hover ? UiState.theme.background-600 : UiState.theme.background-700;
                         opacity: root.drag-from == i ? 0 : 1;
 
                         HorizontalLayout {

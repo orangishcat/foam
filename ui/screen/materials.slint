@@ -1,0 +1,99 @@
+import { ScrollView, Button } from "std-widgets.slint";
+import { CoursesUi, UiState } from "../globals.slint";
+import { MaterialItem } from "../types/course-ui.slint";
+
+component MaterialRow inherits Rectangle {
+    in property <MaterialItem> item;
+    in property <bool> selected;
+    private property <bool> navigable: item.kind == "folder" || item.kind == "course";
+    height: 40px;
+    border-radius: 5px;
+    background: selected ? UiState.theme.background-500
+        : touch.has-hover && navigable ? UiState.theme.background-700 : transparent;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                width: 20px;
+                height: 20px;
+                source: item.kind == "course" ? @image-url("../icons/book-text.svg")
+                    : item.kind == "folder" ? @image-url("../icons/folder.svg")
+                    : item.kind == "link" ? @image-url("../icons/link.svg")
+                    : @image-url("../icons/file-text.svg");
+                colorize: UiState.theme.text-200;
+                vertical-alignment: center;
+            }
+        }
+
+        Text {
+            text: item.title;
+            color: UiState.theme.text-50;
+            vertical-alignment: center;
+            overflow: elide;
+            font-size: 18px;
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            text: root.navigable ? "›" : "";
+            color: UiState.theme.text-200;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.navigable ? pointer : default;
+        clicked => { CoursesUi.open(item.course-id, item.id, item.kind); }
+    }
+}
+
+export component Materials inherits Rectangle {
+    HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
+            width: 200px;
+            background: UiState.theme.background-850;
+            VerticalLayout {
+                padding-top: 16px;
+                padding-bottom: 16px;
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 8px;
+                sidebar := ScrollView {
+                    horizontal-scrollbar-policy: always-off;
+                    VerticalLayout {
+                        spacing: 2px;
+                        for item in CoursesUi.parent-materials: MaterialRow {
+                            width: sidebar.visible-width;
+                            item: item;
+                            selected: item.course-id == CoursesUi.course-id
+                                && (item.kind == "course" || (item.id == CoursesUi.folder-id && item.kind == "folder"));
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+
+                list := ScrollView {
+                    horizontal-scrollbar-policy: always-off;
+                    VerticalLayout {
+                        spacing: 2px;
+                        for item in CoursesUi.materials: MaterialRow {
+                            width: list.visible-width;
+                            item: item;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

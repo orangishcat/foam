@@ -12,7 +12,7 @@ component NavigationItem inherits Rectangle {
 
     height: 44px;
     border-radius: 6px;
-    background: UiState.screen == change-to ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
+    background: (UiState.screen == change-to || (change-to == Screen.courses && UiState.screen == Screen.materials)) ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
 
     touch := TouchArea {
         pointer-event(event) => {

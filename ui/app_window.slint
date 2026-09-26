@@ -2,6 +2,7 @@ import { HorizontalBox } from "std-widgets.slint";
 import { Dashboard } from "screen/dashboard.slint";
 import { Screen } from "screen/screens.slint";
 import { Courses } from "screen/courses.slint";
+import { Materials } from "screen/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { UiState } from "globals.slint";
 export { UiState, DashboardUi, NotificationUi, CoursesUi } from "globals.slint";
@@ -36,6 +37,10 @@ export component AppWindow inherits Window {
             }
 
             if UiState.screen == Screen.courses: Courses {
+                width: parent.width;
+                height: parent.height;
+            }
+            if UiState.screen == Screen.materials: Materials {
                 width: parent.width;
                 height: parent.height;
             }
