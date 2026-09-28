@@ -1,7 +1,8 @@
-import { VerticalBox } from "std-widgets.slint";
+import { VerticalBox, ScrollView } from "std-widgets.slint";
 import { ProgressRing } from "progress-ring.slint";
 import { Screen } from "../screen/screens.slint";
-import { UiState, NotificationUi } from "../globals.slint";
+import { UiState, NotificationUi, CoursesUi } from "../globals.slint";
+import { Materials } from "../screen/materials.slint";
 
 component NavigationItem inherits Rectangle {
     in property <string> label;
@@ -12,7 +13,7 @@ component NavigationItem inherits Rectangle {
 
     height: 44px;
     border-radius: 6px;
-    background: (UiState.screen == change-to || (change-to == Screen.courses && UiState.screen == Screen.materials)) ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
+    background: UiState.screen == change-to ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
 
     touch := TouchArea {
         pointer-event(event) => {
@@ -39,7 +40,7 @@ component NavigationItem inherits Rectangle {
     // }
 }
 
-    export component Sidebar inherits Rectangle {
+export component Sidebar inherits Rectangle {
     in property <bool> minimized: true;
 
     width: minimized ? 60px : 240px;
@@ -78,8 +79,45 @@ component NavigationItem inherits Rectangle {
             height: 1px;
         }
 
-        Rectangle {
+        tabs := ScrollView {
             vertical-stretch: 1;
+            horizontal-scrollbar-policy: always-off;
+            VerticalLayout {
+                spacing: 8px;
+                alignment: start;
+                for tab[index] in CoursesUi.tabs: Rectangle {
+                    width: tabs.visible-width;
+                    height: 44px;
+                    border-radius: 6px;
+                    background: UiState.screen == Screen.materials && CoursesUi.active-tab == index
+                        ? UiState.theme.background-700
+                        : tab-touch.has-hover ? UiState.theme.background-600 : transparent;
+                    accessible-role: button;
+                    accessible-label: tab.title;
+                    Rectangle {
+                        width: 30px;
+                        height: 30px;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 15px;
+                        background: UiState.theme.background-400;
+                        Text {
+                            text: tab.title;
+                            width: parent.width - 8px;
+                            x: 4px;
+                            height: parent.height;
+                            overflow: elide;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            color: UiState.theme.text-50;
+                        }
+                    }
+                    tab-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { CoursesUi.select-tab(index); }
+                    }
+                }
+            }
         }
 
         NavigationItem {

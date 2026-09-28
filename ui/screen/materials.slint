@@ -1,6 +1,7 @@
-import { ScrollView, Button } from "std-widgets.slint";
+import { ScrollView } from "std-widgets.slint";
+import { Screen } from "screens.slint";
 import { CoursesUi, UiState } from "../globals.slint";
-import { MaterialItem } from "../types/course-ui.slint";
+import { MaterialItem, CourseTab } from "../types/course-ui.slint";
 
 component MaterialRow inherits Rectangle {
     in property <MaterialItem> item;
@@ -46,50 +47,128 @@ component MaterialRow inherits Rectangle {
 
     touch := TouchArea {
         mouse-cursor: root.navigable ? pointer : default;
-        clicked => { CoursesUi.open(item.course-id, item.id, item.kind); }
+        clicked => {
+            if root.navigable {
+                CoursesUi.navigate-folder(item.course-id, item.id);
+            }
+        }
+    }
+}
+
+component Breadcrumb inherits Rectangle {
+    in property <string> title;
+    in property <bool> course;
+    callback activated();
+    height: 32px;
+    background: touch.has-hover ? UiState.theme.background-700 : transparent;
+    border-radius: 4px;
+    accessible-role: button;
+    accessible-label: title;
+    HorizontalLayout {
+        spacing: 6px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                width: 16px;
+                height: 16px;
+                source: root.course ? @image-url("../icons/book-text.svg") : @image-url("../icons/folder.svg");
+                colorize: UiState.theme.text-200;
+            }
+        }
+        Text {
+            text: root.title;
+            color: UiState.theme.text-200;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.activated(); }
     }
 }
 
 export component Materials inherits Rectangle {
-    HorizontalLayout {
+    in property <CourseTab> tab;
+    VerticalLayout {
         spacing: 0px;
-        Rectangle {
-            width: 200px;
-            background: UiState.theme.background-850;
-            VerticalLayout {
-                padding-top: 16px;
-                padding-bottom: 16px;
-                padding-left: 8px;
-                padding-right: 8px;
-                spacing: 8px;
-                sidebar := ScrollView {
-                    horizontal-scrollbar-policy: always-off;
-                    VerticalLayout {
-                        spacing: 2px;
-                        for item in CoursesUi.parent-materials: MaterialRow {
-                            width: sidebar.visible-width;
-                            item: item;
-                            selected: item.course-id == CoursesUi.course-id
-                                && (item.kind == "course" || (item.id == CoursesUi.folder-id && item.kind == "folder"));
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 0px;
+            Rectangle {
+                width: 200px;
+                background: UiState.theme.background-850;
+                VerticalLayout {
+                    padding-top: 16px;
+                    padding-bottom: 16px;
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    spacing: 8px;
+                    sidebar := ScrollView {
+                        horizontal-scrollbar-policy: always-off;
+                        VerticalLayout {
+                            spacing: 2px;
+                            for item in root.tab.parent-materials: MaterialRow {
+                                width: sidebar.visible-width;
+                                item: item;
+                                selected: item.course-id == root.tab.course-id
+                                    && (item.kind == "course" || (item.id == root.tab.folder-id && item.kind == "folder"));
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+
+                    list := ScrollView {
+                        horizontal-scrollbar-policy: always-off;
+                        VerticalLayout {
+                            spacing: 2px;
+                            for item in root.tab.materials: MaterialRow {
+                                width: list.visible-width;
+                                item: item;
+                            }
                         }
                     }
                 }
             }
         }
-
         Rectangle {
-            horizontal-stretch: 1;
-            VerticalLayout {
-                padding: 16px;
-                spacing: 8px;
-
-                list := ScrollView {
-                    horizontal-scrollbar-policy: always-off;
-                    VerticalLayout {
-                        spacing: 2px;
-                        for item in CoursesUi.materials: MaterialRow {
-                            width: list.visible-width;
-                            item: item;
+            height: 32px;
+            background: {
+                let c = UiState.theme.background-800.to-oklch();
+                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha)
+            };
+            path := ScrollView {
+                horizontal-scrollbar-policy: always-off;
+                vertical-scrollbar-policy: always-off;
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    alignment: start;
+                    Breadcrumb {
+                        title: "Courses";
+                        course: true;
+                        activated => { UiState.screen = Screen.courses; }
+                    }
+                    for item in root.tab.breadcrumbs: HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: "›";
+                            color: UiState.theme.text-200;
+                            vertical-alignment: center;
+                        }
+                        Breadcrumb {
+                            title: item.title;
+                            course: item.kind == "course";
+                            activated => { CoursesUi.navigate-folder(item.course-id, item.id); }
                         }
                     }
                 }

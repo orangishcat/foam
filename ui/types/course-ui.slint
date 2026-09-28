@@ -13,3 +13,15 @@ export struct MaterialItem {
     title: string,
     kind: string,
 }
+
+export struct CourseTab {
+    breadcrumbs: [MaterialItem],
+    course-id: string,
+    title: string,
+    folder-id: string,
+    folder-title: string,
+    parent-title: string,
+    browser-error: string,
+    materials: [MaterialItem],
+    parent-materials: [MaterialItem],
+}

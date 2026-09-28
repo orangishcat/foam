@@ -4,7 +4,7 @@ import { Screen } from "screen/screens.slint";
 import { Courses } from "screen/courses.slint";
 import { Materials } from "screen/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
-import { UiState } from "globals.slint";
+import { UiState, CoursesUi } from "globals.slint";
 export { UiState, DashboardUi, NotificationUi, CoursesUi } from "globals.slint";
 import "./fonts/MozillaText.ttf";
 import { Notifications } from "screen/notifications.slint";
@@ -40,7 +40,9 @@ export component AppWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
             }
-            if UiState.screen == Screen.materials: Materials {
+            for tab[index] in CoursesUi.tabs: Materials {
+                tab: tab;
+                visible: UiState.screen == Screen.materials && CoursesUi.active-tab == index;
                 width: parent.width;
                 height: parent.height;
             }

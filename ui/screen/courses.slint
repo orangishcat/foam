@@ -26,7 +26,7 @@ export component Courses inherits Rectangle {
 
                 course-touch := TouchArea {
                     clicked => {
-                        CoursesUi.open(course.id, "", "course");
+                        CoursesUi.activate-course(course.id);
                     }
                     mouse-cursor: pointer;
                     Rectangle {
