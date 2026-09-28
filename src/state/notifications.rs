@@ -108,7 +108,7 @@ impl NotificationState {
             Self::sync_calendar();
             let mut app = state();
             let mut next = app.notif.clone();
-            if update_result.is_ok() && notifications.iter().all(|n| n.is_processed) {
+            if update_result.is_ok() {
                 next.last_sync = check_started;
             }
             next.last_update = Local::now();

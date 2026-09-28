@@ -103,6 +103,8 @@ fn process(
     if n.resource_id.is_empty() {
         return Err(io::Error::other("notification resource ID is empty").into());
     }
+    n.is_processed = true;
+
     match n.event {
         NotificationEvent::GradeUpdated => unreachable!("grades are processed as a batch"),
         NotificationEvent::MaterialPosted => {
@@ -134,6 +136,5 @@ fn process(
             return Err(io::Error::other("unsupported notification event").into());
         }
     }
-    n.is_processed = true;
     Ok(())
 }

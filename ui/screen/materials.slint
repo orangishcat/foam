@@ -9,8 +9,8 @@ component MaterialRow inherits Rectangle {
     private property <bool> navigable: item.kind == "folder" || item.kind == "course";
     height: 40px;
     border-radius: 5px;
-    background: selected ? UiState.theme.background-500
-        : touch.has-hover && navigable ? UiState.theme.background-700 : transparent;
+    background: selected ? UiState.theme.background-700
+        : touch.has-hover && navigable ? UiState.theme.background-750 : transparent;
     HorizontalLayout {
         padding-left: 12px;
         padding-right: 12px;
@@ -24,7 +24,10 @@ component MaterialRow inherits Rectangle {
                     : item.kind == "folder" ? @image-url("../icons/folder.svg")
                     : item.kind == "link" ? @image-url("../icons/link.svg")
                     : @image-url("../icons/file-text.svg");
-                colorize: UiState.theme.text-200;
+                colorize: item.kind == "course" ? oklch(0.65323, 0.06856, 57.29578, 1.0)
+                    : item.kind == "folder" ? oklch(0.76882, 0.06986, 263.55386, 1.0)
+                    : item.kind == "link" ? oklch(0.86882, 0.06986, 263.55386, 1.0)
+                    : oklch(0.65447, 0.012, 153.33561, 1.0);  // document
                 vertical-alignment: center;
             }
         }
@@ -73,9 +76,10 @@ component Breadcrumb inherits Rectangle {
                 width: 16px;
                 height: 16px;
                 source: root.course ? @image-url("../icons/book-text.svg") : @image-url("../icons/folder.svg");
-                colorize: UiState.theme.text-200;
+                colorize: root.course ? oklch(0.70323, 0.06856, 57.29578, 1.0) : oklch(0.7882, 0.18986, 263.55386, 1.0);
             }
         }
+
         Text {
             text: root.title;
             color: UiState.theme.text-200;
@@ -83,6 +87,7 @@ component Breadcrumb inherits Rectangle {
             vertical-alignment: center;
         }
     }
+
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.activated(); }
@@ -97,8 +102,12 @@ export component Materials inherits Rectangle {
             vertical-stretch: 1;
             spacing: 0px;
             Rectangle {
+                // sidebar
                 width: 200px;
-                background: UiState.theme.background-850;
+                background: {
+                let c = UiState.theme.background-800.to-oklch();
+                oklch(c.lightness - 0.03, c.chroma, c.hue, c.alpha)
+                };
                 VerticalLayout {
                     padding-top: 16px;
                     padding-bottom: 16px;
@@ -139,12 +148,13 @@ export component Materials inherits Rectangle {
                 }
             }
         }
+
         Rectangle {
             height: 32px;
             background: {
                 let c = UiState.theme.background-800.to-oklch();
-                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha)
-            };
+                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
+            }
             path := ScrollView {
                 horizontal-scrollbar-policy: always-off;
                 vertical-scrollbar-policy: always-off;
@@ -158,6 +168,7 @@ export component Materials inherits Rectangle {
                         course: true;
                         activated => { UiState.screen = Screen.courses; }
                     }
+
                     for item in root.tab.breadcrumbs: HorizontalLayout {
                         spacing: 8px;
                         Text {
@@ -165,6 +176,7 @@ export component Materials inherits Rectangle {
                             color: UiState.theme.text-200;
                             vertical-alignment: center;
                         }
+
                         Breadcrumb {
                             title: item.title;
                             course: item.kind == "course";
