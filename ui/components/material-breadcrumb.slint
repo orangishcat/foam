@@ -1,0 +1,37 @@
+import { UiState } from "../globals.slint";
+
+export component MaterialBreadcrumb inherits Rectangle {
+    in property <string> title;
+    in property <bool> course;
+    callback activated();
+    height: 32px;
+    background: touch.has-hover ? UiState.theme.background-700 : transparent;
+    border-radius: 4px;
+    accessible-role: button;
+    accessible-label: title;
+    HorizontalLayout {
+        spacing: 6px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                width: 16px;
+                height: 16px;
+                source: root.course ? @image-url("../icons/book-text.svg") : @image-url("../icons/folder.svg");
+                colorize: root.course ? oklch(0.70323, 0.06856, 57.29578, 1.0) : oklch(0.7882, 0.18986, 263.55386, 1.0);
+            }
+        }
+
+        Text {
+            text: root.title;
+            color: UiState.theme.text-200;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.activated(); }
+    }
+}
