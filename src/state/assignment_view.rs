@@ -14,7 +14,7 @@ use crate::{
 fn date(value: DateTime<Utc>) -> String {
     value
         .with_timezone(&Local)
-        .format("%b %-d, %Y at %-I:%M %p")
+        .format("%b %-d, %Y %-I:%M %p")
         .to_string()
 }
 
@@ -31,6 +31,18 @@ fn plain_text(html: &str) -> String {
         .join("\n")
 }
 
+fn file_size(bytes: i64) -> String {
+    let bytes = bytes as f64;
+    let (size, unit) = if bytes >= 1024.0 * 1024.0 * 1024.0 {
+        (bytes / (1024.0 * 1024.0 * 1024.0), "GB")
+    } else if bytes >= 1024.0 * 1024.0 {
+        (bytes / (1024.0 * 1024.0), "MB")
+    } else {
+        (bytes / 1024.0, "KB")
+    };
+    format!("{size:.1} {unit}")
+}
+
 fn files(attachments: &Attachments) -> ModelRc<AssignmentFile> {
     ModelRc::new(VecModel::from(
         attachments
@@ -39,20 +51,12 @@ fn files(attachments: &Attachments) -> ModelRc<AssignmentFile> {
             .iter()
             .map(|file| AssignmentFile {
                 title: file.title.as_str().if_empty(&file.filename).into(),
-                details: [
-                    file.attachment_type.as_str(),
-                    file.filemime.as_str(),
-                    &if file.filesize > 0 {
-                        format!("{} bytes", file.filesize)
-                    } else {
-                        String::new()
-                    },
-                ]
-                .into_iter()
-                .filter(|part| !part.is_empty())
-                .collect::<Vec<_>>()
-                .join(" · ")
-                .into(),
+                details: (&if file.filesize > 0 {
+                    file_size(file.filesize)
+                } else {
+                    String::new()
+                })
+                    .into(),
                 url: file.download_path.clone().into(),
             })
             .collect::<Vec<_>>(),
@@ -102,12 +106,7 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
             })
             .into(),
             grade: grade.into(),
-            submission_policy: (if assignment.allow_submissions {
-                "Allowed"
-            } else {
-                "Not allowed"
-            })
-            .into(),
+            submission_policy: assignment.allow_submissions,
             attachments: files(&assignment.attachments),
             submissions: ModelRc::new(VecModel::from(
                 assignment
@@ -120,7 +119,7 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
                         status: (if submission.draft {
                             "Draft"
                         } else if submission.late {
-                            "Submitted late"
+                            "Late"
                         } else {
                             "Submitted"
                         })

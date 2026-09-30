@@ -26,61 +26,54 @@ export component AssignmentView inherits Rectangle {
                     padding: 16px;
                     spacing: 14px;
 
+                    VerticalLayout {
+                        padding-left: 2px;
+                        padding-top: 8px;
+                        spacing: 16px;
+
+                        Text {
+                            text: AssignmentUi.assignment.title;
+                            font-size: 24px;
+                            font-weight: 700;
+                            wrap: word-wrap;
+                            color: UiState.theme.text-50;
+                        }
+
+                        if !AssignmentUi.error.is-empty: Text {
+                            text: AssignmentUi.error;
+                            color: UiState.theme.primary-300;
+                            font-size: 18px;
+                            wrap: word-wrap;
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 2px;
+                            Text {
+                                text: AssignmentUi.assignment.due;
+                                color: UiState.theme.text-200;
+                                font-size: 14px;
+                                wrap: word-wrap;
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+
+                            Text {
+                                text: "Grade: " + AssignmentUi.assignment.grade;
+                                color: UiState.theme.text-200;
+                                font-size: 14px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+
                     ScrollView {
                         horizontal-scrollbar-policy: always-off;
                         VerticalLayout {
                             alignment: start;
                             spacing: 12px;
                             padding-right: 12px;
-
-                            VerticalLayout {
-                                padding-left: 2px;
-                                padding-top: 8px;
-                                spacing: 16px;
-
-                                Text {
-                                    text: AssignmentUi.assignment.title;
-                                    font-size: 24px;
-                                    font-weight: 700;
-                                    wrap: word-wrap;
-                                    color: UiState.theme.text-50;
-                                }
-
-                                if !AssignmentUi.error.is-empty: Text {
-                                    text: AssignmentUi.error;
-                                    color: UiState.theme.primary-300;
-                                    font-size: 18px;
-                                    wrap: word-wrap;
-                                }
-
-                                HorizontalLayout {
-                                    padding-left: 2px;
-                                    Text {
-                                        text: AssignmentUi.assignment.due;
-                                        color: UiState.theme.text-200;
-                                        font-size: 14px;
-                                    }
-
-                                    Text {
-                                        text: AssignmentUi.assignment.completion;
-                                        color: UiState.theme.text-200;
-                                        font-size: 14px;
-                                    }
-
-                                    Text {
-                                        text: "Grade: " + AssignmentUi.assignment.grade;
-                                        color: UiState.theme.text-200;
-                                        font-size: 14px;
-                                    }
-
-                                    Text {
-                                        text: "Submissions: " + AssignmentUi.assignment.submission-policy;
-                                        color: UiState.theme.text-200;
-                                        font-size: 14px;
-                                    }
-                                }
-                            }
-
                             if !AssignmentUi.assignment.description.is-empty: VerticalLayout {
                                 Rectangle {
                                     background: UiState.theme.background-750;
@@ -91,24 +84,44 @@ export component AssignmentView inherits Rectangle {
                                         Text {
                                             text: AssignmentUi.assignment.description;
                                             color: UiState.theme.text-100;
-                                            line-height-factor: 1.5;
+                                            line-height-factor: 1.25;
                                             font-size: 16px;
                                             wrap: word-wrap;
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
 
-                            if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
-                                spacing: 6px;
-                                Text {
-                                    text: "Attachments";
-                                    font-size: 18px;
-                                    font-weight: 700;
-                                    color: UiState.theme.text-50;
-                                }
+            Rectangle {
+                width: 200px;
+                background: {
+                    let c = UiState.theme.background-800.to-oklch();
+                    oklch(c.lightness - 0.02, c.chroma, c.hue, c.alpha)
+                };
+                VerticalLayout {
+                    spacing: 24px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 12px;
+                        Text {
+                            text: "Attachments";
+                            font-size: 18px;
+                            font-weight: 700;
+                            color: UiState.theme.text-50;
+                        }
 
-                                for file in AssignmentUi.assignment.attachments: VerticalLayout {
+                        if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
+                            spacing: 6px;
+
+                            for file in AssignmentUi.assignment.attachments: Rectangle {
+                                background: UiState.theme.background-750;
+                                border-radius: 5px;
+                                VerticalLayout {
+                                    padding: 8px;
                                     Text {
                                         text: file.title;
                                         color: UiState.theme.text-100;
@@ -120,65 +133,78 @@ export component AssignmentView inherits Rectangle {
                                         color: UiState.theme.text-400;
                                         wrap: word-wrap;
                                     }
-                                    if !file.url.is-empty: Text {
-                                        text: file.url;
-                                        color: UiState.theme.text-400;
-                                        wrap: word-wrap;
-                                    }
                                 }
                             }
+                        }
 
-                            if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
+                        if AssignmentUi.assignment.attachments.length == 0: Text {
+                            text: "No attachments";
+                            color: UiState.theme.text-400;
+                            font-size: 14px;
+                        }
+                    }
+
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 12px;
+                        Text {
+                            text: "Submissions";
+                            font-size: 18px;
+                            font-weight: 700;
+                            color: UiState.theme.text-50;
+                        }
+
+                        if AssignmentUi.assignment.submissions.length == 0: Text {
+                            text: "No submissions yet";
+                            color: UiState.theme.text-400;
+                            font-size: 14px;
+                        }
+
+                        ScrollView {
+                            horizontal-scrollbar-policy: always-off;
+                            VerticalLayout {
+                                alignment: start;
                                 spacing: 10px;
-                                Text {
-                                    text: "Submission history";
-                                    font-size: 18px;
-                                    font-weight: 700;
-                                    color: UiState.theme.text-50;
-                                }
+                                padding-right: 8px;
+                                if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
+                                    spacing: 10px;
 
-                                for submission in AssignmentUi.assignment.submissions: Rectangle {
-                                    background: UiState.theme.background-750;
-                                    border-radius: 6px;
-                                    height: content.preferred-height + 20px;
-                                    content := VerticalLayout {
-                                        padding: 10px;
-                                        spacing: 5px;
-                                        Text {
-                                            text: submission.created-at + " · " + submission.status;
-                                            color: UiState.theme.text-100;
-                                            wrap: word-wrap;
-                                        }
-
-                                        if !submission.user-id.is-empty: Text {
-                                            text: "User: " + submission.user-id;
-                                            color: UiState.theme.text-400;
-                                        }
-                                        if !submission.id.is-empty: Text {
-                                            text: "Revision: " + submission.id;
-                                            color: UiState.theme.text-400;
-                                        }
-                                        if !submission.body.is-empty: Text {
-                                            text: submission.body;
-                                            color: UiState.theme.text-100;
-                                            wrap: word-wrap;
-                                        }
-                                        for file in submission.files: VerticalLayout {
+                                    for submission in AssignmentUi.assignment.submissions: Rectangle {
+                                        background: UiState.theme.background-750;
+                                        border-radius: 6px;
+                                        height: content.preferred-height + 20px;
+                                        content := VerticalLayout {
+                                            padding: 10px;
                                             Text {
-                                                text: file.title;
+                                                text: "Revision " + submission.id;
+                                                color: UiState.theme.text-100;
+                                                font-size: 14px;
+                                                wrap: word-wrap;
+                                            }
+
+                                            Text {
+                                                text: submission.created-at + " · " + submission.status;
+                                                color: UiState.theme.text-300;
+                                                wrap: word-wrap;
+                                            }
+
+                                            if !submission.body.is-empty: Text {
+                                                text: submission.body;
                                                 color: UiState.theme.text-100;
                                                 wrap: word-wrap;
                                             }
+                                            for file in submission.files: VerticalLayout {
+                                                Text {
+                                                    text: file.title;
+                                                    color: UiState.theme.text-100;
+                                                    wrap: word-wrap;
+                                                }
 
-                                            if !file.details.is-empty: Text {
-                                                text: file.details;
-                                                color: UiState.theme.text-400;
-                                                wrap: word-wrap;
-                                            }
-                                            if !file.url.is-empty: Text {
-                                                text: file.url;
-                                                color: UiState.theme.text-400;
-                                                wrap: word-wrap;
+                                                if !file.details.is-empty: Text {
+                                                    text: file.details;
+                                                    color: UiState.theme.text-400;
+                                                    wrap: word-wrap;
+                                                }
                                             }
                                         }
                                     }

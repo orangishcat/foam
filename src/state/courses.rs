@@ -60,7 +60,6 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         let global = ui.global::<CoursesUi>();
         global.set_course_id(course);
         global.set_folder_id(folder);
-        refresh_file_view(&ui);
         if let Ok(index) = usize::try_from(global.get_active_tab()) {
             let tabs = global.get_tabs();
             if let Some(mut tab) = tabs.row_data(index) {
@@ -69,6 +68,7 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
             }
         }
         ui.global::<UiState>().set_screen(Screen::Materials);
+        refresh_file_view(&ui);
     });
     let weak = ui.as_weak();
     global.on_navigate_assignment(move |course, assignment| {
