@@ -1,4 +1,4 @@
-import { ScrollView } from "std-widgets.slint";
+import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { AssignmentUi, CoursesUi, UiState } from "../globals.slint";
 import { CourseTab } from "../types/course-ui.slint";
 import { MaterialSidebar } from "../components/course-sidebar.slint";
@@ -23,66 +23,79 @@ export component AssignmentView inherits Rectangle {
             Rectangle {
                 horizontal-stretch: 1;
                 VerticalLayout {
-                    padding: 20px;
+                    padding: 16px;
                     spacing: 14px;
 
                     ScrollView {
                         horizontal-scrollbar-policy: always-off;
                         VerticalLayout {
                             alignment: start;
-                            spacing: 16px;
+                            spacing: 12px;
                             padding-right: 12px;
 
-                            Text {
-                                text: AssignmentUi.assignment.title;
-                                font-size: 28px;
-                                font-weight: 700;
-                                wrap: word-wrap;
-                                color: UiState.theme.text-50;
-                            }
-
-                            if !AssignmentUi.error.is-empty: Text {
-                                text: AssignmentUi.error;
-                                color: UiState.theme.primary-300;
-                                wrap: word-wrap;
-                            }
-
                             VerticalLayout {
-                                spacing: 7px;
-                                Text {
-                                    text: "Due: " + AssignmentUi.assignment.due;
-                                    color: UiState.theme.text-100;
-                                }
+                                padding-left: 2px;
+                                padding-top: 8px;
+                                spacing: 16px;
 
                                 Text {
-                                    text: "Status: " + AssignmentUi.assignment.completion;
-                                    color: UiState.theme.text-100;
+                                    text: AssignmentUi.assignment.title;
+                                    font-size: 24px;
+                                    font-weight: 700;
+                                    wrap: word-wrap;
+                                    color: UiState.theme.text-50;
                                 }
 
-                                Text {
-                                    text: "Grade: " + AssignmentUi.assignment.grade;
-                                    color: UiState.theme.text-100;
+                                if !AssignmentUi.error.is-empty: Text {
+                                    text: AssignmentUi.error;
+                                    color: UiState.theme.primary-300;
+                                    font-size: 18px;
+                                    wrap: word-wrap;
                                 }
 
-                                Text {
-                                    text: "Submissions: " + AssignmentUi.assignment.submission-policy;
-                                    color: UiState.theme.text-100;
+                                HorizontalLayout {
+                                    padding-left: 2px;
+                                    Text {
+                                        text: AssignmentUi.assignment.due;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
+
+                                    Text {
+                                        text: AssignmentUi.assignment.completion;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
+
+                                    Text {
+                                        text: "Grade: " + AssignmentUi.assignment.grade;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
+
+                                    Text {
+                                        text: "Submissions: " + AssignmentUi.assignment.submission-policy;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
                                 }
                             }
 
                             if !AssignmentUi.assignment.description.is-empty: VerticalLayout {
-                                spacing: 6px;
-                                Text {
-                                    text: "Description";
-                                    font-size: 18px;
-                                    font-weight: 700;
-                                    color: UiState.theme.text-50;
-                                }
+                                Rectangle {
+                                    background: UiState.theme.background-750;
+                                    border-radius: 8px;
 
-                                Text {
-                                    text: AssignmentUi.assignment.description;
-                                    color: UiState.theme.text-100;
-                                    wrap: word-wrap;
+                                    VerticalLayout {
+                                        padding: 12px;
+                                        Text {
+                                            text: AssignmentUi.assignment.description;
+                                            color: UiState.theme.text-100;
+                                            line-height-factor: 1.5;
+                                            font-size: 16px;
+                                            wrap: word-wrap;
+                                        }
+                                    }
                                 }
                             }
 

@@ -84,7 +84,7 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
             }
             (Some(score), None) => format!("{score} / {}", assignment.max_points),
             (None, Some(letter)) => letter.clone(),
-            (None, None) => format!("Not graded ({} points possible)", assignment.max_points),
+            (None, None) => format!("- / {}", assignment.max_points),
         };
         AssignmentWithDetails {
             id: assignment.id.clone().into(),

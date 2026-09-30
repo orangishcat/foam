@@ -47,7 +47,7 @@ pub fn scrape(
     _material: &CourseMaterial,
     url: &str,
 ) -> RequestResult<crate::types::assignment::Assignment> {
-    info!("scraping Schoology assignment: {url}");
+    log::debug!("scraping Schoology assignment: {url}");
     let query_params = AttachmentQuery {
         with_attachments: true,
     };
