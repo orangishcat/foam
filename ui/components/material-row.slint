@@ -5,11 +5,12 @@ export component MaterialRow inherits Rectangle {
     in property <MaterialItem> item;
     in property <bool> selected;
     in property <float> tint;
+
     private property <bool> navigable: item.kind == "folder" || item.kind == "course";
     height: 40px;
     border-radius: 5px;
-    background: (selected ? UiState.theme.background-700
-        : touch.has-hover && navigable ? UiState.theme.background-750 : transparent);
+    background: (selected ? UiState.theme.background-600
+        : touch.has-hover ? UiState.theme.background-700 : transparent);
     HorizontalLayout {
         padding-left: 12px;
         padding-right: 12px;
@@ -22,10 +23,12 @@ export component MaterialRow inherits Rectangle {
                 source: item.kind == "course" ? @image-url("../icons/book-text.svg")
                     : item.kind == "folder" ? @image-url("../icons/folder.svg")
                     : item.kind == "link" ? @image-url("../icons/link.svg")
+                    : item.kind == "assignment" ? @image-url("../icons/circle-check-big.svg")
                     : @image-url("../icons/file-text.svg");
                 colorize: item.kind == "course" ? oklch(0.65323, 0.06856, 57.29578, 1.0)
                     : item.kind == "folder" ? oklch(0.76882, 0.06986, 263.55386, 1.0)
                     : item.kind == "link" ? oklch(0.86882, 0.06986, 263.55386, 1.0)
+                    : item.kind == "assignment" ? oklch(0.55447, 0.08888, 153.33561, 1.0)
                     : oklch(0.65447, 0.012, 153.33561, 1.0);  // document
                 vertical-alignment: center;
             }
@@ -48,10 +51,13 @@ export component MaterialRow inherits Rectangle {
     }
 
     touch := TouchArea {
-        mouse-cursor: root.navigable ? pointer : default;
+        mouse-cursor: pointer;
         clicked => {
             if root.navigable {
                 CoursesUi.navigate-folder(item.course-id, item.id);
+            }
+            if item.kind == "assignment" {
+                CoursesUi.navigate-assignment(item.course-id, item.id);
             }
         }
     }

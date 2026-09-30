@@ -78,6 +78,12 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         global.set_folder_id(folder);
         refresh_browser(&ui);
     });
+    global.on_navigate_assignment(move |course, assignment| {
+        let Some(ui) = weak.upgrade() else { return };
+        let global = ui.global::<CoursesUi>();
+        global.set_course_id(course);
+        global.set_folder_id(folder);
+    });
     global.on_drag_data(|index| {
         slint::SharedString::from(format!("foam-course-index:{index}")).into()
     });

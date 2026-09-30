@@ -37,6 +37,7 @@ export global CoursesUi {
     in-out property <[MaterialItem]> parent-materials;
     callback activate-course(string);
     callback navigate-folder(string, string);
+    callback navigate-assignment(string, string);
     in-out property <[CourseItem]> courses;
     callback reorder(int, int);
     callback hide(string);

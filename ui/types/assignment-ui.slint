@@ -1,0 +1,11 @@
+export struct SubmissionRow { name: string, created-at: string }
+
+export struct AssignmentWithDetails {
+    id: string,
+    title: string,
+    course-id: string,
+    course-name: string,
+    due: string,
+    submissions: [SubmissionRow],
+    overdue: bool
+}

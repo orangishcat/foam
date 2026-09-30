@@ -1,4 +1,3 @@
-
 use crate::{
     api::schoology::{
         RequestResult, api_get_with_query,
@@ -29,7 +28,7 @@ pub fn scrape_submissions<'a>(
                 with_attachments: true,
             },
         )?;
-        // Keep historical submissions even if submissions are now disabled.
+        log::debug!("submission count: {}", response.revision.len());
         assignment.submissions = response
             .revision
             .into_iter()
