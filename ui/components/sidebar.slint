@@ -89,7 +89,7 @@ export component Sidebar inherits Rectangle {
                     width: tabs.visible-width;
                     height: 44px;
                     border-radius: 6px;
-                    background: UiState.screen == Screen.materials && CoursesUi.active-tab == index
+                    background: (UiState.screen == Screen.materials || UiState.screen == Screen.assignment) && CoursesUi.active-tab == index
                         ? UiState.theme.background-700
                         : tab-touch.has-hover ? UiState.theme.background-600 : transparent;
                     accessible-role: button;

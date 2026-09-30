@@ -1,4 +1,13 @@
-export struct SubmissionRow { name: string, created-at: string }
+export struct AssignmentFile { title: string, details: string, url: string }
+
+export struct SubmissionRow {
+    id: string,
+    user-id: string,
+    created-at: string,
+    status: string,
+    body: string,
+    files: [AssignmentFile],
+}
 
 export struct AssignmentWithDetails {
     id: string,
@@ -6,6 +15,10 @@ export struct AssignmentWithDetails {
     course-id: string,
     course-name: string,
     due: string,
+    description: string,
+    completion: string,
+    grade: string,
+    submission-policy: string,
+    attachments: [AssignmentFile],
     submissions: [SubmissionRow],
-    overdue: bool
 }

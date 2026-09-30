@@ -1,0 +1,45 @@
+import { ScrollView } from "std-widgets.slint";
+import { MaterialBreadcrumb } from "material-breadcrumb.slint";
+import { UiState, CoursesUi } from "../globals.slint";
+import { Screen } from "../screen/screens.slint";
+import { CourseTab } from "../types/course-ui.slint";
+
+export component MaterialBottomBar inherits Rectangle {
+    in property <CourseTab> tab;
+
+    height: 32px;
+    background: {
+        let c = UiState.theme.background-800.to-oklch();
+        oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
+    }
+    path := ScrollView {
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: always-off;
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 8px;
+            alignment: start;
+            MaterialBreadcrumb {
+                title: "Courses";
+                kind: "course";
+                activated => { UiState.screen = Screen.courses; }
+            }
+
+            for item in root.tab.breadcrumbs: HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: "›";
+                    color: UiState.theme.text-200;
+                    vertical-alignment: center;
+                }
+
+                MaterialBreadcrumb {
+                    title: item.title;
+                    kind: item.kind;
+                    activated => { CoursesUi.navigate-folder(item.course-id, item.id); }
+                }
+            }
+        }
+    }
+}

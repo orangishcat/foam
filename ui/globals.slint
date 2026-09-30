@@ -3,6 +3,7 @@ import { Theme, ColorPalette } from "palette.slint";
 import { Assignment, AssignmentCol } from "types/dashboard-ui.slint";
 import { Notification } from "types/notification-ui.slint";
 import { CourseItem, MaterialItem, CourseTab } from "types/course-ui.slint";
+import { AssignmentWithDetails } from "types/assignment-ui.slint";
 
 export global UiState {
     in-out property <Screen> screen: Screen.dashboard;
@@ -43,4 +44,10 @@ export global CoursesUi {
     callback hide(string);
     pure callback drag-data(int) -> data-transfer;
     pure callback drag-index(data-transfer) -> int;
+}
+
+export global AssignmentUi {
+    in-out property <AssignmentWithDetails> assignment;
+    in-out property <string> error;
+    callback open(string, string);
 }

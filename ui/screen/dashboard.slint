@@ -5,7 +5,7 @@ import {
     ListView,
 } from "std-widgets.slint";
 import { Theme } from "../palette.slint";
-import { UiState, DashboardUi } from "../globals.slint";
+import { UiState, DashboardUi, AssignmentUi } from "../globals.slint";
 
 export component SelectedItemAction {
     in property <string> hotkey-name;
@@ -162,7 +162,7 @@ export component Dashboard inherits Rectangle {
                         hotkey-name: "V";
                         hotkey: @keys(V);
                         action-name: "View item";
-                        action => { DashboardUi.view-item(); }
+                        action => { AssignmentUi.open(DashboardUi.selected-assignment.course-id, DashboardUi.selected-assignment.id); }
                     }
 
                     mark-done := SelectedItemAction {

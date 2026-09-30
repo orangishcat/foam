@@ -1,5 +1,6 @@
 import { CoursesUi, UiState } from "../globals.slint";
 import { MaterialItem, CourseTab } from "../types/course-ui.slint";
+import { MaterialIcon } from "material-icon.slint";
 
 export component MaterialRow inherits Rectangle {
     in property <MaterialItem> item;
@@ -17,20 +18,10 @@ export component MaterialRow inherits Rectangle {
         spacing: 10px;
         VerticalLayout {
             alignment: center;
-            Image {
+            MaterialIcon {
                 width: 20px;
                 height: 20px;
-                source: item.kind == "course" ? @image-url("../icons/book-text.svg")
-                    : item.kind == "folder" ? @image-url("../icons/folder.svg")
-                    : item.kind == "link" ? @image-url("../icons/link.svg")
-                    : item.kind == "assignment" ? @image-url("../icons/circle-check-big.svg")
-                    : @image-url("../icons/file-text.svg");
-                colorize: item.kind == "course" ? oklch(0.65323, 0.06856, 57.29578, 1.0)
-                    : item.kind == "folder" ? oklch(0.76882, 0.06986, 263.55386, 1.0)
-                    : item.kind == "link" ? oklch(0.86882, 0.06986, 263.55386, 1.0)
-                    : item.kind == "assignment" ? oklch(0.55447, 0.08888, 153.33561, 1.0)
-                    : oklch(0.65447, 0.012, 153.33561, 1.0);  // document
-                vertical-alignment: center;
+                kind: item.kind;
             }
         }
 

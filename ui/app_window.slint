@@ -5,9 +5,10 @@ import { Courses } from "screen/courses.slint";
 import { Materials } from "screen/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { UiState, CoursesUi } from "globals.slint";
-export { UiState, DashboardUi, NotificationUi, CoursesUi } from "globals.slint";
+export { UiState, DashboardUi, NotificationUi, CoursesUi, AssignmentUi } from "globals.slint";
 import "./fonts/MozillaText.ttf";
 import { Notifications } from "screen/notifications.slint";
+import { AssignmentView } from "screen/assignment-view.slint";
 
 export component AppWindow inherits Window {
     title: "Foam";
@@ -37,6 +38,12 @@ export component AppWindow inherits Window {
             }
 
             if UiState.screen == Screen.courses: Courses {
+                width: parent.width;
+                height: parent.height;
+            }
+            for tab[index] in CoursesUi.tabs: AssignmentView {
+                tab: tab;
+                visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
                 width: parent.width;
                 height: parent.height;
             }

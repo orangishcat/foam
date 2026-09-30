@@ -1,4 +1,184 @@
-import { Assignment } from "../types/dashboard-ui.slint";
+import { ScrollView } from "std-widgets.slint";
+import { AssignmentUi, CoursesUi, UiState } from "../globals.slint";
+import { CourseTab } from "../types/course-ui.slint";
+import { MaterialSidebar } from "../components/course-sidebar.slint";
+import { MaterialBreadcrumb } from "../components/material-breadcrumb.slint";
+import { Screen } from "screens.slint";
+import { MaterialBottomBar } from "../components/material-bottom-bar.slint";
+
 export component AssignmentView inherits Rectangle {
-    in property <Assignment> assignment;
+    in property <CourseTab> tab;
+    background: UiState.theme.background-800;
+
+    VerticalLayout {
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 0px;
+            MaterialSidebar {
+                tab: root.tab;
+                items: root.tab.materials;
+                selected-id: AssignmentUi.assignment.id;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 14px;
+
+                    ScrollView {
+                        horizontal-scrollbar-policy: always-off;
+                        VerticalLayout {
+                            alignment: start;
+                            spacing: 16px;
+                            padding-right: 12px;
+
+                            Text {
+                                text: AssignmentUi.assignment.title;
+                                font-size: 28px;
+                                font-weight: 700;
+                                wrap: word-wrap;
+                                color: UiState.theme.text-50;
+                            }
+
+                            if !AssignmentUi.error.is-empty: Text {
+                                text: AssignmentUi.error;
+                                color: UiState.theme.primary-300;
+                                wrap: word-wrap;
+                            }
+
+                            VerticalLayout {
+                                spacing: 7px;
+                                Text {
+                                    text: "Due: " + AssignmentUi.assignment.due;
+                                    color: UiState.theme.text-100;
+                                }
+
+                                Text {
+                                    text: "Status: " + AssignmentUi.assignment.completion;
+                                    color: UiState.theme.text-100;
+                                }
+
+                                Text {
+                                    text: "Grade: " + AssignmentUi.assignment.grade;
+                                    color: UiState.theme.text-100;
+                                }
+
+                                Text {
+                                    text: "Submissions: " + AssignmentUi.assignment.submission-policy;
+                                    color: UiState.theme.text-100;
+                                }
+                            }
+
+                            if !AssignmentUi.assignment.description.is-empty: VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Description";
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
+
+                                Text {
+                                    text: AssignmentUi.assignment.description;
+                                    color: UiState.theme.text-100;
+                                    wrap: word-wrap;
+                                }
+                            }
+
+                            if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Attachments";
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
+
+                                for file in AssignmentUi.assignment.attachments: VerticalLayout {
+                                    Text {
+                                        text: file.title;
+                                        color: UiState.theme.text-100;
+                                        wrap: word-wrap;
+                                    }
+
+                                    if !file.details.is-empty: Text {
+                                        text: file.details;
+                                        color: UiState.theme.text-400;
+                                        wrap: word-wrap;
+                                    }
+                                    if !file.url.is-empty: Text {
+                                        text: file.url;
+                                        color: UiState.theme.text-400;
+                                        wrap: word-wrap;
+                                    }
+                                }
+                            }
+
+                            if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
+                                spacing: 10px;
+                                Text {
+                                    text: "Submission history";
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
+
+                                for submission in AssignmentUi.assignment.submissions: Rectangle {
+                                    background: UiState.theme.background-750;
+                                    border-radius: 6px;
+                                    height: content.preferred-height + 20px;
+                                    content := VerticalLayout {
+                                        padding: 10px;
+                                        spacing: 5px;
+                                        Text {
+                                            text: submission.created-at + " · " + submission.status;
+                                            color: UiState.theme.text-100;
+                                            wrap: word-wrap;
+                                        }
+
+                                        if !submission.user-id.is-empty: Text {
+                                            text: "User: " + submission.user-id;
+                                            color: UiState.theme.text-400;
+                                        }
+                                        if !submission.id.is-empty: Text {
+                                            text: "Revision: " + submission.id;
+                                            color: UiState.theme.text-400;
+                                        }
+                                        if !submission.body.is-empty: Text {
+                                            text: submission.body;
+                                            color: UiState.theme.text-100;
+                                            wrap: word-wrap;
+                                        }
+                                        for file in submission.files: VerticalLayout {
+                                            Text {
+                                                text: file.title;
+                                                color: UiState.theme.text-100;
+                                                wrap: word-wrap;
+                                            }
+
+                                            if !file.details.is-empty: Text {
+                                                text: file.details;
+                                                color: UiState.theme.text-400;
+                                                wrap: word-wrap;
+                                            }
+                                            if !file.url.is-empty: Text {
+                                                text: file.url;
+                                                color: UiState.theme.text-400;
+                                                wrap: word-wrap;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        MaterialBottomBar {
+            tab <=> root.tab;
+        }
+    }
 }

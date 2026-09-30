@@ -1,8 +1,9 @@
 import { UiState } from "../globals.slint";
+import { MaterialIcon } from "material-icon.slint";
 
 export component MaterialBreadcrumb inherits Rectangle {
     in property <string> title;
-    in property <bool> course;
+    in property <string> kind;
     callback activated();
     height: 32px;
     background: touch.has-hover ? UiState.theme.background-700 : transparent;
@@ -14,11 +15,10 @@ export component MaterialBreadcrumb inherits Rectangle {
         alignment: center;
         VerticalLayout {
             alignment: center;
-            Image {
+            MaterialIcon {
                 width: 16px;
                 height: 16px;
-                source: root.course ? @image-url("../icons/book-text.svg") : @image-url("../icons/folder.svg");
-                colorize: root.course ? oklch(0.70323, 0.06856, 57.29578, 1.0) : oklch(0.7882, 0.18986, 263.55386, 1.0);
+                kind: root.kind;
             }
         }
 

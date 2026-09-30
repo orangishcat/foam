@@ -144,7 +144,7 @@ where
     T: DeserializeOwned,
 {
     let authorization = authorization(reqwest::Method::GET, url, query)?;
-    API_CLIENT
+    let text = API_CLIENT
         .as_ref()
         .map_err(|error| io::Error::other(error.to_string()))?
         .read()
@@ -155,8 +155,9 @@ where
         .header(AUTHORIZATION, authorization)
         .send()?
         .error_for_status()?
-        .json()
-        .map_err(Into::into)
+        .text()?;
+    log::debug!("response for {url}: {}", text);
+    serde_json::from_str(&text).map_err(Into::into)
 }
 
 pub fn api_post<B: Serialize + ?Sized, T: DeserializeOwned>(

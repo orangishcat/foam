@@ -6,6 +6,7 @@ import { MaterialBreadcrumb } from "../components/material-breadcrumb.slint";
 import { MaterialSidebar } from "../components/course-sidebar.slint";
 import { UiState, CoursesUi } from "../globals.slint";
 import { Theme } from "../palette.slint";
+import { MaterialBottomBar } from "../components/material-bottom-bar.slint";
 
 export component Materials inherits Rectangle {
     in property <CourseTab> tab;
@@ -46,42 +47,8 @@ export component Materials inherits Rectangle {
             }
         }
 
-        Rectangle {
-            height: 32px;
-            background: {
-                let c = UiState.theme.background-800.to-oklch();
-                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
-            }
-            path := ScrollView {
-                horizontal-scrollbar-policy: always-off;
-                vertical-scrollbar-policy: always-off;
-                HorizontalLayout {
-                    padding-left: 12px;
-                    padding-right: 12px;
-                    spacing: 8px;
-                    alignment: start;
-                    MaterialBreadcrumb {
-                        title: "Courses";
-                        course: true;
-                        activated => { UiState.screen = Screen.courses; }
-                    }
-
-                    for item in root.tab.breadcrumbs: HorizontalLayout {
-                        spacing: 8px;
-                        Text {
-                            text: "›";
-                            color: UiState.theme.text-200;
-                            vertical-alignment: center;
-                        }
-
-                        MaterialBreadcrumb {
-                            title: item.title;
-                            course: item.kind == "course";
-                            activated => { CoursesUi.navigate-folder(item.course-id, item.id); }
-                        }
-                    }
-                }
-            }
+        MaterialBottomBar {
+            tab <=> root.tab;
         }
     }
 }
