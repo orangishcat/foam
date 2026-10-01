@@ -40,8 +40,10 @@ export global CoursesUi {
     callback navigate-folder(string, string);
     callback navigate-assignment(string, string);
     in-out property <[CourseItem]> courses;
+    in-out property <int> period-character-count: 1;
     callback reorder(int, int);
     callback toggle-hidden(string);
+    callback set-period(string, string) -> string;
     pure callback drag-data(int) -> data-transfer;
     pure callback drag-index(data-transfer) -> int;
 }

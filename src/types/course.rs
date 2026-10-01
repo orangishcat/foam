@@ -116,6 +116,7 @@ pub fn store_course(course: &Course, root: &Folder) -> Result<()> {
     .next()
     {
         course.aliases = current.aliases;
+        course.period = current.period;
     }
     write_course_on(&transaction, &course)?;
     super::material::store_hierarchy_on(&transaction, &course.course_id, root)?;

@@ -77,6 +77,14 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         })
         .collect::<Vec<_>>();
     let global = ui.global::<CoursesUi>();
+    global.set_period_character_count(
+        items
+            .iter()
+            .map(|item| item.period.chars().count() as i32)
+            .max()
+            .unwrap_or(0)
+            .max(1),
+    );
     if global
         .get_tabs()
         .as_any()
@@ -173,6 +181,42 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         .inspect_err(|err| log::warn!("Toggling course hidden state failed: {err}"))
         .ok();
         ui::sync_ui();
+    });
+    let weak = ui.as_weak();
+    global.on_set_period(move |id, value| {
+        let Some(ui) = weak.upgrade() else {
+            return value;
+        };
+        let model = ui.global::<CoursesUi>().get_courses();
+        let Some(index) = (0..model.row_count())
+            .find(|&index| model.row_data(index).is_some_and(|item| item.id == id))
+        else {
+            return value;
+        };
+        let Some(mut item) = model.row_data(index) else {
+            return value;
+        };
+        let period: String = value.chars().take(15).collect();
+        if period != item.period.as_str() {
+            match database::execute(
+                "UPDATE courses SET period = ? WHERE course_id = ?".to_owned(),
+                params![period, id.to_string()],
+            ) {
+                Ok(_) => {
+                    item.period = period.into();
+                    model.set_row_data(index, item.clone());
+                    ui.global::<CoursesUi>().set_period_character_count(
+                        (0..model.row_count())
+                            .filter_map(|index| model.row_data(index))
+                            .map(|item| item.period.chars().count() as i32)
+                            .max()
+                            .unwrap_or(0),
+                    );
+                }
+                Err(err) => log::warn!("Saving course period failed: {err}"),
+            }
+        }
+        item.period
     });
     Ok(())
 }
