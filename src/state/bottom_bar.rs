@@ -57,16 +57,28 @@ pub fn get_browser_data(
 
 pub fn refresh_file_view(ui: &AppWindow) {
     let courses_ui = ui.global::<CoursesUi>();
-    let (document_name, document_kind) = {
+    let (doc_id, doc_name, doc_kind) = {
         let screen = ui.global::<UiState>().get_screen();
         if screen == Screen::Assignment {
             let assign_model = ui.global::<AssignmentUi>().get_assignment();
-            (assign_model.title, "assignment".to_shared_string())
+            (
+                assign_model.id,
+                assign_model.title,
+                "assignment".to_shared_string(),
+            )
         } else if screen == Screen::Document {
             // todo
-            ("".to_shared_string(), "document".to_shared_string())
+            (
+                "".to_shared_string(),
+                "".to_shared_string(),
+                "document".to_shared_string(),
+            )
         } else {
-            ("".to_shared_string(), "".to_shared_string())
+            (
+                "".to_shared_string(),
+                "".to_shared_string(),
+                "".to_shared_string(),
+            )
         }
     };
 
@@ -99,8 +111,9 @@ pub fn refresh_file_view(ui: &AppWindow) {
             match breadcrumbs(
                 &tab.course_id,
                 &tab.folder_id,
-                &document_name,
-                &document_kind,
+                &doc_id,
+                &doc_name,
+                &doc_kind,
                 tab.title.clone(),
             ) {
                 Ok(path) => tab.breadcrumbs = ModelRc::new(VecModel::from(path)),
@@ -117,20 +130,21 @@ pub fn refresh_file_view(ui: &AppWindow) {
 pub fn breadcrumbs(
     course: &str,
     folder: &str,
-    document_name: &str,
-    document_kind: &str,
+    doc_id: &str,
+    doc_name: &str,
+    doc_kind: &str,
     title: slint::SharedString,
 ) -> io::Result<Vec<MaterialItem>> {
     let root = root_folder(course)?;
     let mut ancestors = Vec::new();
     let mut current = folder.to_owned();
     let mut visited = std::collections::HashSet::new();
-    if !document_name.is_empty() {
+    if !doc_name.is_empty() {
         ancestors.push(MaterialItem {
             course_id: course.into(),
-            id: document_name.into(),
-            kind: document_kind.into(),
-            title: document_name.into(),
+            id: doc_id.into(),
+            kind: doc_kind.into(),
+            title: doc_name.into(),
         });
     }
     while !current.is_empty() && current != root {

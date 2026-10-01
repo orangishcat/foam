@@ -37,7 +37,14 @@ export component MaterialBottomBar inherits Rectangle {
                 MaterialBreadcrumb {
                     title: item.title;
                     kind: item.kind;
-                    activated => { CoursesUi.navigate-folder(item.course-id, item.id); }
+                    activated => {
+                        if item.kind == "folder" {
+                            CoursesUi.navigate-folder(item.course-id, item.id);
+                        }
+                        if item.kind == "assignment" {
+                            CoursesUi.navigate-assignment(item.course-id, item.id);
+                        }
+                    }
                 }
             }
         }

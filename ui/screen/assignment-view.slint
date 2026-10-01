@@ -49,7 +49,7 @@ export component AssignmentView inherits Rectangle {
                         HorizontalLayout {
                             padding-left: 2px;
                             Text {
-                                text: AssignmentUi.assignment.due;
+                                text: AssignmentUi.assignment.due + " • ID " + AssignmentUi.assignment.id;
                                 color: UiState.theme.text-200;
                                 font-size: 14px;
                                 wrap: word-wrap;

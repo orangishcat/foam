@@ -245,7 +245,7 @@ pub fn folder_metadata(course: &str, folder: &str) -> io::Result<(String, String
         "SELECT title, parent_id FROM materials WHERE course_id = ? AND material_id = ? AND type = 'folder'".into(),
         params![course, folder],
         |row| Ok((row.get(0).map_err(io::Error::other)?, row.get(1).map_err(io::Error::other)?)),
-    )?.into_iter().next().ok_or_else(|| io::Error::other("Folder no longer exists"))
+    )?.into_iter().next().ok_or_else(|| io::Error::other("Folder no longer exists: {folder}"))
 }
 
 pub fn children(course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {

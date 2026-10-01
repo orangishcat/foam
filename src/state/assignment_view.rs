@@ -158,7 +158,8 @@ pub fn init(ui: &AppWindow) {
                     title: "Assignment".into(),
                     ..Default::default()
                 });
-                global.set_error("Assignment no longer exists".into());
+                global.set_error(format!("Assignment no longer exists: {id}").into());
+                log::warn!("Assignment no longer exists: {id}");
             }
             Err(err) => {
                 log::warn!("Loading assignment {id} failed: {err}");
