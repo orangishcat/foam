@@ -3,7 +3,7 @@ use crate::{
     Screen::{self},
     UiState,
     api::schoology::{self, RequestResult},
-    database,
+    database, filesystem,
     state::bottom_bar::refresh_file_view,
     types::course::Course,
     ui::{self},
@@ -11,7 +11,29 @@ use crate::{
 use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::io;
+use std::path::PathBuf;
 use std::rc::Rc;
+
+fn show_course_icon(id: String, path: PathBuf) {
+    match filesystem::load_slint_img_thumbnail(&path, 84) {
+        Ok(bytes) => ui::run_on_ui_thread(move |ui| {
+            let model = ui.global::<CoursesUi>().get_courses();
+            if let Some(index) = (0..model.row_count())
+                .find(|&index| model.row_data(index).is_some_and(|item| item.id == id))
+                && let Some(mut item) = model.row_data(index)
+            {
+                match slint::Image::load_from_data(&bytes, Some("png")) {
+                    Ok(image) => {
+                        item.icon = image;
+                        model.set_row_data(index, item);
+                    }
+                    Err(error) => log::warn!("Loading prepared course icon failed: {error}"),
+                }
+            }
+        }),
+        Err(error) => log::warn!("Loading course icon {} failed: {error}", path.display()),
+    }
+}
 
 pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
     let courses = database::from_sql::<Course>(
@@ -21,13 +43,33 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
     )?;
     let items = courses
         .into_iter()
-        .map(|course| CourseItem {
-            id: course.course_id.into(),
-            title: course.course_title.into(),
-            section: course.section_title.into(),
-            code: course.section_code.into(),
-            period: course.period.unwrap_or("".to_string()).into(),
-            hidden: course.hidden,
+        .map(|course| {
+            let id = course.course_id.clone();
+            let icon_url = course.logo_img_src.clone();
+            if !icon_url.trim().is_empty() {
+                std::thread::spawn(move || match schoology::internal_get_request(&icon_url) {
+                    Ok(request) => {
+                        let downloaded_id = id.clone();
+                        if let Some(path) =
+                            filesystem::asset_from_url(request, &icon_url, move |path| {
+                                show_course_icon(downloaded_id, path)
+                            })
+                        {
+                            show_course_icon(id, path);
+                        }
+                    }
+                    Err(error) => log::warn!("Preparing course icon download failed: {error}"),
+                });
+            }
+            CourseItem {
+                id: course.course_id.into(),
+                title: course.course_title.into(),
+                section: course.section_title.into(),
+                code: course.section_code.into(),
+                period: course.period.unwrap_or("".to_string()).into(),
+                hidden: course.hidden,
+                icon: Default::default(),
+            }
         })
         .collect::<Vec<_>>();
     let global = ui.global::<CoursesUi>();

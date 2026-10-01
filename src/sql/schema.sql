@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS sync_state (
     key TEXT PRIMARY KEY NOT NULL,
     data TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS attachments (
+    url TEXT PRIMARY KEY NOT NULL,
+    file_path TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS assignments_id ON assignments(id);
 CREATE INDEX IF NOT EXISTS materials_parent ON materials(course_id, parent_id);
 CREATE TRIGGER IF NOT EXISTS assignment_title_updated AFTER UPDATE OF title ON assignments

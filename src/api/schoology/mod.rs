@@ -28,6 +28,29 @@ static INTERNAL_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
 static API_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
     LazyLock::new(|| new_client().map(RwLock::new));
 
+pub fn internal_get_request(url: &str) -> RequestResult<reqwest::blocking::RequestBuilder> {
+    let request = INTERNAL_CLIENT
+        .as_ref()
+        .map_err(|error| io::Error::other(error.to_string()))?
+        .read()
+        .map_err(|_| io::Error::other("internal client lock is poisoned"))?
+        .get(url);
+    Ok(request.header(ACCEPT, "application/json"))
+}
+
+pub fn api_get_request(url: &str) -> RequestResult<reqwest::blocking::RequestBuilder> {
+    let authorization = authorization(reqwest::Method::GET, url, &())?;
+    let request = API_CLIENT
+        .as_ref()
+        .map_err(|error| io::Error::other(error.to_string()))?
+        .read()
+        .map_err(|_| io::Error::other("API client lock is poisoned"))?
+        .get(url);
+    Ok(request
+        .header(ACCEPT, "application/json")
+        .header(AUTHORIZATION, authorization))
+}
+
 fn new_client() -> RequestResult<Client> {
     Client::builder()
         .user_agent(USER_AGENT)
@@ -90,13 +113,7 @@ fn authorization<R: oauth::Request + ?Sized>(
 
 pub fn internal_get<T: DeserializeOwned>(route: &str) -> RequestResult<T> {
     let url = internal_url(route)?;
-    INTERNAL_CLIENT
-        .as_ref()
-        .map_err(|error| io::Error::other(error.to_string()))?
-        .read()
-        .map_err(|_| io::Error::other("internal client lock is poisoned"))?
-        .get(url)
-        .header(ACCEPT, "application/json")
+    internal_get_request(&url)?
         .send()?
         .error_for_status()?
         .json()
@@ -123,15 +140,7 @@ pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(
 }
 
 pub fn api_get<T: DeserializeOwned>(url: &str) -> RequestResult<T> {
-    let authorization = authorization(reqwest::Method::GET, url, &())?;
-    API_CLIENT
-        .as_ref()
-        .map_err(|error| io::Error::other(error.to_string()))?
-        .read()
-        .map_err(|_| io::Error::other("API client lock is poisoned"))?
-        .get(url)
-        .header(ACCEPT, "application/json")
-        .header(AUTHORIZATION, authorization)
+    api_get_request(url)?
         .send()?
         .error_for_status()?
         .json()

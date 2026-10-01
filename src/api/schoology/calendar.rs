@@ -248,7 +248,6 @@ fn scrape_missing(ids: &[String], mut publish_progress: impl FnMut(f32)) -> io::
         // The section assignment endpoint can still identify and fetch them.
         for id in missing.iter().cloned().collect::<Vec<_>>() {
             check_cancelled()?;
-            crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
             let url = format!("https://api.schoology.com/v1/sections/{course_id}/assignments/{id}");
             let material = super::course::CourseMaterial {
                 id: id.clone(),

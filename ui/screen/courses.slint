@@ -45,6 +45,26 @@ export component Courses inherits Rectangle {
                             padding: 16px;
                             spacing: 16px;
 
+                            Rectangle {
+                                width: 42px;
+                                height: 42px;
+                                border-radius: 8px;
+                                clip: true;
+                                Image {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    source: course.icon;
+                                    image-fit: contain;
+                                }
+
+                                if course.icon.width == 0: Image {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    source: @image-url("../icons/book-text.svg");
+                                    colorize: UiState.theme.text-200;
+                                }
+                            }
+
                             VerticalLayout {
                                 spacing: 4px;
                                 Text {

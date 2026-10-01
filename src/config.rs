@@ -31,6 +31,8 @@ pub struct AppConfig {
     pub refresh_duration: TimeDelta,
     #[derivative(Default(value = "TimeDelta::minutes(60)"))]
     pub submission_refresh_duration: TimeDelta,
+    #[derivative(Default(value = "15 * 1024 * 1024"))]
+    pub max_attachment_bytes: u64,
 
     #[serde(skip)]
     data_dir: PathBuf,
