@@ -22,6 +22,10 @@ static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 
+static DESCRIPTION_LINK: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)\s+- Link: https?://[^\s<>"']+/assignment/\d+\s*$"#).unwrap()
+});
+
 /// The feed URL is a bearer credential; never include it in request errors.
 pub fn fetch() -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
     let url = config().calendar_url.clone();
@@ -132,6 +136,11 @@ fn unescape(value: &str) -> String {
     result
 }
 
+fn calendar_description(value: &str) -> String {
+    let description = unescape(value);
+    DESCRIPTION_LINK.replace(&description, "").into_owned()
+}
+
 fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
     let mut ids: Vec<String> = Vec::new();
     let mut assignments: Vec<CalendarAssignment> = Vec::new();
@@ -165,7 +174,7 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
             assignments.push(CalendarAssignment {
                 due,
                 title: value(props, "SUMMARY").map(unescape),
-                description: value(props, "DESCRIPTION").map(unescape),
+                description: value(props, "DESCRIPTION").map(calendar_description),
             });
         }
     }
