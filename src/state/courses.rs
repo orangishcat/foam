@@ -164,13 +164,13 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         .ok();
         global.set_courses(ModelRc::new(VecModel::from(items)));
     });
-    global.on_hide(move |id| {
+    global.on_toggle_hidden(move |id| {
         database::execute(
-            "UPDATE courses SET hidden = 1 WHERE course_id = ?".to_owned(),
+            "UPDATE courses SET hidden = NOT hidden WHERE course_id = ?".to_owned(),
             params![id.to_string()],
         )
-        .inspect(|_| log::debug!("Hid course with id {}", id))
-        .inspect_err(|err| log::warn!("Hiding course failed: {err}"))
+        .inspect(|_| log::debug!("Toggled hidden state for course with id {}", id))
+        .inspect_err(|err| log::warn!("Toggling course hidden state failed: {err}"))
         .ok();
         ui::sync_ui();
     });

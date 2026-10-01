@@ -41,7 +41,7 @@ export global CoursesUi {
     callback navigate-assignment(string, string);
     in-out property <[CourseItem]> courses;
     callback reorder(int, int);
-    callback hide(string);
+    callback toggle-hidden(string);
     pure callback drag-data(int) -> data-transfer;
     pure callback drag-index(data-transfer) -> int;
 }

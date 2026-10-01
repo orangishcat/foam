@@ -1,8 +1,10 @@
 import { ScrollView } from "std-widgets.slint";
 import { UiState, CoursesUi } from "../globals.slint";
 import { CourseItem } from "../types/course-ui.slint";
+import { SelectedItemAction } from "dashboard.slint";
 
 export component Courses inherits Rectangle {
+    private property <bool> show-hidden: false;
     private property <int> drag-from: -1;
     private property <int> drag-to: -1;
     private property <length> drag-pointer-y: 0px;
@@ -19,9 +21,9 @@ export component Courses inherits Rectangle {
         VerticalLayout {
             spacing: 0px;
             for course[i] in CoursesUi.courses: Rectangle {
-                visible: !course.hidden;
+                visible: root.show-hidden || !course.hidden;
                 width: list.visible-width;
-                height: course.hidden ? 0px : 88px;
+                height: root.show-hidden || !course.hidden ? 88px : 0px;
                 background: transparent;
 
                 course-touch := TouchArea {
@@ -38,7 +40,8 @@ export component Courses inherits Rectangle {
                         border-radius: 8px;
                         border-width: 1px;
                         border-color: UiState.theme.background-500;
-                        background: course-touch.has-hover ? UiState.theme.background-600 : UiState.theme.background-700;
+                        background: course-touch.has-hover ? UiState.theme.background-600 :
+                            course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
                         opacity: root.drag-from == i ? 0 : 1;
 
                         HorizontalLayout {
@@ -50,6 +53,7 @@ export component Courses inherits Rectangle {
                                 height: 42px;
                                 border-radius: 8px;
                                 clip: true;
+                                opacity: course.hidden ? 0.4 : 1;
                                 Image {
                                     width: parent.width;
                                     height: parent.height;
@@ -61,7 +65,6 @@ export component Courses inherits Rectangle {
                                     width: parent.width;
                                     height: parent.height;
                                     source: @image-url("../icons/book-text.svg");
-                                    colorize: UiState.theme.text-200;
                                 }
                             }
 
@@ -71,14 +74,29 @@ export component Courses inherits Rectangle {
                                     text: course.title;
                                     font-size: 18px;
                                     font-weight: 700;
-                                    color: UiState.theme.text-50;
+                                    color: course.hidden ? UiState.theme.text-400 : UiState.theme.text-50;
                                     overflow: elide;
                                 }
 
-                                Text {
-                                    text: course.section + "  ·  " + course.code;
-                                    color: UiState.theme.text-200;
-                                    overflow: elide;
+                                HorizontalLayout {
+                                    spacing: 4px;
+                                    alignment: start;
+                                    Text {
+                                        text: course.section;
+                                        color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
+                                        overflow: elide;
+                                    }
+
+                                    if course.hidden: Text {
+                                        text: "•";
+                                        color: UiState.theme.text-500;
+                                        overflow: elide;
+                                    }
+                                    if course.hidden: Text {
+                                        text: "Hidden";
+                                        color: oklch(0.7471, 0.1422, 20.3, 1);
+                                        overflow: elide;
+                                    }
                                 }
                             }
 
@@ -119,17 +137,17 @@ export component Courses inherits Rectangle {
                                     border-radius: 10px;
                                     background: {
                                         let color = UiState.theme.background-400.to-oklch();
-                                        x-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                        hide-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
                                     };
 
-                                    x-touch := TouchArea {
+                                    hide-touch := TouchArea {
                                         mouse-cursor: pointer;
                                         clicked => {
-                                            CoursesUi.hide(course.id);
+                                            CoursesUi.toggle-hidden(course.id);
                                         }
 
                                         Image {
-                                            source: @image-url("../icons/x.svg");
+                                            source: course.hidden ? @image-url("../icons/eye.svg") : @image-url("../icons/eye-off.svg");
                                             colorize: UiState.theme.background-400;
                                             vertical-alignment: center;
                                             horizontal-alignment: center;
@@ -139,6 +157,33 @@ export component Courses inherits Rectangle {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 32px;
+        width: parent.width;
+        height: 32px;
+        background: {
+            let c = UiState.theme.background-800.to-oklch();
+            oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
+        }
+        focus := FocusScope {
+            init => { focus.focus() }
+            KeyBinding {
+                keys: show-hidden-action.hotkey;
+                activated => { show-hidden-action.action() }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                show-hidden-action := SelectedItemAction {
+                    hotkey-name: "H";
+                    hotkey: @keys(H);
+                    action-name: root.show-hidden ? "Hide hidden courses" : "Show hidden courses";
+                    action => { root.show-hidden = !root.show-hidden; }
                 }
             }
         }
@@ -194,12 +239,6 @@ export component Courses inherits Rectangle {
                     font-size: 18px;
                     font-weight: 700;
                     color: UiState.theme.text-50;
-                    overflow: elide;
-                }
-
-                Text {
-                    text: root.dragged-course.section + "  ·  " + root.dragged-course.code;
-                    color: UiState.theme.text-200;
                     overflow: elide;
                 }
             }
