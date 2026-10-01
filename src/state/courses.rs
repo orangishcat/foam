@@ -15,24 +15,28 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 fn show_course_icon(id: String, path: PathBuf) {
-    match filesystem::load_slint_img_thumbnail(&path, 84) {
-        Ok(bytes) => ui::run_on_ui_thread(move |ui| {
-            let model = ui.global::<CoursesUi>().get_courses();
-            if let Some(index) = (0..model.row_count())
-                .find(|&index| model.row_data(index).is_some_and(|item| item.id == id))
-                && let Some(mut item) = model.row_data(index)
-            {
-                match slint::Image::load_from_data(&bytes, Some("png")) {
-                    Ok(image) => {
-                        item.icon = image;
-                        model.set_row_data(index, item);
-                    }
-                    Err(error) => log::warn!("Loading prepared course icon failed: {error}"),
+    let bytes = match std::fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            log::warn!("Reading course icon {} failed: {error}", path.display());
+            return;
+        }
+    };
+    ui::run_on_ui_thread(move |ui| {
+        let model = ui.global::<CoursesUi>().get_courses();
+        if let Some(index) = (0..model.row_count())
+            .find(|&index| model.row_data(index).is_some_and(|item| item.id == id))
+            && let Some(mut item) = model.row_data(index)
+        {
+            match slint::Image::load_from_data(&bytes, None) {
+                Ok(image) => {
+                    item.icon = image;
+                    model.set_row_data(index, item);
                 }
+                Err(error) => log::warn!("Loading course icon {} failed: {error}", path.display()),
             }
-        }),
-        Err(error) => log::warn!("Loading course icon {} failed: {error}", path.display()),
-    }
+        }
+    });
 }
 
 pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {

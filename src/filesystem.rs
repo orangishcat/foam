@@ -13,37 +13,6 @@ use crate::{config::config, database};
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
-pub fn load_slint_img(path: &Path) -> io::Result<slint::Image> {
-    let bytes = std::fs::read(path)?;
-    slint::Image::load_from_data(&bytes, None).map_err(Error::other)
-}
-
-pub fn load_slint_img_thumbnail(path: &Path, size: u32) -> io::Result<Vec<u8>> {
-    let bytes = std::fs::read(path)?;
-    if bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml") {
-        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default())
-            .map_err(Error::other)?;
-        let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size)
-            .ok_or_else(|| Error::other("invalid image thumbnail size"))?;
-        let source = tree.size();
-        let scale = (size as f32 / source.width()).min(size as f32 / source.height());
-        let transform = resvg::tiny_skia::Transform::from_scale(scale, scale).post_translate(
-            (size as f32 - source.width() * scale) / 2.0,
-            (size as f32 - source.height() * scale) / 2.0,
-        );
-        resvg::render(&tree, transform, &mut pixmap.as_mut());
-        pixmap.encode_png().map_err(Error::other)
-    } else {
-        let image = image::load_from_memory(&bytes).map_err(Error::other)?;
-        let image = image.resize_to_fill(size, size, image::imageops::FilterType::Lanczos3);
-        let mut output = std::io::Cursor::new(Vec::new());
-        image
-            .write_to(&mut output, image::ImageFormat::Png)
-            .map_err(Error::other)?;
-        Ok(output.into_inner())
-    }
-}
-
 pub fn asset_from_url(
     request: RequestBuilder,
     url: &str,
