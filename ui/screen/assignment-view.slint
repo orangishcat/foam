@@ -78,8 +78,9 @@ export component AssignmentView inherits Rectangle {
                                 Rectangle {
                                     background: UiState.theme.background-750;
                                     border-radius: 8px;
+                                    height: description-content.preferred-height;
 
-                                    VerticalLayout {
+                                    description-content := VerticalLayout {
                                         padding: 12px;
                                         Text {
                                             text: AssignmentUi.assignment.description;
