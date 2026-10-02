@@ -6,7 +6,6 @@ use crate::api::{
     schoology::{RequestResult, api_get_with_query, types::datetime::SchoologyDatetime},
     types::{LooseFloat, LooseInt, LooseString},
 };
-use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

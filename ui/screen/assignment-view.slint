@@ -5,6 +5,7 @@ import { MaterialSidebar } from "../components/course-sidebar.slint";
 import { MaterialBreadcrumb } from "../components/material-breadcrumb.slint";
 import { Screen } from "screens.slint";
 import { MaterialBottomBar } from "../components/material-bottom-bar.slint";
+import { SelectableText } from "../components/selectable-text.slint";
 
 export component AssignmentView inherits Rectangle {
     in property <CourseTab> tab;
@@ -31,39 +32,35 @@ export component AssignmentView inherits Rectangle {
                         padding-top: 8px;
                         spacing: 16px;
 
-                        Text {
+                        SelectableText {
                             text: AssignmentUi.assignment.title;
                             font-size: 24px;
                             font-weight: 700;
-                            wrap: word-wrap;
                             color: UiState.theme.text-50;
                         }
 
-                        if !AssignmentUi.error.is-empty: Text {
+                        if !AssignmentUi.error.is-empty: SelectableText {
                             text: AssignmentUi.error;
                             color: UiState.theme.primary-300;
                             font-size: 18px;
-                            wrap: word-wrap;
                         }
 
                         HorizontalLayout {
                             padding-left: 2px;
-                            Text {
+                            SelectableText {
                                 text: AssignmentUi.assignment.due + " • ID " + AssignmentUi.assignment.id;
                                 color: UiState.theme.text-200;
                                 font-size: 14px;
-                                wrap: word-wrap;
                             }
 
                             Rectangle {
                                 horizontal-stretch: 1;
                             }
 
-                            Text {
+                            SelectableText {
                                 text: "Grade: " + AssignmentUi.assignment.grade;
                                 color: UiState.theme.text-200;
                                 font-size: 14px;
-                                wrap: word-wrap;
                             }
                         }
                     }
@@ -82,12 +79,10 @@ export component AssignmentView inherits Rectangle {
 
                                     description-content := VerticalLayout {
                                         padding: 12px;
-                                        Text {
+                                        SelectableText {
                                             text: AssignmentUi.assignment.description;
                                             color: UiState.theme.text-100;
-                                            line-height-factor: 1.25;
                                             font-size: 16px;
-                                            wrap: word-wrap;
                                         }
                                     }
                                 }
@@ -108,7 +103,7 @@ export component AssignmentView inherits Rectangle {
                     VerticalLayout {
                         padding: 16px;
                         spacing: 12px;
-                        Text {
+                        SelectableText {
                             text: "Attachments";
                             font-size: 18px;
                             font-weight: 700;
@@ -123,22 +118,20 @@ export component AssignmentView inherits Rectangle {
                                 border-radius: 5px;
                                 VerticalLayout {
                                     padding: 8px;
-                                    Text {
+                                    SelectableText {
                                         text: file.title;
                                         color: UiState.theme.text-100;
-                                        wrap: word-wrap;
                                     }
 
-                                    if !file.details.is-empty: Text {
+                                    if !file.details.is-empty: SelectableText {
                                         text: file.details;
                                         color: UiState.theme.text-400;
-                                        wrap: word-wrap;
                                     }
                                 }
                             }
                         }
 
-                        if AssignmentUi.assignment.attachments.length == 0: Text {
+                        if AssignmentUi.assignment.attachments.length == 0: SelectableText {
                             text: "No attachments";
                             color: UiState.theme.text-400;
                             font-size: 14px;
@@ -148,14 +141,14 @@ export component AssignmentView inherits Rectangle {
                     VerticalLayout {
                         padding: 16px;
                         spacing: 12px;
-                        Text {
+                        SelectableText {
                             text: "Submissions";
                             font-size: 18px;
                             font-weight: 700;
                             color: UiState.theme.text-50;
                         }
 
-                        if AssignmentUi.assignment.submissions.length == 0: Text {
+                        if AssignmentUi.assignment.submissions.length == 0: SelectableText {
                             text: "No submissions yet";
                             color: UiState.theme.text-400;
                             font-size: 14px;
@@ -176,35 +169,30 @@ export component AssignmentView inherits Rectangle {
                                         height: content.preferred-height + 20px;
                                         content := VerticalLayout {
                                             padding: 10px;
-                                            Text {
+                                            SelectableText {
                                                 text: "Revision " + submission.id;
                                                 color: UiState.theme.text-100;
                                                 font-size: 14px;
-                                                wrap: word-wrap;
                                             }
 
-                                            Text {
+                                            SelectableText {
                                                 text: submission.created-at + " · " + submission.status;
                                                 color: UiState.theme.text-300;
-                                                wrap: word-wrap;
                                             }
 
-                                            if !submission.body.is-empty: Text {
+                                            if !submission.body.is-empty: SelectableText {
                                                 text: submission.body;
                                                 color: UiState.theme.text-100;
-                                                wrap: word-wrap;
                                             }
                                             for file in submission.files: VerticalLayout {
-                                                Text {
+                                                SelectableText {
                                                     text: file.title;
                                                     color: UiState.theme.text-100;
-                                                    wrap: word-wrap;
                                                 }
 
-                                                if !file.details.is-empty: Text {
+                                                if !file.details.is-empty: SelectableText {
                                                     text: file.details;
                                                     color: UiState.theme.text-400;
-                                                    wrap: word-wrap;
                                                 }
                                             }
                                         }
