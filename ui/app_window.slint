@@ -7,19 +7,31 @@ import { CoursesBottomBar } from "components/courses/bottom-bar.slint";
 import { Materials } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { UiState, CoursesUi, DashboardUi } from "globals.slint";
-export { UiState, DashboardUi, NotificationUi, CoursesUi, AssignmentUi } from "globals.slint";
+export {
+    UiState,
+    DashboardUi,
+    NotificationUi,
+    CoursesUi,
+    AssignmentUi,
+} from "globals.slint";
 import "fonts/MozillaText.ttf";
 import { Notifications } from "components/notifications/notifications.slint";
 import { AssignmentView } from "components/assignment/assignment-view.slint";
 import { BottomBar } from "components/materials/bottom-bar.slint";
 
 export component AppWindow inherits Window {
-    title: "Foam";
+    title: "foam";
     default-font-family: "Mozilla Text";
     preferred-width: 1100px;
     preferred-height: 700px;
 
     background: UiState.theme.background-800;
+    in property <bool> custom-titlebar: false;
+    private property <color> bar-background: {
+        let c = UiState.theme.background-900.to-oklch();
+        oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
+    };
+    private property <length> bar-height: 32px;
 
     forward-focus: shortcuts;
     shortcuts := FocusScope {
@@ -33,16 +45,19 @@ export component AppWindow inherits Window {
             enabled: shortcuts.dashboard-actions-enabled;
             activated => { DashboardUi.open-selected(); }
         }
+
         KeyBinding {
             keys: @keys(D);
             enabled: shortcuts.dashboard-actions-enabled;
             activated => { DashboardUi.toggle-selected-done(); }
         }
+
         KeyBinding {
             keys: @keys(Escape);
             enabled: shortcuts.dashboard-actions-enabled;
             activated => { DashboardUi.unselect(); }
         }
+
         KeyBinding {
             keys: @keys(H);
             enabled: UiState.screen == Screen.courses;
@@ -51,6 +66,19 @@ export component AppWindow inherits Window {
 
         VerticalLayout {
             spacing: 0px;
+            if root.custom-titlebar: Rectangle {
+                height: root.bar-height - 1px;
+                background: root.bar-background;
+                Text {
+                    x: 80px;
+                    y: 7px;
+                    text: root.title;
+                    color: UiState.theme.text-100;
+                    vertical-alignment: center;
+                    horizontal-alignment: left;
+                }
+            }
+
             HorizontalBox {
                 vertical-stretch: 1;
                 padding: 0px;
@@ -91,11 +119,9 @@ export component AppWindow inherits Window {
             }
 
             Rectangle {
-                height: 32px;
-                background: {
-                    let c = UiState.theme.background-800.to-oklch();
-                    oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
-                }
+                height: root.bar-height;
+                background: root.bar-background;
+
                 if UiState.screen == Screen.dashboard: DashboardBottomBar {
                     width: parent.width;
                     height: parent.height;

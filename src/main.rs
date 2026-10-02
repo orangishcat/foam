@@ -30,10 +30,26 @@ fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::WindowAttributesExtMacOS;
+
+        slint::BackendSelector::new()
+            .backend_name("winit".into())
+            .with_winit_window_attributes_hook(|attributes| {
+                attributes
+                    .with_titlebar_transparent(true)
+                    .with_fullsize_content_view(true)
+                    .with_title_hidden(true)
+            })
+            .select()?;
+    }
+    #[cfg(not(target_os = "macos"))]
     slint::BackendSelector::new()
         .backend_name("winit".into())
         .select()?;
     let ui = AppWindow::new()?;
+    ui.set_custom_titlebar(cfg!(target_os = "macos"));
 
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 

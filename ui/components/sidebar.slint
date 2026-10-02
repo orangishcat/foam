@@ -110,6 +110,7 @@ export component Sidebar inherits Rectangle {
                             color: UiState.theme.text-50;
                         }
                     }
+
                     tab-action := HoverableButton {
                         text: tab.title;
                         clicked => { CoursesUi.select-tab(index); }
