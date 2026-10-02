@@ -3,7 +3,7 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { CourseItem } from "../../types/course-ui.slint";
 import { CoursesBottomBar } from "bottom-bar.slint";
-import { TopBarFrame } from "../top-bar-frame.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
 
 export component Courses inherits FocusScope {
     in property <length> sidebar-width: 0px;
@@ -27,7 +27,11 @@ export component Courses inherits FocusScope {
 
     VerticalLayout {
         spacing: 0px;
-        if root.custom-titlebar: TopBarFrame { custom-titlebar: root.custom-titlebar; }
+        ScreenTopBar {
+            custom-titlebar: root.custom-titlebar;
+            title: "Courses";
+            icon: @image-url("../../icons/book-text.svg");
+        }
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
