@@ -1,8 +1,8 @@
 import { UiState } from "../../globals.slint";
-import { MaterialIcon } from "material-icon.slint";
+import { Icon } from "icon.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
-export component MaterialBreadcrumb inherits Rectangle {
+export component Breadcrumb inherits Rectangle {
     in property <string> title;
     in property <string> kind;
     callback activated();
@@ -16,7 +16,7 @@ export component MaterialBreadcrumb inherits Rectangle {
         alignment: center;
         VerticalLayout {
             alignment: center;
-            MaterialIcon {
+            Icon {
                 width: 16px;
                 height: 16px;
                 kind: root.kind;

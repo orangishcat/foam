@@ -4,64 +4,9 @@ import {
     ScrollView,
     ListView,
 } from "std-widgets.slint";
-import { HoverableButton } from "../components/hoverable-button.slint";
-import { Theme } from "../palette.slint";
-import { UiState, DashboardUi, AssignmentUi } from "../globals.slint";
-
-export component SelectedItemAction {
-    in property <string> hotkey-name;
-    in property <string> action-name;
-    in property <keys> hotkey;
-    callback action();
-
-    Rectangle {
-        action-button := HoverableButton {
-            text: root.action-name;
-            clicked => { root.action(); }
-        }
-        Rectangle {
-            border-radius: 5px;
-            background: {
-                let hoverBg = UiState.theme.background-600.to-oklch();
-                action-button.has-hover || action-button.has-focus ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
-            };
-            vl := VerticalLayout {
-                alignment: center;
-
-                padding-left: 16px;
-                padding-right: 16px;
-                HorizontalLayout {
-                    alignment: center;
-                    spacing: 10px;
-                    Rectangle {
-                        border-width: 1px;
-                        border-radius: 5px;
-                        border-color: UiState.theme.background-600;
-                        VerticalLayout {
-                            padding-top: 2px;
-                            padding-bottom: 2px;
-                            padding-left: 6px;
-                            padding-right: 6px;
-
-                            Text {
-                                text: hotkey-name;
-                                font-size: 12px;
-                                font-weight: 700;
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        Text {
-                            text: action-name;
-                            font-size: 12px;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+import { HoverableButton } from "../hoverable-button.slint";
+import { Theme } from "../../palette.slint";
+import { UiState, DashboardUi, AssignmentUi } from "../../globals.slint";
 
 export component Dashboard inherits Rectangle {
     background: UiState.theme.background-800;
@@ -136,37 +81,5 @@ export component Dashboard inherits Rectangle {
             }
         }
 
-        Rectangle {
-            background: {
-                let c = UiState.theme.background-800.to-oklch();
-                oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
-            }
-            height: 32px;
-            if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
-                HorizontalLayout {
-                    alignment: center;
-                    view-item := SelectedItemAction {
-                        hotkey-name: "V";
-                        hotkey: @keys(V);
-                        action-name: "View item";
-                        action => { DashboardUi.open-selected(); }
-                    }
-
-                    mark-done := SelectedItemAction {
-                        hotkey-name: "D";
-                        hotkey: @keys(D);
-                        action-name: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done";
-                        action => { DashboardUi.toggle-selected-done(); }
-                    }
-
-                    unselect := SelectedItemAction {
-                        hotkey-name: "Esc";
-                        hotkey: @keys(Escape);
-                        action-name: "Unselect item";
-                        action => { DashboardUi.unselect(); }
-                    }
-                }
-            }
-        }
     }
 }

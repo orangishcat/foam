@@ -1,0 +1,30 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { DashboardUi } from "../../globals.slint";
+
+export component DashboardBottomBar inherits Rectangle {
+    if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
+        HorizontalLayout {
+            alignment: center;
+            view-item := SelectedItemAction {
+                hotkey-name: "V";
+                hotkey: @keys(V);
+                action-name: "View item";
+                action => { DashboardUi.open-selected(); }
+            }
+
+            mark-done := SelectedItemAction {
+                hotkey-name: "D";
+                hotkey: @keys(D);
+                action-name: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done";
+                action => { DashboardUi.toggle-selected-done(); }
+            }
+
+            unselect := SelectedItemAction {
+                hotkey-name: "Esc";
+                hotkey: @keys(Escape);
+                action-name: "Unselect item";
+                action => { DashboardUi.unselect(); }
+            }
+        }
+    }
+}

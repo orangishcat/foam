@@ -1,12 +1,12 @@
-import { Theme } from "../palette.slint";
+import { Theme } from "../../palette.slint";
 import {
     ScrollView,
     HorizontalBox,
     VerticalBox,
     ListView,
 } from "std-widgets.slint";
-import { UiState, NotificationUi } from "../globals.slint";
-import { NotificationType } from "../types/notification-ui.slint";
+import { UiState, NotificationUi } from "../../globals.slint";
+import { NotificationType } from "../../types/notification-ui.slint";
 
 export component Notifications inherits Rectangle {
     background: UiState.theme.background-800;
@@ -35,27 +35,27 @@ export component Notifications inherits Rectangle {
                         padding-left: 12px;
                         padding-right: 12px;
                         if notif.n_type == NotificationType.new-assignment: Image {
-                            source: @image-url("../icons/file-plus.svg");
+                            source: @image-url("../../icons/file-plus.svg");
                             colorize: notif.icon-color;
                             height: 64px;
                         }
                         if notif.n_type == NotificationType.new-document: Image {
-                            source: @image-url("../icons/file-text.svg");
+                            source: @image-url("../../icons/file-text.svg");
                             colorize: notif.icon-color;
                             height: 64px;
                         }
                         if notif.n_type == NotificationType.new-grade: Image {
-                            source: @image-url("../icons/circle-check-big.svg");
+                            source: @image-url("../../icons/circle-check-big.svg");
                             colorize: notif.icon-color;
                             height: 64px;
                         }
                         if notif.n_type == NotificationType.new_link: Image {
-                            source: @image-url("../icons/link.svg");
+                            source: @image-url("../../icons/link.svg");
                             colorize: notif.icon-color;
                             height: 64px;
                         }
                         if notif.n_type == NotificationType.unknown: Image {
-                            source: @image-url("../icons/square-plus.svg");
+                            source: @image-url("../../icons/square-plus.svg");
                             colorize: notif.icon-color;
                             height: 64px;
                         }

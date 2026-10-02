@@ -1,15 +1,12 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
-import { AssignmentUi, CoursesUi, UiState } from "../globals.slint";
-import { CourseTab } from "../types/course-ui.slint";
-import { MaterialSidebar } from "../components/course-sidebar.slint";
+import { AssignmentUi, CoursesUi, UiState } from "../../globals.slint";
+import { CourseTab } from "../../types/course-ui.slint";
+import { Sidebar } from "../materials/sidebar.slint";
 import {
-    MaterialBreadcrumb,
-} from "../components/material/material-breadcrumb.slint";
-import { Screen } from "screens.slint";
-import {
-    MaterialBottomBar,
-} from "../components/material/material-bottom-bar.slint";
-import { SelectableText } from "../components/selectable-text.slint";
+    Breadcrumb,
+} from "../materials/breadcrumb.slint";
+import { Screen } from "../../types/screen.slint";
+import { SelectableText } from "../selectable-text.slint";
 
 export component AssignmentView inherits Rectangle {
     in property <CourseTab> tab;
@@ -19,7 +16,7 @@ export component AssignmentView inherits Rectangle {
         HorizontalLayout {
             vertical-stretch: 1;
             spacing: 0px;
-            MaterialSidebar {
+            Sidebar {
                 tab: root.tab;
                 items: root.tab.materials;
                 selected-id: AssignmentUi.assignment.id;
@@ -209,8 +206,5 @@ export component AssignmentView inherits Rectangle {
             }
         }
 
-        MaterialBottomBar {
-            tab <=> root.tab;
-        }
     }
 }

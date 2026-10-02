@@ -1,16 +1,13 @@
 import { ScrollView } from "std-widgets.slint";
-import { Screen } from "screens.slint";
-import { MaterialRow } from "../components/material/material-row.slint";
-import { MaterialItem, CourseTab } from "../types/course-ui.slint";
+import { Screen } from "../../types/screen.slint";
+import { Row } from "row.slint";
+import { MaterialItem, CourseTab } from "../../types/course-ui.slint";
 import {
-    MaterialBreadcrumb,
-} from "../components/material/material-breadcrumb.slint";
-import { MaterialSidebar } from "../components/course-sidebar.slint";
-import { UiState, CoursesUi } from "../globals.slint";
-import { Theme } from "../palette.slint";
-import {
-    MaterialBottomBar,
-} from "../components/material/material-bottom-bar.slint";
+    Breadcrumb,
+} from "breadcrumb.slint";
+import { Sidebar } from "sidebar.slint";
+import { UiState, CoursesUi } from "../../globals.slint";
+import { Theme } from "../../palette.slint";
 
 export component Materials inherits Rectangle {
     in property <CourseTab> tab;
@@ -19,7 +16,7 @@ export component Materials inherits Rectangle {
         HorizontalLayout {
             vertical-stretch: 1;
             spacing: 0px;
-            MaterialSidebar {
+            Sidebar {
                 tab <=> root.tab;
             }
 
@@ -34,7 +31,7 @@ export component Materials inherits Rectangle {
                         VerticalLayout {
                             for item[i] in root.tab.materials: VerticalLayout {
                                 padding-bottom: 4px;
-                                MaterialRow {
+                                Row {
                                     width: list.visible-width;
                                     item: item;
                                 }
@@ -51,8 +48,5 @@ export component Materials inherits Rectangle {
             }
         }
 
-        MaterialBottomBar {
-            tab <=> root.tab;
-        }
     }
 }

@@ -1,9 +1,9 @@
 import { CoursesUi, UiState } from "../../globals.slint";
 import { MaterialItem, CourseTab } from "../../types/course-ui.slint";
-import { MaterialIcon } from "material-icon.slint";
+import { Icon } from "icon.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
-export component MaterialRow inherits Rectangle {
+export component Row inherits Rectangle {
     in property <MaterialItem> item;
     in property <bool> selected;
     in property <float> tint;
@@ -19,7 +19,7 @@ export component MaterialRow inherits Rectangle {
         spacing: 10px;
         VerticalLayout {
             alignment: center;
-            MaterialIcon {
+            Icon {
                 width: 20px;
                 height: 20px;
                 kind: item.kind;

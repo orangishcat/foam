@@ -1,0 +1,14 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { CoursesUi } from "../../globals.slint";
+
+export component CoursesBottomBar inherits Rectangle {
+    HorizontalLayout {
+        alignment: center;
+        show-hidden-action := SelectedItemAction {
+            hotkey-name: "H";
+            hotkey: @keys(H);
+            action-name: CoursesUi.show-hidden ? "Hide hidden courses" : "Show hidden courses";
+            action => { CoursesUi.show-hidden = !CoursesUi.show-hidden; }
+        }
+    }
+}

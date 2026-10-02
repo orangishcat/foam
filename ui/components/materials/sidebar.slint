@@ -1,9 +1,9 @@
 import { ScrollView } from "std-widgets.slint";
-import { MaterialRow } from "../components/material/material-row.slint";
-import { CoursesUi, UiState } from "../globals.slint";
-import { CourseTab, MaterialItem } from "../types/course-ui.slint";
+import { Row } from "row.slint";
+import { CoursesUi, UiState } from "../../globals.slint";
+import { CourseTab, MaterialItem } from "../../types/course-ui.slint";
 
-export component MaterialSidebar inherits Rectangle {
+export component Sidebar inherits Rectangle {
     in property <CourseTab> tab;
     in property <[MaterialItem]> items: tab.parent-materials;
     in property <string> selected-id: tab.folder-id;
@@ -25,7 +25,7 @@ export component MaterialSidebar inherits Rectangle {
                 spacing: 2px;
                 for item[i] in root.items: VerticalLayout {
                     padding-bottom: 2px;
-                    MaterialRow {
+                    Row {
                         width: sidebar.visible-width;
                         item: item;
                         selected: item.course-id == root.tab.course-id

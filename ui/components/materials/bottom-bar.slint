@@ -1,17 +1,12 @@
 import { ScrollView } from "std-widgets.slint";
-import { MaterialBreadcrumb } from "material-breadcrumb.slint";
+import { Breadcrumb } from "breadcrumb.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
-import { Screen } from "../../screen/screens.slint";
+import { Screen } from "../../types/screen.slint";
 import { CourseTab } from "../../types/course-ui.slint";
 
-export component MaterialBottomBar inherits Rectangle {
+export component BottomBar inherits Rectangle {
     in property <CourseTab> tab;
 
-    height: 32px;
-    background: {
-        let c = UiState.theme.background-800.to-oklch();
-        oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
-    }
     path := ScrollView {
         horizontal-scrollbar-policy: always-off;
         vertical-scrollbar-policy: always-off;
@@ -20,7 +15,7 @@ export component MaterialBottomBar inherits Rectangle {
             padding-right: 12px;
             spacing: 8px;
             alignment: start;
-            MaterialBreadcrumb {
+            Breadcrumb {
                 title: "Courses";
                 kind: "course";
                 activated => { UiState.screen = Screen.courses; }
@@ -34,7 +29,7 @@ export component MaterialBottomBar inherits Rectangle {
                     vertical-alignment: center;
                 }
 
-                MaterialBreadcrumb {
+                Breadcrumb {
                     title: item.title;
                     kind: item.kind;
                     activated => {
