@@ -1,4 +1,5 @@
 import { ScrollView } from "std-widgets.slint";
+import { HoverableButton } from "../components/hoverable-button.slint";
 import { UiState, CoursesUi } from "../globals.slint";
 import { CourseItem } from "../types/course-ui.slint";
 import { SelectedItemAction } from "dashboard.slint";
@@ -27,11 +28,9 @@ export component Courses inherits Rectangle {
                 height: root.show-hidden || !course.hidden ? 88px : 0px;
                 background: transparent;
 
-                course-touch := TouchArea {
-                    clicked => {
-                        CoursesUi.activate-course(course.id);
-                    }
-                    mouse-cursor: pointer;
+                course-action := HoverableButton {
+                    text: course.title;
+                    clicked => { CoursesUi.activate-course(course.id); }
                     HorizontalLayout {
                         spacing: 8px;
                         Rectangle {
@@ -67,7 +66,7 @@ export component Courses inherits Rectangle {
                             border-radius: 8px;
                             border-width: 1px;
                             border-color: UiState.theme.background-500;
-                            background: course-touch.has-hover ? UiState.theme.background-600 :
+                            background: course-action.has-hover || course-action.has-focus ? UiState.theme.background-600 :
                                 course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
                             opacity: root.drag-from == i ? 0 : 1;
 
@@ -129,7 +128,7 @@ export component Courses inherits Rectangle {
 
                                 HorizontalLayout {
                                     spacing: 16px;
-                                    visible: course-touch.has-hover;
+                                    opacity: course-action.has-hover || course-action.has-focus || period-input.has-focus || hide-action.has-focus ? 1 : 0;
                                     drag-layout := Rectangle {
                                         width: 32px;
                                         border-radius: 10px;
@@ -164,21 +163,20 @@ export component Courses inherits Rectangle {
                                         border-radius: 10px;
                                         background: {
                                             let color = UiState.theme.background-400.to-oklch();
-                                            hide-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                            hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
                                         };
 
-                                        hide-touch := TouchArea {
-                                            mouse-cursor: pointer;
-                                            clicked => {
-                                                CoursesUi.toggle-hidden(course.id);
-                                            }
-
-                                            Image {
+                                        hide-action := HoverableButton {
+                                            text: course.hidden ? "Show " + course.title : "Hide " + course.title;
+                                            clicked => { CoursesUi.toggle-hidden(course.id); }
+                                        }
+                                        Image {
+                                            width: 100%;
+                                            height: 100%;
                                                 source: course.hidden ? @image-url("../icons/eye.svg") : @image-url("../icons/eye-off.svg");
                                                 colorize: UiState.theme.background-400;
                                                 vertical-alignment: center;
                                                 horizontal-alignment: center;
-                                            }
                                         }
                                     }
                                 }

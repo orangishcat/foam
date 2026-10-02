@@ -1,12 +1,13 @@
 import { UiState } from "../../globals.slint";
 import { MaterialIcon } from "material-icon.slint";
+import { HoverableButton } from "../hoverable-button.slint";
 
 export component MaterialBreadcrumb inherits Rectangle {
     in property <string> title;
     in property <string> kind;
     callback activated();
     height: 32px;
-    background: touch.has-hover ? UiState.theme.background-700 : transparent;
+    background: action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent;
     border-radius: 4px;
     accessible-role: button;
     accessible-label: title;
@@ -30,8 +31,8 @@ export component MaterialBreadcrumb inherits Rectangle {
         }
     }
 
-    touch := TouchArea {
-        mouse-cursor: pointer;
+    action := HoverableButton {
+        text: root.title;
         clicked => { root.activated(); }
     }
 }

@@ -4,6 +4,7 @@ import {
     ScrollView,
     ListView,
 } from "std-widgets.slint";
+import { HoverableButton } from "../components/hoverable-button.slint";
 import { Theme } from "../palette.slint";
 import { UiState, DashboardUi, AssignmentUi } from "../globals.slint";
 
@@ -13,15 +14,16 @@ export component SelectedItemAction {
     in property <keys> hotkey;
     callback action();
 
-    touch := TouchArea {
-        clicked => {
-            action();
-        };
+    Rectangle {
+        action-button := HoverableButton {
+            text: root.action-name;
+            clicked => { root.action(); }
+        }
         Rectangle {
             border-radius: 5px;
             background: {
                 let hoverBg = UiState.theme.background-600.to-oklch();
-                touch.has-hover ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
+                action-button.has-hover || action-button.has-focus ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
             };
             vl := VerticalLayout {
                 alignment: center;
@@ -84,13 +86,15 @@ export component Dashboard inherits Rectangle {
                         horizontal-scrollbar-policy: always-off;
                         for assignment[y] in col.assignments: Rectangle {
                             height: inner.height + 8px;
-                            touch := TouchArea {
+                            item-button := HoverableButton {
+                                text: assignment.title;
                                 clicked => {
                                     DashboardUi.selected-assignment = assignment;
                                     DashboardUi.sel-col = x;
                                     DashboardUi.sel-row = y;
                                 }
-                                inner := Rectangle {
+                            }
+                            inner := Rectangle {
                                     background: {
                                         let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
                                             (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
@@ -98,8 +102,8 @@ export component Dashboard inherits Rectangle {
                                         let selected = DashboardUi.selected-assignment.id == assignment.id;
 
                                         oklch(
-                                    c.lightness + (touch.has-hover ? 0.1 : 0) + (selected ? 0.2 : 0),
-                                    c.chroma + (touch.has-hover ? 0.02 : 0) + (selected ? 0.06 : 0),
+                                    c.lightness + (item-button.has-hover || item-button.has-focus ? 0.1 : 0) + (selected ? 0.2 : 0),
+                                    c.chroma + (item-button.has-hover || item-button.has-focus ? 0.02 : 0) + (selected ? 0.06 : 0),
                                     c.hue,
                                     c.alpha)
                                     };
@@ -126,7 +130,6 @@ export component Dashboard inherits Rectangle {
                                         }
                                     }
                                 }
-                            }
                         }
                     }
                 }

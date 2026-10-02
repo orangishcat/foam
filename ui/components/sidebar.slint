@@ -1,4 +1,5 @@
 import { VerticalBox, ScrollView } from "std-widgets.slint";
+import { HoverableButton } from "hoverable-button.slint";
 import { ProgressRing } from "progress-ring.slint";
 import { Screen } from "../screen/screens.slint";
 import { UiState, NotificationUi, CoursesUi } from "../globals.slint";
@@ -13,14 +14,11 @@ component NavigationItem inherits Rectangle {
 
     height: 44px;
     border-radius: 6px;
-    background: UiState.screen == change-to ? UiState.theme.background-700 : (touch.has-hover ? UiState.theme.background-600 : transparent);
+    background: UiState.screen == change-to ? UiState.theme.background-700 : (action.has-hover || action.has-focus ? UiState.theme.background-600 : transparent);
 
-    touch := TouchArea {
-        pointer-event(event) => {
-            if event.kind == PointerEventKind.down {
-                UiState.screen = change-to;
-            }
-        }
+    action := HoverableButton {
+        text: root.label;
+        clicked => { UiState.screen = change-to; }
     }
 
     if progress > 0: ProgressRing {
@@ -91,7 +89,7 @@ export component Sidebar inherits Rectangle {
                     border-radius: 6px;
                     background: (UiState.screen == Screen.materials || UiState.screen == Screen.assignment) && CoursesUi.active-tab == index
                         ? UiState.theme.background-700
-                        : tab-touch.has-hover ? UiState.theme.background-600 : transparent;
+                        : tab-action.has-hover || tab-action.has-focus ? UiState.theme.background-600 : transparent;
                     accessible-role: button;
                     accessible-label: tab.title;
                     Rectangle {
@@ -112,8 +110,8 @@ export component Sidebar inherits Rectangle {
                             color: UiState.theme.text-50;
                         }
                     }
-                    tab-touch := TouchArea {
-                        mouse-cursor: pointer;
+                    tab-action := HoverableButton {
+                        text: tab.title;
                         clicked => { CoursesUi.select-tab(index); }
                     }
                 }
