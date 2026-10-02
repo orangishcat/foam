@@ -7,8 +7,10 @@ import {
 import { HoverableButton } from "../hoverable-button.slint";
 import { Theme } from "../../palette.slint";
 import { UiState, DashboardUi, AssignmentUi } from "../../globals.slint";
+import { DashboardBottomBar } from "bottom-bar.slint";
 
 export component Dashboard inherits FocusScope {
+    in property <length> sidebar-width: 0px;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     init => { root.focus(); }
@@ -35,73 +37,82 @@ export component Dashboard inherits FocusScope {
     vertical-stretch: 1;
 
     VerticalLayout {
+        spacing: 0px;
         vertical-stretch: 1;
-        HorizontalBox {
-            for col[x] in DashboardUi.assignment-view: VerticalBox {
-                alignment: stretch;
-                vertical-stretch: 1;
-
-                Text {
-                    text: col.title;
-                    horizontal-alignment: center;
-                }
-
-                Rectangle {
-                    background: UiState.theme.background-750;
-                    ListView {
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                HorizontalBox {
+                    for col[x] in DashboardUi.assignment-view: VerticalBox {
+                        alignment: stretch;
                         vertical-stretch: 1;
-                        horizontal-scrollbar-policy: always-off;
-                        for assignment[y] in col.assignments: Rectangle {
-                            height: inner.height + 8px;
-                            item-button := HoverableButton {
-                                text: assignment.title;
-                                clicked => {
-                                    DashboardUi.selected-assignment = assignment;
-                                    DashboardUi.sel-col = x;
-                                    DashboardUi.sel-row = y;
-                                }
-                            }
-                            inner := Rectangle {
-                                    background: {
-                                        let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
-                                            (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
-                                            oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
-                                        let selected = DashboardUi.selected-assignment.id == assignment.id;
 
-                                        oklch(
-                                    c.lightness + (item-button.has-hover || item-button.has-focus ? 0.1 : 0) + (selected ? 0.2 : 0),
-                                    c.chroma + (item-button.has-hover || item-button.has-focus ? 0.02 : 0) + (selected ? 0.06 : 0),
-                                    c.hue,
-                                    c.alpha)
-                                    };
-                                    animate background { duration: 50ms; }
-                                    border-radius: 5px;
-                                    height: min(120px, max(40px, self.preferred-height));
-                            // Text measurements include font size, weight, and wrapping.
-                            preferred-height: title.preferred-height + course.preferred-height
-                                        + content.padding-top + content.padding-bottom + 16px;
-                                    clip: true;
+                        Text {
+                            text: col.title;
+                            horizontal-alignment: center;
+                        }
 
-                                    content := VerticalBox {
-                                        spacing: 2px;
-                                        title := Text {
-                                            text: assignment.title;
-                                            font-weight: 700;
-                                            wrap: word-wrap;
-                                        }
-
-                                        course := Text {
-                                            color: UiState.theme.text-400;
-                                            text: assignment.course-name;
-                                            wrap: word-wrap;
+                        Rectangle {
+                            background: UiState.theme.background-750;
+                            ListView {
+                                vertical-stretch: 1;
+                                horizontal-scrollbar-policy: always-off;
+                                for assignment[y] in col.assignments: Rectangle {
+                                    height: inner.height + 8px;
+                                    item-button := HoverableButton {
+                                        text: assignment.title;
+                                        clicked => {
+                                            DashboardUi.selected-assignment = assignment;
+                                            DashboardUi.sel-col = x;
+                                            DashboardUi.sel-row = y;
                                         }
                                     }
+                                    inner := Rectangle {
+                                            background: {
+                                                let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
+                                                    (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
+                                                    oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
+                                                let selected = DashboardUi.selected-assignment.id == assignment.id;
+
+                                                oklch(
+                                            c.lightness + (item-button.has-hover || item-button.has-focus ? 0.1 : 0) + (selected ? 0.2 : 0),
+                                            c.chroma + (item-button.has-hover || item-button.has-focus ? 0.02 : 0) + (selected ? 0.06 : 0),
+                                            c.hue,
+                                            c.alpha)
+                                            };
+                                            animate background { duration: 50ms; }
+                                            border-radius: 5px;
+                                            height: min(120px, max(40px, self.preferred-height));
+                                    // Text measurements include font size, weight, and wrapping.
+                                    preferred-height: title.preferred-height + course.preferred-height
+                                                + content.padding-top + content.padding-bottom + 16px;
+                                            clip: true;
+
+                                            content := VerticalBox {
+                                                spacing: 2px;
+                                                title := Text {
+                                                    text: assignment.title;
+                                                    font-weight: 700;
+                                                    wrap: word-wrap;
+                                                }
+
+                                                course := Text {
+                                                    color: UiState.theme.text-400;
+                                                    text: assignment.course-name;
+                                                    wrap: word-wrap;
+                                                }
+                                            }
+                                        }
                                 }
+                            }
                         }
                     }
                 }
             }
         }
-
+        DashboardBottomBar { }
     }
 }

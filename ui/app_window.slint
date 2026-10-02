@@ -1,9 +1,6 @@
-import { HorizontalBox } from "std-widgets.slint";
 import { Dashboard } from "components/dashboard/dashboard.slint";
-import { DashboardBottomBar } from "components/dashboard/bottom-bar.slint";
 import { Screen } from "types/screen.slint";
 import { Courses } from "components/courses/courses.slint";
-import { CoursesBottomBar } from "components/courses/bottom-bar.slint";
 import { Materials } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { UiState, CoursesUi } from "globals.slint";
@@ -17,7 +14,6 @@ export {
 import "fonts/MozillaText.ttf";
 import { Notifications } from "components/notifications/notifications.slint";
 import { AssignmentView } from "components/assignment/assignment-view.slint";
-import { BottomBar } from "components/materials/bottom-bar.slint";
 
 export component AppWindow inherits Window {
     title: "foam";
@@ -48,64 +44,45 @@ export component AppWindow inherits Window {
             }
         }
 
-        HorizontalBox {
-            vertical-stretch: 1;
-            padding: 0px;
-            spacing: 0px;
-
-            Sidebar { }
-
-            Rectangle {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                if UiState.screen == Screen.dashboard: Dashboard {
-                    width: parent.width;
-                    height: parent.height;
-                }
-
-                if UiState.screen == Screen.notifs: Notifications {
-                    width: parent.width;
-                    height: parent.height;
-                }
-
-                if UiState.screen == Screen.courses: Courses {
-                    width: parent.width;
-                    height: parent.height;
-                }
-                for tab[index] in CoursesUi.tabs: AssignmentView {
-                    tab: tab;
-                    visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
-                    width: parent.width;
-                    height: parent.height;
-                }
-                for tab[index] in CoursesUi.tabs: Materials {
-                    tab: tab;
-                    visible: UiState.screen == Screen.materials && CoursesUi.active-tab == index;
-                    width: parent.width;
-                    height: parent.height;
-                }
-            }
-        }
-
         Rectangle {
-            height: root.bar-height;
-            background: root.bar-background;
+            vertical-stretch: 1;
+            if UiState.screen == Screen.dashboard: Dashboard {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+            }
 
-            if UiState.screen == Screen.dashboard: DashboardBottomBar {
+            if UiState.screen == Screen.notifs: Notifications {
                 width: parent.width;
                 height: parent.height;
+                sidebar-width: navigation.width;
             }
-            if UiState.screen == Screen.courses: CoursesBottomBar {
+
+            if UiState.screen == Screen.courses: Courses {
                 width: parent.width;
                 height: parent.height;
+                sidebar-width: navigation.width;
             }
-            for tab[index] in CoursesUi.tabs: BottomBar {
+            for tab[index] in CoursesUi.tabs: AssignmentView {
                 tab: tab;
-                visible: (UiState.screen == Screen.materials || UiState.screen == Screen.assignment)
-                    && CoursesUi.active-tab == index;
+                visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
                 width: parent.width;
                 height: parent.height;
+                sidebar-width: navigation.width;
+            }
+            for tab[index] in CoursesUi.tabs: Materials {
+                tab: tab;
+                visible: UiState.screen == Screen.materials && CoursesUi.active-tab == index;
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+            }
+            navigation := Sidebar {
+                x: 0px;
+                y: 0px;
+                height: parent.height - root.bar-height;
             }
         }
+
     }
 }

@@ -44,8 +44,10 @@ export component Sidebar inherits Rectangle {
     width: minimized ? 60px : 240px;
     background: UiState.theme.background-900;
 
-    VerticalBox {
-        padding: 8px;
+    VerticalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        padding-bottom: 4px;
         spacing: 10px;
 
         Rectangle {

@@ -7,193 +7,203 @@ import {
 } from "../materials/breadcrumb.slint";
 import { Screen } from "../../types/screen.slint";
 import { SelectableText } from "../selectable-text.slint";
+import { BottomBar } from "../materials/bottom-bar.slint";
 
 export component AssignmentView inherits Rectangle {
+    in property <length> sidebar-width: 0px;
     in property <CourseTab> tab;
     background: UiState.theme.background-800;
 
     VerticalLayout {
-        HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
             vertical-stretch: 1;
-            spacing: 0px;
-            Sidebar {
-                tab: root.tab;
-                items: root.tab.materials;
-                selected-id: AssignmentUi.assignment.id;
-            }
-
             Rectangle {
-                horizontal-stretch: 1;
-                VerticalLayout {
-                    padding: 16px;
-                    spacing: 14px;
-
-                    VerticalLayout {
-                        padding-left: 2px;
-                        padding-top: 8px;
-                        spacing: 16px;
-
-                        SelectableText {
-                            text: AssignmentUi.assignment.title;
-                            font-size: 24px;
-                            font-weight: 700;
-                            color: UiState.theme.text-50;
-                        }
-
-                        if !AssignmentUi.error.is-empty: SelectableText {
-                            text: AssignmentUi.error;
-                            color: UiState.theme.primary-300;
-                            font-size: 18px;
-                        }
-
-                        HorizontalLayout {
-                            padding-left: 2px;
-                            SelectableText {
-                                text: AssignmentUi.assignment.due + " • ID " + AssignmentUi.assignment.id;
-                                color: UiState.theme.text-200;
-                                font-size: 14px;
-                            }
-
-                            Rectangle {
-                                horizontal-stretch: 1;
-                            }
-
-                            SelectableText {
-                                text: "Grade: " + AssignmentUi.assignment.grade;
-                                color: UiState.theme.text-200;
-                                font-size: 14px;
-                            }
-                        }
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                HorizontalLayout {
+                    spacing: 0px;
+                    Sidebar {
+                        tab: root.tab;
+                        items: root.tab.materials;
+                        selected-id: AssignmentUi.assignment.id;
                     }
 
-                    ScrollView {
-                        horizontal-scrollbar-policy: always-off;
+                    Rectangle {
+                        horizontal-stretch: 1;
                         VerticalLayout {
-                            alignment: start;
-                            spacing: 12px;
-                            padding-right: 12px;
-                            if !AssignmentUi.assignment.description.is-empty: VerticalLayout {
-                                Rectangle {
-                                    background: UiState.theme.background-750;
-                                    border-radius: 8px;
-                                    height: description-content.preferred-height;
+                            padding: 16px;
+                            spacing: 14px;
 
-                                    description-content := VerticalLayout {
-                                        padding: 12px;
-                                        SelectableText {
-                                            text: AssignmentUi.assignment.description;
-                                            color: UiState.theme.text-100;
-                                            font-size: 16px;
+                            VerticalLayout {
+                                padding-left: 2px;
+                                padding-top: 8px;
+                                spacing: 16px;
+
+                                SelectableText {
+                                    text: AssignmentUi.assignment.title;
+                                    font-size: 24px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
+
+                                if !AssignmentUi.error.is-empty: SelectableText {
+                                    text: AssignmentUi.error;
+                                    color: UiState.theme.primary-300;
+                                    font-size: 18px;
+                                }
+
+                                HorizontalLayout {
+                                    padding-left: 2px;
+                                    SelectableText {
+                                        text: AssignmentUi.assignment.due + " • ID " + AssignmentUi.assignment.id;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                    }
+
+                                    SelectableText {
+                                        text: "Grade: " + AssignmentUi.assignment.grade;
+                                        color: UiState.theme.text-200;
+                                        font-size: 14px;
+                                    }
+                                }
+                            }
+
+                            ScrollView {
+                                horizontal-scrollbar-policy: always-off;
+                                VerticalLayout {
+                                    alignment: start;
+                                    spacing: 12px;
+                                    padding-right: 12px;
+                                    if !AssignmentUi.assignment.description.is-empty: VerticalLayout {
+                                        Rectangle {
+                                            background: UiState.theme.background-750;
+                                            border-radius: 8px;
+                                            height: description-content.preferred-height;
+
+                                            description-content := VerticalLayout {
+                                                padding: 12px;
+                                                SelectableText {
+                                                    text: AssignmentUi.assignment.description;
+                                                    color: UiState.theme.text-100;
+                                                    font-size: 16px;
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            Rectangle {
-                width: 200px;
-                background: {
-                    let c = UiState.theme.background-800.to-oklch();
-                    oklch(c.lightness - 0.02, c.chroma, c.hue, c.alpha)
-                };
-                VerticalLayout {
-                    spacing: 24px;
-                    VerticalLayout {
-                        padding: 16px;
-                        spacing: 12px;
-                        SelectableText {
-                            text: "Attachments";
-                            font-size: 18px;
-                            font-weight: 700;
-                            color: UiState.theme.text-50;
-                        }
+                    Rectangle {
+                        width: 200px;
+                        background: {
+                            let c = UiState.theme.background-800.to-oklch();
+                            oklch(c.lightness - 0.02, c.chroma, c.hue, c.alpha)
+                        };
+                        VerticalLayout {
+                            spacing: 24px;
+                            VerticalLayout {
+                                padding: 16px;
+                                spacing: 12px;
+                                SelectableText {
+                                    text: "Attachments";
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
 
-                        if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
-                            spacing: 6px;
+                                if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
+                                    spacing: 6px;
 
-                            for file in AssignmentUi.assignment.attachments: Rectangle {
-                                background: UiState.theme.background-750;
-                                border-radius: 5px;
-                                VerticalLayout {
-                                    padding: 8px;
-                                    SelectableText {
-                                        text: file.title;
-                                        color: UiState.theme.text-100;
-                                    }
+                                    for file in AssignmentUi.assignment.attachments: Rectangle {
+                                        background: UiState.theme.background-750;
+                                        border-radius: 5px;
+                                        VerticalLayout {
+                                            padding: 8px;
+                                            SelectableText {
+                                                text: file.title;
+                                                color: UiState.theme.text-100;
+                                            }
 
-                                    if !file.details.is-empty: SelectableText {
-                                        text: file.details;
-                                        color: UiState.theme.text-400;
+                                            if !file.details.is-empty: SelectableText {
+                                                text: file.details;
+                                                color: UiState.theme.text-400;
+                                            }
+                                        }
                                     }
                                 }
+
+                                if AssignmentUi.assignment.attachments.length == 0: SelectableText {
+                                    text: "No attachments";
+                                    color: UiState.theme.text-400;
+                                    font-size: 14px;
+                                }
                             }
-                        }
 
-                        if AssignmentUi.assignment.attachments.length == 0: SelectableText {
-                            text: "No attachments";
-                            color: UiState.theme.text-400;
-                            font-size: 14px;
-                        }
-                    }
-
-                    VerticalLayout {
-                        padding: 16px;
-                        spacing: 12px;
-                        SelectableText {
-                            text: "Submissions";
-                            font-size: 18px;
-                            font-weight: 700;
-                            color: UiState.theme.text-50;
-                        }
-
-                        if AssignmentUi.assignment.submissions.length == 0: SelectableText {
-                            text: "No submissions yet";
-                            color: UiState.theme.text-400;
-                            font-size: 14px;
-                        }
-
-                        ScrollView {
-                            horizontal-scrollbar-policy: always-off;
                             VerticalLayout {
-                                alignment: start;
-                                spacing: 10px;
-                                padding-right: 8px;
-                                if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
-                                    spacing: 10px;
+                                padding: 16px;
+                                spacing: 12px;
+                                SelectableText {
+                                    text: "Submissions";
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                }
 
-                                    for submission in AssignmentUi.assignment.submissions: Rectangle {
-                                        background: UiState.theme.background-750;
-                                        border-radius: 6px;
-                                        height: content.preferred-height + 20px;
-                                        content := VerticalLayout {
-                                            padding: 10px;
-                                            SelectableText {
-                                                text: "Revision " + submission.id;
-                                                color: UiState.theme.text-100;
-                                                font-size: 14px;
-                                            }
+                                if AssignmentUi.assignment.submissions.length == 0: SelectableText {
+                                    text: "No submissions yet";
+                                    color: UiState.theme.text-400;
+                                    font-size: 14px;
+                                }
 
-                                            SelectableText {
-                                                text: submission.created-at + " · " + submission.status;
-                                                color: UiState.theme.text-300;
-                                            }
+                                ScrollView {
+                                    horizontal-scrollbar-policy: always-off;
+                                    VerticalLayout {
+                                        alignment: start;
+                                        spacing: 10px;
+                                        padding-right: 8px;
+                                        if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
+                                            spacing: 10px;
 
-                                            if !submission.body.is-empty: SelectableText {
-                                                text: submission.body;
-                                                color: UiState.theme.text-100;
-                                            }
-                                            for file in submission.files: VerticalLayout {
-                                                SelectableText {
-                                                    text: file.title;
-                                                    color: UiState.theme.text-100;
-                                                }
+                                            for submission in AssignmentUi.assignment.submissions: Rectangle {
+                                                background: UiState.theme.background-750;
+                                                border-radius: 6px;
+                                                height: content.preferred-height + 20px;
+                                                content := VerticalLayout {
+                                                    padding: 10px;
+                                                    SelectableText {
+                                                        text: "Revision " + submission.id;
+                                                        color: UiState.theme.text-100;
+                                                        font-size: 14px;
+                                                    }
 
-                                                if !file.details.is-empty: SelectableText {
-                                                    text: file.details;
-                                                    color: UiState.theme.text-400;
+                                                    SelectableText {
+                                                        text: submission.created-at + " · " + submission.status;
+                                                        color: UiState.theme.text-300;
+                                                    }
+
+                                                    if !submission.body.is-empty: SelectableText {
+                                                        text: submission.body;
+                                                        color: UiState.theme.text-100;
+                                                    }
+                                                    for file in submission.files: VerticalLayout {
+                                                        SelectableText {
+                                                            text: file.title;
+                                                            color: UiState.theme.text-100;
+                                                        }
+
+                                                        if !file.details.is-empty: SelectableText {
+                                                            text: file.details;
+                                                            color: UiState.theme.text-400;
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -205,6 +215,6 @@ export component AssignmentView inherits Rectangle {
                 }
             }
         }
-
+        BottomBar { tab: root.tab; }
     }
 }

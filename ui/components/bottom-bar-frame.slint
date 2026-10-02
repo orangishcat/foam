@@ -1,0 +1,9 @@
+import { UiState } from "../globals.slint";
+
+export component BottomBarFrame inherits Rectangle {
+    height: 32px;
+    background: {
+        let c = UiState.theme.background-900.to-oklch();
+        oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
+    };
+}

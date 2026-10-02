@@ -8,38 +8,47 @@ import {
 import { Sidebar } from "sidebar.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { Theme } from "../../palette.slint";
+import { BottomBar } from "bottom-bar.slint";
 
 export component Materials inherits Rectangle {
+    in property <length> sidebar-width: 0px;
     in property <CourseTab> tab;
     VerticalLayout {
         spacing: 0px;
-        HorizontalLayout {
+        Rectangle {
             vertical-stretch: 1;
-            spacing: 0px;
-            Sidebar {
-                tab <=> root.tab;
-            }
-
             Rectangle {
-                horizontal-stretch: 1;
-                VerticalLayout {
-                    padding: 16px;
-                    spacing: 8px;
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                HorizontalLayout {
+                    spacing: 0px;
+                    Sidebar {
+                        tab <=> root.tab;
+                    }
 
-                    list := ScrollView {
-                        horizontal-scrollbar-policy: always-off;
+                    Rectangle {
+                        horizontal-stretch: 1;
                         VerticalLayout {
-                            for item[i] in root.tab.materials: VerticalLayout {
-                                padding-bottom: 4px;
-                                Row {
-                                    width: list.visible-width;
-                                    item: item;
-                                }
+                            padding: 16px;
+                            spacing: 8px;
 
-                                if i < root.tab.materials.length - 1: Rectangle {
-                                    border-width: 1px;
-                                    height: 1px;
-                                    border-color: UiState.theme.background-700;
+                            list := ScrollView {
+                                horizontal-scrollbar-policy: always-off;
+                                VerticalLayout {
+                                    for item[i] in root.tab.materials: VerticalLayout {
+                                        padding-bottom: 4px;
+                                        Row {
+                                            width: list.visible-width;
+                                            item: item;
+                                        }
+
+                                        if i < root.tab.materials.length - 1: Rectangle {
+                                            border-width: 1px;
+                                            height: 1px;
+                                            border-color: UiState.theme.background-700;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -47,6 +56,6 @@ export component Materials inherits Rectangle {
                 }
             }
         }
-
+        BottomBar { tab: root.tab; }
     }
 }

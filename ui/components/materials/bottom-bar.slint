@@ -3,8 +3,9 @@ import { Breadcrumb } from "breadcrumb.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { Screen } from "../../types/screen.slint";
 import { CourseTab } from "../../types/course-ui.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
-export component BottomBar inherits Rectangle {
+export component BottomBar inherits BottomBarFrame {
     in property <CourseTab> tab;
 
     path := ScrollView {

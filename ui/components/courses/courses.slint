@@ -2,8 +2,10 @@ import { ScrollView } from "std-widgets.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { CourseItem } from "../../types/course-ui.slint";
+import { CoursesBottomBar } from "bottom-bar.slint";
 
 export component Courses inherits FocusScope {
+    in property <length> sidebar-width: 0px;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     private property <bool> show-hidden <=> CoursesUi.show-hidden;
@@ -21,174 +23,243 @@ export component Courses inherits FocusScope {
     private property <CourseItem> dragged-course;
     private property <length> period-tab-width: 16px + CoursesUi.period-character-count * 11px;
 
-    list := ScrollView {
-        x: 32px;
-        y: 32px;
-        width: parent.width - 64px;
-        height: parent.height - 64px;
-        horizontal-scrollbar-policy: always-off;
-        mouse-drag-pan-enabled: false;
+    VerticalLayout {
+        spacing: 0px;
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                Rectangle {
+                    list := ScrollView {
+                        x: 32px;
+                        y: 32px;
+                        width: parent.width - 64px;
+                        height: parent.height - 64px;
+                        horizontal-scrollbar-policy: always-off;
+                        mouse-drag-pan-enabled: false;
 
-        VerticalLayout {
-            spacing: 0px;
-            for course[i] in CoursesUi.courses: Rectangle {
-                visible: root.show-hidden || !course.hidden;
-                width: list.visible-width;
-                height: root.show-hidden || !course.hidden ? 88px : 0px;
-                background: transparent;
+                        VerticalLayout {
+                            spacing: 0px;
+                            for course[i] in CoursesUi.courses: Rectangle {
+                                visible: root.show-hidden || !course.hidden;
+                                width: list.visible-width;
+                                height: root.show-hidden || !course.hidden ? 88px : 0px;
+                                background: transparent;
 
-                course-action := HoverableButton {
-                    text: course.title;
-                    clicked => { CoursesUi.activate-course(course.id); }
-                    HorizontalLayout {
-                        spacing: 8px;
-                        Rectangle {
-                            width: root.period-tab-width;
-                            height: 74px;
-                            border-radius: 8px;
-                            border-width: 1px;
-                            border-color: UiState.theme.background-500;
-
-                            period-input := TextInput {
-                                x: 8px;
-                                y: 8px;
-                                width: parent.width - 16px;
-                                height: parent.height - 16px;
-                                text: course.period;
-                                color: UiState.theme.text-200;
-                                font-family: "monospace";
-                                font-size: 16px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                                single-line: true;
-                                edited => {
-                                    self.text = CoursesUi.set-period(course.id, self.text);
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
-                                : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
-                                : 0px;
-                            height: 74px;
-                            border-radius: 8px;
-                            border-width: 1px;
-                            border-color: UiState.theme.background-500;
-                            background: course-action.has-hover || course-action.has-focus ? UiState.theme.background-600 :
-                                course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
-                            opacity: root.drag-from == i ? 0 : 1;
-
-                            HorizontalLayout {
-                                padding: 16px;
-                                spacing: 16px;
-
-                                Rectangle {
-                                    width: 84px;
-                                    height: 42px;
-                                    border-radius: 8px;
-                                    clip: true;
-                                    opacity: course.hidden ? 0.4 : 1;
-                                    Image {
-                                        width: parent.width;
-                                        height: parent.height;
-                                        source: course.icon;
-                                        image-fit: ImageFit.contain;
-                                    }
-
-                                    if course.icon.width == 0: Image {
-                                        width: parent.width;
-                                        height: parent.height;
-                                        source: @image-url("../../icons/book-text.svg");
-                                    }
-                                }
-
-                                VerticalLayout {
-                                    spacing: 4px;
-                                    Text {
-                                        text: course.title;
-                                        font-size: 18px;
-                                        font-weight: 700;
-                                        color: course.hidden ? UiState.theme.text-400 : UiState.theme.text-50;
-                                        overflow: elide;
-                                    }
-
+                                course-action := HoverableButton {
+                                    text: course.title;
+                                    clicked => { CoursesUi.activate-course(course.id); }
                                     HorizontalLayout {
-                                        spacing: 4px;
-                                        alignment: start;
-                                        Text {
-                                            text: course.section;
-                                            color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
-                                            overflow: elide;
-                                        }
+                                        spacing: 8px;
+                                        Rectangle {
+                                            width: root.period-tab-width;
+                                            height: 74px;
+                                            border-radius: 8px;
+                                            border-width: 1px;
+                                            border-color: UiState.theme.background-500;
 
-                                        if course.hidden: Text {
-                                            text: "•";
-                                            color: UiState.theme.text-500;
-                                            overflow: elide;
-                                        }
-                                        if course.hidden: Text {
-                                            text: "Hidden";
-                                            color: oklch(0.7471, 0.1422, 20.3, 1);
-                                            overflow: elide;
-                                        }
-                                    }
-                                }
-
-                                HorizontalLayout {
-                                    spacing: 16px;
-                                    opacity: course-action.has-hover || course-action.has-focus || period-input.has-focus || hide-action.has-focus ? 1 : 0;
-                                    drag-layout := Rectangle {
-                                        width: 32px;
-                                        border-radius: 10px;
-                                        background: {
-                                            let color = UiState.theme.background-400.to-oklch();
-                                            drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
-                                        };
-                                        drag-touch := TouchArea {
-                                            mouse-cursor: grab;
-                                            Image {
-                                                source: @image-url("../../icons/grip-horizontal.svg");
-                                                colorize: UiState.theme.background-400;
-                                                vertical-alignment: center;
+                                            period-input := TextInput {
+                                                x: 8px;
+                                                y: 8px;
+                                                width: parent.width - 16px;
+                                                height: parent.height - 16px;
+                                                text: course.period;
+                                                color: UiState.theme.text-200;
+                                                font-family: "monospace";
+                                                font-size: 16px;
                                                 horizontal-alignment: center;
+                                                vertical-alignment: center;
+                                                single-line: true;
+                                                edited => {
+                                                    self.text = CoursesUi.set-period(course.id, self.text);
+                                                }
                                             }
+                                        }
 
-                                            drag-area := DragArea {
-                                                width: parent.width;
-                                                height: parent.height;
-                                                data: CoursesUi.drag-data(i);
-                                                allow-move: true;
-                                                drag-finished(_action) => {
-                                                    root.drag-from = -1;
-                                                    root.drag-to = -1;
+                                        Rectangle {
+                                            y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
+                                                : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
+                                                : 0px;
+                                            height: 74px;
+                                            border-radius: 8px;
+                                            border-width: 1px;
+                                            border-color: UiState.theme.background-500;
+                                            background: course-action.has-hover || course-action.has-focus ? UiState.theme.background-600 :
+                                                course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
+                                            opacity: root.drag-from == i ? 0 : 1;
+
+                                            HorizontalLayout {
+                                                padding: 16px;
+                                                spacing: 16px;
+
+                                                Rectangle {
+                                                    width: 84px;
+                                                    height: 42px;
+                                                    border-radius: 8px;
+                                                    clip: true;
+                                                    opacity: course.hidden ? 0.4 : 1;
+                                                    Image {
+                                                        width: parent.width;
+                                                        height: parent.height;
+                                                        source: course.icon;
+                                                        image-fit: ImageFit.contain;
+                                                    }
+
+                                                    if course.icon.width == 0: Image {
+                                                        width: parent.width;
+                                                        height: parent.height;
+                                                        source: @image-url("../../icons/book-text.svg");
+                                                    }
+                                                }
+
+                                                VerticalLayout {
+                                                    spacing: 4px;
+                                                    Text {
+                                                        text: course.title;
+                                                        font-size: 18px;
+                                                        font-weight: 700;
+                                                        color: course.hidden ? UiState.theme.text-400 : UiState.theme.text-50;
+                                                        overflow: elide;
+                                                    }
+
+                                                    HorizontalLayout {
+                                                        spacing: 4px;
+                                                        alignment: start;
+                                                        Text {
+                                                            text: course.section;
+                                                            color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
+                                                            overflow: elide;
+                                                        }
+
+                                                        if course.hidden: Text {
+                                                            text: "•";
+                                                            color: UiState.theme.text-500;
+                                                            overflow: elide;
+                                                        }
+                                                        if course.hidden: Text {
+                                                            text: "Hidden";
+                                                            color: oklch(0.7471, 0.1422, 20.3, 1);
+                                                            overflow: elide;
+                                                        }
+                                                    }
+                                                }
+
+                                                HorizontalLayout {
+                                                    spacing: 16px;
+                                                    opacity: course-action.has-hover || course-action.has-focus || period-input.has-focus || hide-action.has-focus ? 1 : 0;
+                                                    drag-layout := Rectangle {
+                                                        width: 32px;
+                                                        border-radius: 10px;
+                                                        background: {
+                                                            let color = UiState.theme.background-400.to-oklch();
+                                                            drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                                        };
+                                                        drag-touch := TouchArea {
+                                                            mouse-cursor: grab;
+                                                            Image {
+                                                                source: @image-url("../../icons/grip-horizontal.svg");
+                                                                colorize: UiState.theme.background-400;
+                                                                vertical-alignment: center;
+                                                                horizontal-alignment: center;
+                                                            }
+
+                                                            drag-area := DragArea {
+                                                                width: parent.width;
+                                                                height: parent.height;
+                                                                data: CoursesUi.drag-data(i);
+                                                                allow-move: true;
+                                                                drag-finished(_action) => {
+                                                                    root.drag-from = -1;
+                                                                    root.drag-to = -1;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    hide-rectangle := Rectangle {
+                                                        width: 32px;
+                                                        border-radius: 10px;
+                                                        background: {
+                                                            let color = UiState.theme.background-400.to-oklch();
+                                                            hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                                        };
+
+                                                        hide-action := HoverableButton {
+                                                            text: course.hidden ? "Show " + course.title : "Hide " + course.title;
+                                                            clicked => { CoursesUi.toggle-hidden(course.id); }
+                                                        }
+                                                        Image {
+                                                            width: 100%;
+                                                            height: 100%;
+                                                            source: course.hidden ? @image-url("../../icons/eye.svg") : @image-url("../../icons/eye-off.svg");
+                                                            image-fit: contain;
+                                                            colorize: UiState.theme.background-400;
+                                                            vertical-alignment: center;
+                                                            horizontal-alignment: center;
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
 
-                                    hide-rectangle := Rectangle {
-                                        width: 32px;
-                                        border-radius: 10px;
-                                        background: {
-                                            let color = UiState.theme.background-400.to-oklch();
-                                            hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
-                                        };
+                    drop-area := DropArea {
+                        x: list.x;
+                        y: list.y;
+                        width: list.visible-width;
+                        height: list.height;
+                        can-drop(event) => {
+                            let source = CoursesUi.drag-index(event.data);
+                            if (source < 0 || source >= CoursesUi.courses.length) {
+                                return DragAction.none;
+                            }
+                            root.drag-from = source;
+                            root.dragged-course = CoursesUi.courses[source];
+                            root.drag-pointer-y = event.position.y;
+                            root.drag-to = Math.max(0, Math.min(CoursesUi.courses.length - 1,
+                        Math.round((event.position.y - list.viewport-y - 37px) / 82px)));
+                            return DragAction.move;
+                        }
+                        dropped(event) => {
+                            if (root.drag-from >= 0) {
+                                CoursesUi.reorder(root.drag-from, root.drag-to);
+                            }
+                            root.drag-from = -1;
+                            root.drag-to = -1;
+                            return DragAction.move;
+                        }
+                    }
 
-                                        hide-action := HoverableButton {
-                                            text: course.hidden ? "Show " + course.title : "Hide " + course.title;
-                                            clicked => { CoursesUi.toggle-hidden(course.id); }
-                                        }
-                                        Image {
-                                            width: 100%;
-                                            height: 100%;
-                                            source: course.hidden ? @image-url("../../icons/eye.svg") : @image-url("../../icons/eye-off.svg");
-                                            image-fit: contain;
-                                            colorize: UiState.theme.background-400;
-                                            vertical-alignment: center;
-                                            horizontal-alignment: center;
-                                        }
-                                    }
+                    Rectangle {
+                        visible: root.drag-from >= 0;
+                        x: list.x;
+                        y: list.y + root.drag-pointer-y - 37px;
+                        width: list.visible-width;
+                        height: 74px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: UiState.theme.background-500;
+                        background: UiState.theme.background-700;
+                        opacity: 0.65;
+
+                        HorizontalLayout {
+                            padding: 16px;
+                            spacing: 16px;
+
+                            VerticalLayout {
+                                spacing: 4px;
+                                Text {
+                                    text: root.dragged-course.title;
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: UiState.theme.text-50;
+                                    overflow: elide;
                                 }
                             }
                         }
@@ -196,61 +267,6 @@ export component Courses inherits FocusScope {
                 }
             }
         }
-    }
-
-    drop-area := DropArea {
-        x: list.x;
-        y: list.y;
-        width: list.visible-width;
-        height: list.height;
-        can-drop(event) => {
-            let source = CoursesUi.drag-index(event.data);
-            if (source < 0 || source >= CoursesUi.courses.length) {
-                return DragAction.none;
-            }
-            root.drag-from = source;
-            root.dragged-course = CoursesUi.courses[source];
-            root.drag-pointer-y = event.position.y;
-            root.drag-to = Math.max(0, Math.min(CoursesUi.courses.length - 1,
-        Math.round((event.position.y - list.viewport-y - 37px) / 82px)));
-            return DragAction.move;
-        }
-        dropped(event) => {
-            if (root.drag-from >= 0) {
-                CoursesUi.reorder(root.drag-from, root.drag-to);
-            }
-            root.drag-from = -1;
-            root.drag-to = -1;
-            return DragAction.move;
-        }
-    }
-
-    Rectangle {
-        visible: root.drag-from >= 0;
-        x: list.x;
-        y: list.y + root.drag-pointer-y - 37px;
-        width: list.visible-width;
-        height: 74px;
-        border-radius: 8px;
-        border-width: 1px;
-        border-color: UiState.theme.background-500;
-        background: UiState.theme.background-700;
-        opacity: 0.65;
-
-        HorizontalLayout {
-            padding: 16px;
-            spacing: 16px;
-
-            VerticalLayout {
-                spacing: 4px;
-                Text {
-                    text: root.dragged-course.title;
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: UiState.theme.text-50;
-                    overflow: elide;
-                }
-            }
-        }
+        CoursesBottomBar { }
     }
 }

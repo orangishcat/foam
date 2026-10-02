@@ -1,7 +1,8 @@
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { DashboardUi } from "../../globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
-export component DashboardBottomBar inherits Rectangle {
+export component DashboardBottomBar inherits BottomBarFrame {
     if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
         HorizontalLayout {
             alignment: center;

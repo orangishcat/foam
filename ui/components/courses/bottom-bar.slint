@@ -1,7 +1,8 @@
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { CoursesUi } from "../../globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
-export component CoursesBottomBar inherits Rectangle {
+export component CoursesBottomBar inherits BottomBarFrame {
     HorizontalLayout {
         alignment: center;
         show-hidden-action := SelectedItemAction {
