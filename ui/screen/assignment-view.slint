@@ -2,9 +2,13 @@ import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { AssignmentUi, CoursesUi, UiState } from "../globals.slint";
 import { CourseTab } from "../types/course-ui.slint";
 import { MaterialSidebar } from "../components/course-sidebar.slint";
-import { MaterialBreadcrumb } from "../components/material-breadcrumb.slint";
+import {
+    MaterialBreadcrumb,
+} from "../components/material/material-breadcrumb.slint";
 import { Screen } from "screens.slint";
-import { MaterialBottomBar } from "../components/material-bottom-bar.slint";
+import {
+    MaterialBottomBar,
+} from "../components/material/material-bottom-bar.slint";
 import { SelectableText } from "../components/selectable-text.slint";
 
 export component AssignmentView inherits Rectangle {

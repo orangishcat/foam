@@ -1,12 +1,16 @@
 import { ScrollView } from "std-widgets.slint";
 import { Screen } from "screens.slint";
-import { MaterialRow } from "../components/material-row.slint";
+import { MaterialRow } from "../components/material/material-row.slint";
 import { MaterialItem, CourseTab } from "../types/course-ui.slint";
-import { MaterialBreadcrumb } from "../components/material-breadcrumb.slint";
+import {
+    MaterialBreadcrumb,
+} from "../components/material/material-breadcrumb.slint";
 import { MaterialSidebar } from "../components/course-sidebar.slint";
 import { UiState, CoursesUi } from "../globals.slint";
 import { Theme } from "../palette.slint";
-import { MaterialBottomBar } from "../components/material-bottom-bar.slint";
+import {
+    MaterialBottomBar,
+} from "../components/material/material-bottom-bar.slint";
 
 export component Materials inherits Rectangle {
     in property <CourseTab> tab;

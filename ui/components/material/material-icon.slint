@@ -1,10 +1,10 @@
 export component MaterialIcon inherits Image {
     in property <string> kind;
-    source: kind == "course" ? @image-url("../icons/book-text.svg")
-        : kind == "folder" ? @image-url("../icons/folder.svg")
-        : kind == "link" ? @image-url("../icons/link.svg")
-        : kind == "assignment" ? @image-url("../icons/circle-check-big.svg")
-        : @image-url("../icons/file-text.svg");
+    source: kind == "course" ? @image-url("../../icons/book-text.svg")
+        : kind == "folder" ? @image-url("../../icons/folder.svg")
+        : kind == "link" ? @image-url("../../icons/link.svg")
+        : kind == "assignment" ? @image-url("../../icons/circle-check-big.svg")
+        : @image-url("../../icons/file-text.svg");
     colorize: kind == "course" ? oklch(0.65323, 0.06856, 57.29578, 1.0)
         : kind == "folder" ? oklch(0.76882, 0.06986, 263.55386, 1.0)
         : kind == "link" ? oklch(0.86882, 0.06986, 263.55386, 1.0)
