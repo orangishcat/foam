@@ -4,7 +4,7 @@ import { Screen } from "screen/screens.slint";
 import { Courses } from "screen/courses.slint";
 import { Materials } from "screen/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
-import { UiState, CoursesUi } from "globals.slint";
+import { UiState, CoursesUi, DashboardUi } from "globals.slint";
 export { UiState, DashboardUi, NotificationUi, CoursesUi, AssignmentUi } from "globals.slint";
 import "./fonts/MozillaText.ttf";
 import { Notifications } from "screen/notifications.slint";
@@ -18,40 +18,69 @@ export component AppWindow inherits Window {
 
     background: UiState.theme.background-800;
 
-    HorizontalBox {
-        padding: 0px;
-        spacing: 0px;
+    forward-focus: shortcuts;
+    shortcuts := FocusScope {
+        focus-on-tab-navigation: false;
+        focus-on-click: false;
+        private property <bool> dashboard-actions-enabled:
+            UiState.screen == Screen.dashboard && !DashboardUi.selected-assignment.course-id.is-empty;
 
-        Sidebar { }
+        KeyBinding {
+            keys: @keys(V);
+            enabled: shortcuts.dashboard-actions-enabled;
+            activated => { DashboardUi.open-selected(); }
+        }
+        KeyBinding {
+            keys: @keys(D);
+            enabled: shortcuts.dashboard-actions-enabled;
+            activated => { DashboardUi.toggle-selected-done(); }
+        }
+        KeyBinding {
+            keys: @keys(Escape);
+            enabled: shortcuts.dashboard-actions-enabled;
+            activated => { DashboardUi.unselect(); }
+        }
+        KeyBinding {
+            keys: @keys(H);
+            enabled: UiState.screen == Screen.courses;
+            activated => { CoursesUi.show-hidden = !CoursesUi.show-hidden; }
+        }
 
-        Rectangle {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            if UiState.screen == Screen.dashboard: Dashboard {
-                width: parent.width;
-                height: parent.height;
-            }
+        HorizontalBox {
+            padding: 0px;
+            spacing: 0px;
 
-            if UiState.screen == Screen.notifs: Notifications {
-                width: parent.width;
-                height: parent.height;
-            }
+            Sidebar { }
 
-            if UiState.screen == Screen.courses: Courses {
-                width: parent.width;
-                height: parent.height;
-            }
-            for tab[index] in CoursesUi.tabs: AssignmentView {
-                tab: tab;
-                visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
-                width: parent.width;
-                height: parent.height;
-            }
-            for tab[index] in CoursesUi.tabs: Materials {
-                tab: tab;
-                visible: UiState.screen == Screen.materials && CoursesUi.active-tab == index;
-                width: parent.width;
-                height: parent.height;
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                if UiState.screen == Screen.dashboard: Dashboard {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if UiState.screen == Screen.notifs: Notifications {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if UiState.screen == Screen.courses: Courses {
+                    width: parent.width;
+                    height: parent.height;
+                }
+                for tab[index] in CoursesUi.tabs: AssignmentView {
+                    tab: tab;
+                    visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
+                    width: parent.width;
+                    height: parent.height;
+                }
+                for tab[index] in CoursesUi.tabs: Materials {
+                    tab: tab;
+                    visible: UiState.screen == Screen.materials && CoursesUi.active-tab == index;
+                    width: parent.width;
+                    height: parent.height;
+                }
             }
         }
     }

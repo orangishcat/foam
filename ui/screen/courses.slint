@@ -5,7 +5,8 @@ import { CourseItem } from "../types/course-ui.slint";
 import { SelectedItemAction } from "dashboard.slint";
 
 export component Courses inherits Rectangle {
-    private property <bool> show-hidden: false;
+    private property <bool> show-hidden <=> CoursesUi.show-hidden;
+    init => { CoursesUi.show-hidden = false; }
     private property <int> drag-from: -1;
     private property <int> drag-to: -1;
     private property <length> drag-pointer-y: 0px;
@@ -173,10 +174,11 @@ export component Courses inherits Rectangle {
                                         Image {
                                             width: 100%;
                                             height: 100%;
-                                                source: course.hidden ? @image-url("../icons/eye.svg") : @image-url("../icons/eye-off.svg");
-                                                colorize: UiState.theme.background-400;
-                                                vertical-alignment: center;
-                                                horizontal-alignment: center;
+                                            source: course.hidden ? @image-url("../icons/eye.svg") : @image-url("../icons/eye-off.svg");
+                                            image-fit: contain;
+                                            colorize: UiState.theme.background-400;
+                                            vertical-alignment: center;
+                                            horizontal-alignment: center;
                                         }
                                     }
                                 }
@@ -196,21 +198,13 @@ export component Courses inherits Rectangle {
             let c = UiState.theme.background-800.to-oklch();
             oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
         }
-        focus := FocusScope {
-            init => { focus.focus() }
-            KeyBinding {
-                keys: show-hidden-action.hotkey;
-                activated => { show-hidden-action.action() }
-            }
-
-            HorizontalLayout {
-                alignment: center;
-                show-hidden-action := SelectedItemAction {
-                    hotkey-name: "H";
-                    hotkey: @keys(H);
-                    action-name: root.show-hidden ? "Hide hidden courses" : "Show hidden courses";
-                    action => { root.show-hidden = !root.show-hidden; }
-                }
+        HorizontalLayout {
+            alignment: center;
+            show-hidden-action := SelectedItemAction {
+                hotkey-name: "H";
+                hotkey: @keys(H);
+                action-name: root.show-hidden ? "Hide hidden courses" : "Show hidden courses";
+                action => { root.show-hidden = !root.show-hidden; }
             }
         }
     }

@@ -142,50 +142,28 @@ export component Dashboard inherits Rectangle {
                 oklch(c.lightness - 0.05, c.chroma, c.hue, c.alpha);
             }
             height: 32px;
-            if !DashboardUi.selected-assignment.course-id.is-empty: focus := FocusScope {
-                init => { focus.focus() }
-                KeyBinding {
-                    keys: view-item.hotkey;
-                    activated => { view-item.action() }
-                }
-
-                KeyBinding {
-                    keys: mark-done.hotkey;
-                    activated => { mark-done.action() }
-                }
-
-                KeyBinding {
-                    keys: unselect.hotkey;
-                    activated => { unselect.action() }
-                }
-
+            if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
                 HorizontalLayout {
                     alignment: center;
                     view-item := SelectedItemAction {
                         hotkey-name: "V";
                         hotkey: @keys(V);
                         action-name: "View item";
-                        action => { AssignmentUi.open(DashboardUi.selected-assignment.course-id, DashboardUi.selected-assignment.id); }
+                        action => { DashboardUi.open-selected(); }
                     }
 
                     mark-done := SelectedItemAction {
                         hotkey-name: "D";
                         hotkey: @keys(D);
                         action-name: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done";
-                        action => {
-                            DashboardUi.assignment-view[DashboardUi.sel-col].assignments[DashboardUi.sel-row].done = !DashboardUi.selected-assignment.done;
-                            DashboardUi.selected-assignment = DashboardUi.assignment-view[DashboardUi.sel-col].assignments[DashboardUi.sel-row];
-                            DashboardUi.set-done(DashboardUi.selected-assignment.done, DashboardUi.selected-assignment.id);
-                        }
+                        action => { DashboardUi.toggle-selected-done(); }
                     }
 
                     unselect := SelectedItemAction {
                         hotkey-name: "Esc";
                         hotkey: @keys(Escape);
                         action-name: "Unselect item";
-                        action => {
-                            DashboardUi.selected-assignment = { };
-                        }
+                        action => { DashboardUi.unselect(); }
                     }
                 }
             }

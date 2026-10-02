@@ -17,6 +17,17 @@ export global DashboardUi {
     in-out property <int> sel-col;
     callback view-item();
     callback set-done(bool, string);
+    public function open-selected() {
+        AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
+    }
+    public function toggle-selected-done() {
+        assignment-view[sel-col].assignments[sel-row].done = !selected-assignment.done;
+        selected-assignment = assignment-view[sel-col].assignments[sel-row];
+        set-done(selected-assignment.done, selected-assignment.id);
+    }
+    public function unselect() {
+        selected-assignment = { };
+    }
 }
 
 export global NotificationUi {
@@ -26,6 +37,7 @@ export global NotificationUi {
 }
 
 export global CoursesUi {
+    in-out property <bool> show-hidden: false;
     in-out property <[CourseTab]> tabs;
     in-out property <int> active-tab: -1;
     callback select-tab(int);
