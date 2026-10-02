@@ -8,8 +8,30 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { Theme } from "../../palette.slint";
 import { UiState, DashboardUi, AssignmentUi } from "../../globals.slint";
 
-export component Dashboard inherits Rectangle {
-    background: UiState.theme.background-800;
+export component Dashboard inherits FocusScope {
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    init => { root.focus(); }
+    private property <bool> actions-enabled:
+        !DashboardUi.selected-assignment.course-id.is-empty;
+
+    KeyBinding {
+        keys: @keys(V);
+        enabled: root.actions-enabled;
+        activated => { DashboardUi.open-selected(); }
+    }
+    KeyBinding {
+        keys: @keys(D);
+        enabled: root.actions-enabled;
+        activated => { DashboardUi.toggle-selected-done(); }
+    }
+    KeyBinding {
+        keys: @keys(Escape);
+        enabled: root.actions-enabled;
+        activated => { DashboardUi.unselect(); }
+    }
+
+    Rectangle { background: UiState.theme.background-800; }
     vertical-stretch: 1;
 
     VerticalLayout {

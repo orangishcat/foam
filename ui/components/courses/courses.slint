@@ -3,9 +3,18 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { CourseItem } from "../../types/course-ui.slint";
 
-export component Courses inherits Rectangle {
+export component Courses inherits FocusScope {
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
     private property <bool> show-hidden <=> CoursesUi.show-hidden;
-    init => { CoursesUi.show-hidden = false; }
+    init => {
+        CoursesUi.show-hidden = false;
+        root.focus();
+    }
+    KeyBinding {
+        keys: @keys(H);
+        activated => { CoursesUi.show-hidden = !CoursesUi.show-hidden; }
+    }
     private property <int> drag-from: -1;
     private property <int> drag-to: -1;
     private property <length> drag-pointer-y: 0px;
