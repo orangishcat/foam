@@ -46,9 +46,6 @@ pub(crate) fn save_notifications_on(
     state: &impl Serialize,
 ) -> Result<()> {
     let transaction = connection.transaction().map_err(Error::other)?;
-    transaction
-        .execute("DELETE FROM notifications", [])
-        .map_err(Error::other)?;
     for notification in notifications {
         let serialized = serde_rusqlite::to_params_named(notification).map_err(Error::other)?;
         let id = serde_json::to_string(&(
