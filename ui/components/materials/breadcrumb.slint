@@ -6,7 +6,7 @@ export component Breadcrumb inherits Rectangle {
     in property <string> title;
     in property <string> kind;
     callback activated();
-    height: 32px;
+    height: UiState.top-bar-height;
     background: action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent;
     border-radius: 4px;
     accessible-role: button;
@@ -17,8 +17,8 @@ export component Breadcrumb inherits Rectangle {
         VerticalLayout {
             alignment: center;
             Icon {
-                width: 16px;
-                height: 16px;
+                width: 14px;
+                height: 14px;
                 kind: root.kind;
             }
         }

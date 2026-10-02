@@ -8,9 +8,11 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { Theme } from "../../palette.slint";
 import { UiState, DashboardUi, AssignmentUi } from "../../globals.slint";
 import { DashboardBottomBar } from "bottom-bar.slint";
+import { TopBarFrame } from "../top-bar-frame.slint";
 
 export component Dashboard inherits FocusScope {
     in property <length> sidebar-width: 0px;
+    in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     init => { root.focus(); }
@@ -39,6 +41,7 @@ export component Dashboard inherits FocusScope {
     VerticalLayout {
         spacing: 0px;
         vertical-stretch: 1;
+        if root.custom-titlebar: TopBarFrame { custom-titlebar: root.custom-titlebar; }
         Rectangle {
             vertical-stretch: 1;
             Rectangle {

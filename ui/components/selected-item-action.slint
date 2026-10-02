@@ -12,6 +12,7 @@ export component SelectedItemAction {
             text: root.action-name;
             clicked => { root.action(); }
         }
+
         Rectangle {
             border-radius: 5px;
             background: {
@@ -31,14 +32,14 @@ export component SelectedItemAction {
                         border-radius: 5px;
                         border-color: UiState.theme.background-600;
                         VerticalLayout {
-                            padding-top: 2px;
-                            padding-bottom: 2px;
-                            padding-left: 6px;
-                            padding-right: 6px;
+                            padding-top: 1px;
+                            padding-bottom: 1px;
+                            padding-left: 5px;
+                            padding-right: 5px;
 
                             Text {
                                 text: hotkey-name;
-                                font-size: 12px;
+                                font-size: 10px;
                                 font-weight: 700;
                             }
                         }

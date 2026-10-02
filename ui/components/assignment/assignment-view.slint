@@ -7,15 +7,18 @@ import {
 } from "../materials/breadcrumb.slint";
 import { Screen } from "../../types/screen.slint";
 import { SelectableText } from "../selectable-text.slint";
-import { BottomBar } from "../materials/bottom-bar.slint";
+import { TopBar } from "../materials/top-bar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
 export component AssignmentView inherits Rectangle {
     in property <length> sidebar-width: 0px;
+    in property <bool> custom-titlebar: false;
     in property <CourseTab> tab;
     background: UiState.theme.background-800;
 
     VerticalLayout {
         spacing: 0px;
+        TopBar { tab: root.tab; custom-titlebar: root.custom-titlebar; }
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
@@ -215,6 +218,6 @@ export component AssignmentView inherits Rectangle {
                 }
             }
         }
-        BottomBar { tab: root.tab; }
+        BottomBarFrame { }
     }
 }

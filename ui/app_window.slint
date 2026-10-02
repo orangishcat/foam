@@ -23,45 +23,30 @@ export component AppWindow inherits Window {
 
     background: UiState.theme.background-800;
     in property <bool> custom-titlebar: false;
-    private property <color> bar-background: {
-        let c = UiState.theme.background-900.to-oklch();
-        oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
-    };
-    private property <length> bar-height: 32px;
 
     VerticalLayout {
         spacing: 0px;
-        if root.custom-titlebar: Rectangle {
-            height: root.bar-height - 1px;
-            background: root.bar-background;
-            Text {
-                x: 80px;
-                y: 7px;
-                text: root.title;
-                color: UiState.theme.text-100;
-                vertical-alignment: center;
-                horizontal-alignment: left;
-            }
-        }
-
         Rectangle {
             vertical-stretch: 1;
             if UiState.screen == Screen.dashboard: Dashboard {
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
 
             if UiState.screen == Screen.notifs: Notifications {
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
 
             if UiState.screen == Screen.courses: Courses {
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
             for tab[index] in CoursesUi.tabs: AssignmentView {
                 tab: tab;
@@ -69,6 +54,7 @@ export component AppWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
             for tab[index] in CoursesUi.tabs: Materials {
                 tab: tab;
@@ -76,13 +62,13 @@ export component AppWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
             navigation := Sidebar {
                 x: 0px;
-                y: 0px;
-                height: parent.height - root.bar-height;
+                y: UiState.top-bar-height;
+                height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;
             }
         }
-
     }
 }

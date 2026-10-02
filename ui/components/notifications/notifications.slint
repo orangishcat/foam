@@ -8,13 +8,16 @@ import {
 import { UiState, NotificationUi } from "../../globals.slint";
 import { NotificationType } from "../../types/notification-ui.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { TopBarFrame } from "../top-bar-frame.slint";
 
 export component Notifications inherits Rectangle {
     in property <length> sidebar-width: 0px;
+    in property <bool> custom-titlebar: false;
     background: UiState.theme.background-800;
 
     VerticalLayout {
         spacing: 0px;
+        if root.custom-titlebar: TopBarFrame { custom-titlebar: root.custom-titlebar; }
         Rectangle {
             vertical-stretch: 1;
             Rectangle {

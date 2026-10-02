@@ -1,0 +1,15 @@
+import { UiState } from "../globals.slint";
+
+export component TopBarFrame inherits Rectangle {
+    in property <bool> custom-titlebar: false;
+    height: UiState.top-bar-height;
+    background: {
+        let c = UiState.theme.background-900.to-oklch();
+        oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
+    };
+    HorizontalLayout {
+        padding-left: root.custom-titlebar ? 70px : 0px;
+
+        @children
+    }
+}

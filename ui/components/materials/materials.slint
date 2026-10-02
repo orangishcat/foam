@@ -8,13 +8,20 @@ import {
 import { Sidebar } from "sidebar.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { Theme } from "../../palette.slint";
-import { BottomBar } from "bottom-bar.slint";
+import { TopBar } from "top-bar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
 export component Materials inherits Rectangle {
     in property <length> sidebar-width: 0px;
+    in property <bool> custom-titlebar: false;
     in property <CourseTab> tab;
     VerticalLayout {
         spacing: 0px;
+        TopBar {
+            tab: root.tab;
+            custom-titlebar: root.custom-titlebar;
+        }
+
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
@@ -29,25 +36,21 @@ export component Materials inherits Rectangle {
 
                     Rectangle {
                         horizontal-stretch: 1;
-                        VerticalLayout {
-                            padding: 16px;
-                            spacing: 8px;
+                        list := ScrollView {
+                            horizontal-scrollbar-policy: always-off;
+                            VerticalLayout {
+                                padding: 16px;
+                                for item[i] in root.tab.materials: VerticalLayout {
+                                    padding-bottom: 4px;
+                                    Row {
+                                        width: list.visible-width;
+                                        item: item;
+                                    }
 
-                            list := ScrollView {
-                                horizontal-scrollbar-policy: always-off;
-                                VerticalLayout {
-                                    for item[i] in root.tab.materials: VerticalLayout {
-                                        padding-bottom: 4px;
-                                        Row {
-                                            width: list.visible-width;
-                                            item: item;
-                                        }
-
-                                        if i < root.tab.materials.length - 1: Rectangle {
-                                            border-width: 1px;
-                                            height: 1px;
-                                            border-color: UiState.theme.background-700;
-                                        }
+                                    if i < root.tab.materials.length - 1: Rectangle {
+                                        border-width: 1px;
+                                        height: 1px;
+                                        border-color: UiState.theme.background-700;
                                     }
                                 }
                             }
@@ -56,6 +59,7 @@ export component Materials inherits Rectangle {
                 }
             }
         }
-        BottomBar { tab: root.tab; }
+
+        BottomBarFrame { }
     }
 }

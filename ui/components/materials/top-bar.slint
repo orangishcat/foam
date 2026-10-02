@@ -3,9 +3,9 @@ import { Breadcrumb } from "breadcrumb.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { Screen } from "../../types/screen.slint";
 import { CourseTab } from "../../types/course-ui.slint";
-import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { TopBarFrame } from "../top-bar-frame.slint";
 
-export component BottomBar inherits BottomBarFrame {
+export component TopBar inherits TopBarFrame {
     in property <CourseTab> tab;
 
     path := ScrollView {
@@ -24,10 +24,12 @@ export component BottomBar inherits BottomBarFrame {
 
             for item in root.tab.breadcrumbs: HorizontalLayout {
                 spacing: 8px;
-                Text {
-                    text: "›";
-                    color: UiState.theme.text-200;
-                    vertical-alignment: center;
+                Image {
+                    width: 12px;
+                    y: 10px;
+                    source: @image-url("../../icons/chevron-right.svg");
+                    colorize: UiState.theme.text-200;
+                    vertical-alignment: top;
                 }
 
                 Breadcrumb {

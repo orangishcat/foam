@@ -3,9 +3,11 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { UiState, CoursesUi } from "../../globals.slint";
 import { CourseItem } from "../../types/course-ui.slint";
 import { CoursesBottomBar } from "bottom-bar.slint";
+import { TopBarFrame } from "../top-bar-frame.slint";
 
 export component Courses inherits FocusScope {
     in property <length> sidebar-width: 0px;
+    in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     private property <bool> show-hidden <=> CoursesUi.show-hidden;
@@ -25,6 +27,7 @@ export component Courses inherits FocusScope {
 
     VerticalLayout {
         spacing: 0px;
+        if root.custom-titlebar: TopBarFrame { custom-titlebar: root.custom-titlebar; }
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
