@@ -5,6 +5,7 @@ use crate::{
     api::schoology::{self, RequestResult},
     database, filesystem,
     state::bottom_bar::refresh_file_view,
+    thread_manager,
     types::course::Course,
     ui::{self},
 };
@@ -51,19 +52,23 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
             let id = course.course_id.clone();
             let icon_url = course.logo_img_src.clone();
             if !icon_url.trim().is_empty() {
-                std::thread::spawn(move || match schoology::internal_get_request(&icon_url) {
-                    Ok(request) => {
-                        let downloaded_id = id.clone();
-                        if let Some(path) =
-                            filesystem::asset_from_url(request, &icon_url, move |path| {
-                                show_course_icon(downloaded_id, path)
-                            })
-                        {
-                            show_course_icon(id, path);
+                thread_manager::spawn_thread("download icon", move || {
+                    match schoology::internal_get_request(&icon_url) {
+                        Ok(request) => {
+                            let downloaded_id = id.clone();
+                            if let Some(path) =
+                                filesystem::asset_from_url(request, &icon_url, move |path| {
+                                    show_course_icon(downloaded_id, path)
+                                })
+                            {
+                                show_course_icon(id, path);
+                            }
                         }
+                        Err(error) => log::warn!("Preparing course icon download failed: {error}"),
                     }
-                    Err(error) => log::warn!("Preparing course icon download failed: {error}"),
-                });
+                })
+                .inspect_err(|err| log::warn!("Spawning download thread failed: {err}"))
+                .ok();
             }
             CourseItem {
                 id: course.course_id.into(),
@@ -101,9 +106,9 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         select_tab(&ui, index);
     });
     let weak = ui.as_weak();
-    global.on_activate_course(move |course| {
+    global.on_activate_course(move |course, icon| {
         let Some(ui) = weak.upgrade() else { return };
-        match ensure_course_tab(&ui, &course) {
+        match ensure_course_tab(&ui, &course, Some(icon)) {
             Ok(index) => select_tab(&ui, index as i32),
             Err(err) => log::warn!("Opening course failed: {err}"),
         }
@@ -230,7 +235,65 @@ pub fn course_title(ui: &AppWindow, id: &str) -> slint::SharedString {
         .unwrap_or_else(|| id.into())
 }
 
-pub fn ensure_course_tab(ui: &AppWindow, course: &str) -> io::Result<usize> {
+fn course_tab_image(course: &str) -> slint::Image {
+    let result = (|| -> io::Result<Option<slint::Image>> {
+        let Some(url) = database::from_sql_map(
+            "SELECT logo_img_src FROM courses WHERE course_id = ?".into(),
+            params![course],
+            |row| row.get::<_, String>(0).map_err(io::Error::other),
+        )?
+        .into_iter()
+        .next()
+        .filter(|url| !url.trim().is_empty()) else {
+            return Ok(None);
+        };
+        let request = schoology::internal_get_request(&url).map_err(io::Error::other)?;
+        let course_id = course.to_owned();
+        let path = filesystem::asset_from_url(request, &url, move |path| {
+            let bytes = match std::fs::read(&path) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    log::warn!("Reading course tab image failed: {error}");
+                    return;
+                }
+            };
+            ui::run_on_ui_thread(move |ui| {
+                let tabs = ui.global::<CoursesUi>().get_tabs();
+                if let Some(index) = (0..tabs.row_count()).find(|&index| {
+                    tabs.row_data(index)
+                        .is_some_and(|tab| tab.course_id == course_id)
+                }) && let Some(mut tab) = tabs.row_data(index)
+                {
+                    match slint::Image::load_from_data(&bytes, None) {
+                        Ok(image) => {
+                            tab.image = image;
+                            tabs.set_row_data(index, tab);
+                        }
+                        Err(error) => log::warn!("Loading course tab image failed: {error}"),
+                    }
+                }
+            });
+        });
+        path.map(|path| {
+            let bytes = std::fs::read(path)?;
+            slint::Image::load_from_data(&bytes, None).map_err(io::Error::other)
+        })
+        .transpose()
+    })();
+    match result {
+        Ok(image) => image.unwrap_or_default(),
+        Err(error) => {
+            log::warn!("Loading image for course {course} failed: {error}");
+            slint::Image::default()
+        }
+    }
+}
+
+pub fn ensure_course_tab(
+    ui: &AppWindow,
+    course: &str,
+    icon: Option<slint::Image>,
+) -> io::Result<usize> {
     let global = ui.global::<CoursesUi>();
     let tabs = global.get_tabs();
     if let Some(index) = (0..tabs.row_count()).find(|&index| {
@@ -243,11 +306,14 @@ pub fn ensure_course_tab(ui: &AppWindow, course: &str) -> io::Result<usize> {
         .as_any()
         .downcast_ref::<VecModel<CourseTab>>()
         .ok_or_else(|| io::Error::other("Course tabs are unavailable"))?;
+
     model.push(CourseTab {
         course_id: course.into(),
         title: course_title(ui, course),
+        image: icon.unwrap_or_else(|| course_tab_image(course)),
         ..Default::default()
     });
+
     let index = model.row_count() - 1;
     global.set_active_tab(index as i32);
     global.set_course_id(course.into());
@@ -266,7 +332,7 @@ pub fn show_assignment(ui: &AppWindow, course: &str, id: &str) -> io::Result<()>
     .next()
     .ok_or_else(|| io::Error::other("Assignment material no longer exists"))?;
     let root = root_folder(course)?;
-    let index = ensure_course_tab(ui, course)?;
+    let index = ensure_course_tab(ui, course, None)?;
     let global = ui.global::<CoursesUi>();
     global.set_active_tab(index as i32);
     global.set_course_id(course.into());

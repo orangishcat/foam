@@ -101,7 +101,14 @@ export component Sidebar inherits Rectangle {
                         y: (parent.height - self.height) / 2;
                         border-radius: 15px;
                         background: UiState.theme.background-400;
-                        Text {
+                        clip: true;
+                        Image {
+                            source: tab.image;
+                            width: parent.width;
+                            height: parent.height;
+                        }
+
+                        if tab.image.width == 0: Text {
                             text: tab.title;
                             width: parent.width - 8px;
                             x: 4px;

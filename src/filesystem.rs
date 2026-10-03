@@ -9,7 +9,7 @@ use reqwest::blocking::RequestBuilder;
 use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
-use crate::{config::config, database};
+use crate::{config::config, database, thread_manager};
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
@@ -40,7 +40,7 @@ pub fn asset_from_url(
     }
 
     let url = url.to_owned();
-    std::thread::spawn(move || {
+    thread_manager::spawn_thread("download asset", move || {
         log::debug!("Downloading asset from {url}");
         let result = (|| -> io::Result<PathBuf> {
             let mut response = request
