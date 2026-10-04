@@ -172,10 +172,17 @@ export component Sidebar inherits Rectangle {
                             else { CoursesUi.select-tab(index); }
                         }
                         Tooltip {
-                            Text {
-                                text: tab.title + (index < 6 ? " — " + UiState.shortcut-modifier + "+" + (index + 4) : "")
-                                    + "\nClose: " + UiState.shortcut-modifier + "+W, or Shift-click.\nNavigate sidebar: " + UiState.shortcut-modifier + "+" + (UiState.shortcut-modifier == "Cmd" ? "Option" : "Alt") + "+↑/↓";
-                                color: UiState.theme.text-50;
+                            VerticalLayout {
+                                padding: 4px;
+                                Text {
+                                    text: tab.title;
+                                    color: UiState.theme.text-50;
+                                }
+
+                                Text {
+                                    text: UiState.shortcut-modifier + "+" + (index + 4);
+                                    color: UiState.theme.text-400;
+                                }
                             }
                         }
                     }
