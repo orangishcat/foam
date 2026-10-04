@@ -7,7 +7,8 @@ use std::{
 
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, AUTHORIZATION},
+    cookie::CookieStore,
+    header::{ACCEPT, AUTHORIZATION, COOKIE, HeaderMap, USER_AGENT as USER_AGENT_HEADER},
 };
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -27,6 +28,41 @@ static INTERNAL_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
     LazyLock::new(|| new_internal_client().map(RwLock::new));
 static API_CLIENT: LazyLock<RequestResult<RwLock<Client>>> =
     LazyLock::new(|| new_client().map(RwLock::new));
+static INTERNAL_COOKIES: LazyLock<RequestResult<Arc<cookies::SessionCookies>>> =
+    LazyLock::new(|| {
+        let url = internal_url("/")?.parse::<reqwest::Url>()?;
+        let config = config();
+        Ok(Arc::new(cookies::SessionCookies::new(
+            url,
+            config.cookie_key.clone(),
+            config.cookie_value.clone(),
+        )))
+    });
+
+/// Select the same credentials for document downloads and native webview requests.
+pub fn resource_get_request(url: &str) -> RequestResult<reqwest::blocking::RequestBuilder> {
+    let request = if url.starts_with("https://api.schoology.com") {
+        api_get_request(url)?
+    } else {
+        internal_get_request(url)?
+    };
+    Ok(request.header(ACCEPT, "*/*"))
+}
+
+pub fn resource_headers(url: &str) -> RequestResult<HeaderMap> {
+    let request = resource_get_request(url)?.build()?;
+    let mut headers = request.headers().clone();
+    headers.insert(USER_AGENT_HEADER, USER_AGENT.parse()?);
+    if !url.starts_with("https://api.schoology.com") {
+        let jar = INTERNAL_COOKIES
+            .as_ref()
+            .map_err(|error| io::Error::other(error.to_string()))?;
+        if let Some(cookie) = jar.cookies(request.url()) {
+            headers.insert(COOKIE, cookie);
+        }
+    }
+    Ok(headers)
+}
 
 pub fn internal_get_request(url: &str) -> RequestResult<reqwest::blocking::RequestBuilder> {
     let request = INTERNAL_CLIENT
@@ -60,12 +96,10 @@ fn new_client() -> RequestResult<Client> {
 }
 
 fn new_internal_client() -> RequestResult<Client> {
-    let url = internal_url("/")?.parse::<reqwest::Url>()?;
-    let (key, value) = {
-        let config = config();
-        (config.cookie_key.clone(), config.cookie_value.clone())
-    };
-    let jar = Arc::new(cookies::SessionCookies::new(url, key, value));
+    let jar = INTERNAL_COOKIES
+        .as_ref()
+        .map_err(|error| io::Error::other(error.to_string()))?
+        .clone();
 
     Client::builder()
         .user_agent(USER_AGENT)

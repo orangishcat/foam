@@ -1,6 +1,6 @@
 import { ScrollView } from "std-widgets.slint";
 import { Breadcrumb } from "breadcrumb.slint";
-import { UiState, CoursesUi } from "../../globals.slint";
+import { UiState, CoursesUi, DocumentUi } from "../../globals.slint";
 import { Screen } from "../../types/screen.slint";
 import { CourseTab } from "../../types/course-ui.slint";
 import { TopBarFrame } from "../top-bar-frame.slint";
@@ -42,6 +42,7 @@ export component TopBar inherits TopBarFrame {
                         if item.kind == "assignment" {
                             CoursesUi.navigate-assignment(item.course-id, item.id);
                         }
+                        if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
                     }
                 }
             }

@@ -67,10 +67,9 @@ pub fn refresh_file_view(ui: &AppWindow) {
                 "assignment".to_shared_string(),
             )
         } else if screen == Screen::Document {
-            // todo
             (
-                "".to_shared_string(),
-                "".to_shared_string(),
+                ui.global::<crate::DocumentUi>().get_id(),
+                ui.global::<crate::DocumentUi>().get_title(),
                 "document".to_shared_string(),
             )
         } else {

@@ -19,6 +19,7 @@ mod state;
 mod thread_manager;
 mod types;
 mod ui;
+mod wry;
 
 slint::include_modules!();
 
@@ -76,6 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     state().init();
     let snapshot = state().clone();
     snapshot.sync_ui(&ui);
+    state::document_view::init(&ui);
 
     match ui.run() {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),

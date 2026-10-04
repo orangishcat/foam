@@ -129,6 +129,7 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
             let tabs = global.get_tabs();
             if let Some(mut tab) = tabs.row_data(index) {
                 tab.assignment_id = "".into();
+                tab.document_id = "".into();
                 tabs.set_row_data(index, tab);
             }
         }
@@ -351,6 +352,7 @@ pub fn show_assignment(ui: &AppWindow, course: &str, id: &str) -> io::Result<()>
     let tabs = global.get_tabs();
     if let Some(mut tab) = tabs.row_data(index) {
         tab.assignment_id = id.into();
+        tab.document_id = "".into();
         tabs.set_row_data(index, tab);
     }
     Ok(())
@@ -371,7 +373,7 @@ pub fn close_tab(ui: &AppWindow, index: i32) {
     let active = global.get_active_tab();
     let showing_tab = matches!(
         ui.global::<UiState>().get_screen(),
-        Screen::Materials | Screen::Assignment
+        Screen::Materials | Screen::Assignment | Screen::Document
     );
     ui.global::<UiState>().set_focused_sidebar_item(-1);
     model.remove(row);
@@ -410,7 +412,10 @@ pub fn select_tab(ui: &AppWindow, index: i32) {
     global.set_browser_error(tab.browser_error);
     global.set_materials(tab.materials);
     global.set_parent_materials(tab.parent_materials);
-    if tab.assignment_id.is_empty() {
+    if !tab.document_id.is_empty() {
+        ui.global::<crate::DocumentUi>()
+            .invoke_open(tab.course_id, tab.document_id);
+    } else if tab.assignment_id.is_empty() {
         ui.global::<UiState>().set_screen(Screen::Materials);
     } else {
         ui.global::<crate::AssignmentUi>()

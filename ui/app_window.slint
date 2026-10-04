@@ -3,6 +3,7 @@ import { Screen } from "types/screen.slint";
 import { Courses, CoursesMenu } from "components/courses/courses.slint";
 import { Materials, MaterialsMenu } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
+import { DocumentView } from "components/document/document-view.slint";
 import { UiState, CoursesUi, DashboardUi } from "globals.slint";
 export {
     UiState,
@@ -10,6 +11,7 @@ export {
     NotificationUi,
     CoursesUi,
     AssignmentUi,
+    DocumentUi,
 } from "globals.slint";
 import "fonts/MozillaText.ttf";
 import { Notifications } from "components/notifications/notifications.slint";
@@ -29,6 +31,17 @@ export component AppWindow inherits Window {
     in-out property <int> sidebar-focus-request: -1;
     callback navigate-sidebar(int);
     callback step-sidebar(int);
+    out property <length> document-x: document.viewer-x;
+    out property <length> document-y: document.viewer-y;
+    out property <length> document-width: document.viewer-width;
+    out property <length> document-height: document.viewer-height;
+    private property <bool> document-visible: UiState.screen == Screen.document;
+    callback update-document-webview();
+    changed document-x => { root.update-document-webview(); }
+    changed document-y => { root.update-document-webview(); }
+    changed document-width => { root.update-document-webview(); }
+    changed document-height => { root.update-document-webview(); }
+    changed document-visible => { root.update-document-webview(); }
 
     MenuBar {
         Menu {
@@ -132,7 +145,7 @@ export component AppWindow inherits Window {
                 activated => { MaterialsMenu.activate(index); }
             }
         }
-        if UiState.screen == Screen.assignment: Menu {
+        if UiState.screen == Screen.assignment || UiState.screen == Screen.document: Menu {
             title: "Actions";
             for item[index] in AssignmentMenu.items: MenuItem {
                 title: item.title;
@@ -188,6 +201,14 @@ export component AppWindow inherits Window {
                 x: 0px;
                 y: UiState.top-bar-height;
                 height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;
+            }
+            document := DocumentView {
+                visible: UiState.screen == Screen.document;
+                tab: CoursesUi.active-tab >= 0 ? CoursesUi.tabs[CoursesUi.active-tab] : {};
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
             }
         }
     }

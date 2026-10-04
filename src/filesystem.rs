@@ -18,6 +18,18 @@ pub fn asset_from_url(
     url: &str,
     on_download_complete: impl FnOnce(PathBuf) + Send + 'static,
 ) -> Option<PathBuf> {
+    asset_from_url_result(request, url, move |result| {
+        if let Ok(path) = result {
+            on_download_complete(path);
+        }
+    })
+}
+
+pub fn asset_from_url_result(
+    request: RequestBuilder,
+    url: &str,
+    on_complete: impl FnOnce(io::Result<PathBuf>) + Send + 'static,
+) -> Option<PathBuf> {
     if url.trim().is_empty() {
         log::debug!("Skipping empty asset URL");
         return None;
@@ -91,14 +103,14 @@ pub fn asset_from_url(
             )?;
             Ok(path)
         })();
-        match result {
+        match &result {
             Ok(path) => {
                 log::info!("Downloaded asset from {url} to {}", path.display());
-                on_download_complete(path);
             }
             Err(error) => log::warn!("Downloading asset from {url} failed: {error}"),
         }
-    });
+        on_complete(result);
+    }).inspect_err(|err| log::warn!("thread spawning failed: {err}")).ok();
     None
 }
 

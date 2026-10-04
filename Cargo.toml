@@ -27,6 +27,7 @@ serde_rusqlite = "0.43.0"
 serde_with = { version = "3", features = ["json", "chrono_0_4"] }
 i-slint-live-preview = "1.18.1"
 slint-interpreter = "1.18.1"
+wry = "0.57.0"
 
 [build-dependencies]
 slint-build = "1.16.1"

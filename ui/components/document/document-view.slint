@@ -1,0 +1,38 @@
+import { DocumentUi, UiState } from "../../globals.slint";
+import { CourseTab } from "../../types/course-ui.slint";
+import { TopBar } from "../materials/top-bar.slint";
+import { Sidebar } from "../materials/sidebar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component DocumentView inherits Rectangle {
+    in property <CourseTab> tab;
+    in property <length> sidebar-width;
+    in property <bool> custom-titlebar;
+    out property <length> viewer-x: sidebar-width + files.width;
+    out property <length> viewer-y: UiState.top-bar-height;
+    out property <length> viewer-width: root.width - viewer-x;
+    out property <length> viewer-height: root.height - viewer-y - UiState.bottom-bar-height;
+    VerticalLayout {
+        spacing: 0px;
+        TopBar { tab: root.tab; custom-titlebar: root.custom-titlebar; }
+        Rectangle {
+            vertical-stretch: 1;
+            files := Sidebar {
+                x: root.sidebar-width;
+                height: parent.height;
+                tab: root.tab;
+                items: root.tab.materials;
+                selected-id: DocumentUi.id;
+            }
+            Text {
+                x: root.viewer-x + 16px;
+                y: 16px;
+                width: max(0px, root.viewer-width - 32px);
+                text: DocumentUi.error.is-empty ? "Loading document…" : DocumentUi.error;
+                color: UiState.theme.text-200;
+                wrap: word-wrap;
+            }
+        }
+        BottomBarFrame { }
+    }
+}
