@@ -1,0 +1,86 @@
+import { UiState } from "../../globals.slint";
+import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+
+export global AttachmentMenu {
+    in-out property <bool> visible;
+    in-out property <string> caption;
+    in-out property <string> error;
+    in-out property <int> index;
+    in-out property <int> count;
+    callback step(int);
+    callback open-browser();
+    callback close-preview();
+    out property <[ScreenMenuItem]> items: [
+        { title: "Previous attachment", shortcut: @keys(LeftArrow), enabled: index > 0 },
+        { title: "Next attachment", shortcut: @keys(RightArrow), enabled: index + 1 < count },
+        { title: "Close preview", shortcut: @keys(Escape), enabled: true },
+    ];
+    public function activate(index: int) {
+        if index == 0 { step(-1); }
+        else if index == 1 { step(1); }
+        else if index == 2 { close-preview(); }
+    }
+}
+
+export component AttachmentDialog inherits Rectangle {
+    background: #000a;
+    out property <length> viewer-x: panel.x;
+    out property <length> viewer-y: panel.y + UiState.top-bar-height;
+    out property <length> viewer-width: panel.width;
+    out property <length> viewer-height: max(0px, panel.height - UiState.top-bar-height);
+    TouchArea {
+        clicked => { AttachmentMenu.close-preview(); }
+    }
+
+    panel := Rectangle {
+        x: 24px;
+        y: UiState.top-bar-height + 12px;
+        width: max(0px, root.width - 48px);
+        height: max(0px, root.height - self.y - 24px);
+        background: UiState.theme.background-800;
+        border-radius: 10px;
+        clip: true;
+        TouchArea { }
+
+        VerticalLayout {
+            spacing: 0px;
+            ScreenTopBar {
+                title: AttachmentMenu.caption + " • " + (AttachmentMenu.index + 1) + " / " + AttachmentMenu.count;
+                icon: @image-url("../../icons/file-text.svg");
+                HorizontalLayout {
+                    alignment: end;
+                    horizontal-stretch: 1;
+                    if AttachmentMenu.index > 0: SelectedItemAction {
+                        hotkey-name: "←";
+                        hotkey: @keys(LeftArrow);
+                        action-name: "Previous attachment";
+                        action => { AttachmentMenu.activate(0); }
+                    }
+                    if AttachmentMenu.index + 1 < AttachmentMenu.count: SelectedItemAction {
+                        hotkey-name: "→";
+                        hotkey: @keys(RightArrow);
+                        action-name: "Next attachment";
+                        action => { AttachmentMenu.activate(1); }
+                    }
+
+                    SelectedItemAction {
+                        hotkey-name: "Esc";
+                        hotkey: @keys(Escape);
+                        action-name: "Close preview";
+                        action => { AttachmentMenu.activate(2); }
+                    }
+                }
+            }
+
+            Text {
+                text: AttachmentMenu.error.is-empty ? "Loading attachment…" : AttachmentMenu.error;
+                color: UiState.theme.text-200;
+                wrap: word-wrap;
+                vertical-stretch: 1;
+            }
+        }
+    }
+}

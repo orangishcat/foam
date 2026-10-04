@@ -1,4 +1,4 @@
-import { ScrollView, VerticalBox } from "std-widgets.slint";
+import { ScrollView, VerticalBox, Button } from "std-widgets.slint";
 import { AssignmentUi, CoursesUi, UiState } from "../../globals.slint";
 import { CourseTab } from "../../types/course-ui.slint";
 import { Sidebar } from "../materials/sidebar.slint";
@@ -8,16 +8,33 @@ import {
 import { Screen } from "../../types/screen.slint";
 import { SelectableText } from "../selectable-text.slint";
 import { TopBar } from "../materials/top-bar.slint";
-import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { AssignmentBottomBar } from "bottom-bar.slint";
 
 import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+import { HoverableButton } from "../hoverable-button.slint";
 
 export global AssignmentMenu {
     out property <[ScreenMenuItem]> items: [
-        { title: "Close tab", shortcut: @keys(Control + W), enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length },
+        {
+            title: "Close tab",
+            shortcut: @keys(Control + W),
+            enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length
+        },
+        {
+            title: "View attachments",
+            shortcut: @keys(V),
+            enabled: AssignmentUi.assignment.attachments.length > 0
+        },
+        {
+            title: "Open in browser",
+            shortcut: @keys(O),
+            enabled: !AssignmentUi.assignment.id.is-empty
+        },
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
+        else if index == 1 { AssignmentUi.view-attachments(0); }
+        else if index == 2 { AssignmentUi.open-browser(); }
     }
 }
 
@@ -29,7 +46,11 @@ export component AssignmentView inherits Rectangle {
 
     VerticalLayout {
         spacing: 0px;
-        TopBar { tab: root.tab; custom-titlebar: root.custom-titlebar; }
+        TopBar {
+            tab: root.tab;
+            custom-titlebar: root.custom-titlebar;
+        }
+
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
@@ -136,19 +157,22 @@ export component AssignmentView inherits Rectangle {
                                 if AssignmentUi.assignment.attachments.length > 0: VerticalLayout {
                                     spacing: 6px;
 
-                                    for file in AssignmentUi.assignment.attachments: Rectangle {
-                                        background: UiState.theme.background-750;
-                                        border-radius: 5px;
-                                        VerticalLayout {
-                                            padding: 8px;
-                                            SelectableText {
-                                                text: file.title;
-                                                color: UiState.theme.text-100;
-                                            }
+                                    for file[index] in AssignmentUi.assignment.attachments: att-btn := HoverableButton {
+                                        clicked => { AssignmentUi.view-attachments(index); }
+                                        Rectangle {
+                                            background: att-btn.has-hover ? UiState.theme.background-700 : UiState.theme.background-750;
+                                            border-radius: 5px;
+                                            VerticalLayout {
+                                                padding: 8px;
+                                                Text {
+                                                    text: file.title;
+                                                    color: UiState.theme.text-100;
+                                                }
 
-                                            if !file.details.is-empty: SelectableText {
-                                                text: file.details;
-                                                color: UiState.theme.text-400;
+                                                if !file.details.is-empty: Text {
+                                                    text: file.details;
+                                                    color: UiState.theme.text-400;
+                                                }
                                             }
                                         }
                                     }
@@ -229,6 +253,7 @@ export component AssignmentView inherits Rectangle {
                 }
             }
         }
-        BottomBarFrame { }
+
+        AssignmentBottomBar { }
     }
 }

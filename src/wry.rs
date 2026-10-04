@@ -60,7 +60,7 @@ pub fn init(ui: &AppWindow) {
 }
 
 /// Preserve the file type for native viewers without duplicating cached bytes.
-fn file_url(path: &Path, extension: &str) -> io::Result<reqwest::Url> {
+pub(crate) fn file_url(path: &Path, extension: &str) -> io::Result<reqwest::Url> {
     let mut path = path.canonicalize()?;
     let extension = extension.trim_start_matches('.');
     let extension = if !extension.is_empty()

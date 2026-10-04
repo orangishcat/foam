@@ -71,6 +71,8 @@ export global AssignmentUi {
     in-out property <AssignmentWithDetails> assignment;
     in-out property <string> error;
     callback open(string, string);
+    callback view-attachments(int);
+    callback open-browser();
 }
 
 export global DocumentUi {

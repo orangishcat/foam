@@ -1,4 +1,5 @@
 pub mod assignment_view;
+pub mod attachment_view;
 pub mod courses;
 pub mod dashboard;
 pub mod document_view;

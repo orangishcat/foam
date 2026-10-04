@@ -1,4 +1,9 @@
 import { Dashboard, DashboardMenu } from "components/dashboard/dashboard.slint";
+import {
+    AttachmentDialog,
+    AttachmentMenu,
+} from "components/assignment/attachment-window.slint";
+export { AttachmentMenu } from "components/assignment/attachment-window.slint";
 import { Screen } from "types/screen.slint";
 import { Courses, CoursesMenu } from "components/courses/courses.slint";
 import { Materials, MaterialsMenu } from "components/materials/materials.slint";
@@ -31,6 +36,15 @@ export component AppWindow inherits Window {
     in-out property <int> sidebar-focus-request: -1;
     callback navigate-sidebar(int);
     callback step-sidebar(int);
+    out property <length> attachment-x: attachment.viewer-x;
+    out property <length> attachment-y: attachment.viewer-y;
+    out property <length> attachment-width: attachment.viewer-width;
+    out property <length> attachment-height: attachment.viewer-height;
+    callback update-attachment-webview();
+    changed attachment-x => { root.update-attachment-webview(); }
+    changed attachment-y => { root.update-attachment-webview(); }
+    changed attachment-width => { root.update-attachment-webview(); }
+    changed attachment-height => { root.update-attachment-webview(); }
     out property <length> document-x: document.viewer-x;
     out property <length> document-y: document.viewer-y;
     out property <length> document-width: document.viewer-width;
@@ -44,8 +58,8 @@ export component AppWindow inherits Window {
     changed document-visible => { root.update-document-webview(); }
 
     MenuBar {
-        Menu {
-            title: "Navigate";
+        if !AttachmentMenu.visible: Menu {
+            title: "Tabs";
             MenuItem {
                 title: "Calendar";
                 shortcut: @keys(Control + Digit1);
@@ -63,10 +77,9 @@ export component AppWindow inherits Window {
                 shortcut: @keys(Control + Digit3);
                 activated => { root.navigate-sidebar(2); }
             }
-        }
 
-        Menu {
-            title: "Tabs";
+            if CoursesUi.tabs.length > 0: MenuSeparator { }
+
             if CoursesUi.tabs.length > 0: MenuItem {
                 title: "Tab 1";
                 shortcut: @keys(Control + Digit4);
@@ -118,7 +131,7 @@ export component AppWindow inherits Window {
             }
         }
 
-        if UiState.screen == Screen.dashboard: Menu {
+        if !AttachmentMenu.visible && UiState.screen == Screen.dashboard: Menu {
             title: "Actions";
             for item[index] in DashboardMenu.items: MenuItem {
                 title: item.title;
@@ -127,7 +140,7 @@ export component AppWindow inherits Window {
                 activated => { DashboardMenu.activate(index); }
             }
         }
-        if UiState.screen == Screen.courses: Menu {
+        if !AttachmentMenu.visible && UiState.screen == Screen.courses: Menu {
             title: "Actions";
             for item[index] in CoursesMenu.items: MenuItem {
                 title: item.title;
@@ -136,7 +149,7 @@ export component AppWindow inherits Window {
                 activated => { CoursesMenu.activate(index); }
             }
         }
-        if UiState.screen == Screen.materials: Menu {
+        if !AttachmentMenu.visible && UiState.screen == Screen.materials: Menu {
             title: "Actions";
             for item[index] in MaterialsMenu.items: MenuItem {
                 title: item.title;
@@ -145,13 +158,22 @@ export component AppWindow inherits Window {
                 activated => { MaterialsMenu.activate(index); }
             }
         }
-        if UiState.screen == Screen.assignment || UiState.screen == Screen.document: Menu {
+        if !AttachmentMenu.visible && (UiState.screen == Screen.assignment || UiState.screen == Screen.document): Menu {
             title: "Actions";
             for item[index] in AssignmentMenu.items: MenuItem {
                 title: item.title;
                 shortcut: item.shortcut;
                 enabled: item.enabled;
                 activated => { AssignmentMenu.activate(index); }
+            }
+        }
+        if AttachmentMenu.visible: Menu {
+            title: "Actions";
+            for item[index] in AttachmentMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { AttachmentMenu.activate(index); }
             }
         }
     }
@@ -202,14 +224,21 @@ export component AppWindow inherits Window {
                 y: UiState.top-bar-height;
                 height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;
             }
+
             document := DocumentView {
                 visible: UiState.screen == Screen.document;
-                tab: CoursesUi.active-tab >= 0 ? CoursesUi.tabs[CoursesUi.active-tab] : {};
+                tab: CoursesUi.active-tab >= 0 ? CoursesUi.tabs[CoursesUi.active-tab] : { };
                 width: parent.width;
                 height: parent.height;
                 sidebar-width: navigation.width;
                 custom-titlebar: root.custom-titlebar;
             }
         }
+    }
+
+    attachment := AttachmentDialog {
+        visible: AttachmentMenu.visible;
+        width: parent.width;
+        height: parent.height;
     }
 }

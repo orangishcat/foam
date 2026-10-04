@@ -58,6 +58,15 @@ fn files(attachments: &Attachments) -> ModelRc<AssignmentFile> {
                 })
                     .into(),
                 url: file.download_path.clone().into(),
+                extension: if file.extension.is_empty() {
+                    std::path::Path::new(&file.filename)
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .unwrap_or_default()
+                        .into()
+                } else {
+                    file.extension.as_str().into()
+                },
             })
             .collect::<Vec<_>>(),
     ))
@@ -134,6 +143,25 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
 }
 
 pub fn init(ui: &AppWindow) {
+    let weak = ui.as_weak();
+    ui.global::<AssignmentUi>()
+        .on_view_attachments(move |index| {
+            if let Some(ui) = weak.upgrade() {
+                crate::state::attachment_view::open(&ui, index);
+            }
+        });
+    let weak = ui.as_weak();
+    ui.global::<AssignmentUi>().on_open_browser(move || {
+        if let Some(ui) = weak.upgrade() {
+            let assignment = ui.global::<AssignmentUi>().get_assignment();
+            if !assignment.id.is_empty() {
+                crate::state::attachment_view::open_browser(&format!(
+                    "https://{}.schoology.com/assignment/{}",
+                    crate::config::config().subdomain.trim(), assignment.id
+                ));
+            }
+        }
+    });
     let weak = ui.as_weak();
     ui.global::<AssignmentUi>().on_open(move |course, id| {
         let Some(ui) = weak.upgrade() else { return };
