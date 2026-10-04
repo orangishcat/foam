@@ -8,6 +8,10 @@ import { Materials } from "materials/materials.slint";
 component NavigationItem inherits Rectangle {
     in property <string> label;
     in property <image> icon;
+    in property <int> item-index;
+    in property <string> shortcut;
+    in property <int> focus-request: -1;
+    changed focus-request => { if root.focus-request == root.item-index { action.focus(); } }
 
     in property <Screen> change-to;
     in property <float> progress: 0;
@@ -18,7 +22,25 @@ component NavigationItem inherits Rectangle {
 
     action := HoverableButton {
         text: root.label;
+        changed has-focus => {
+            if self.has-focus { UiState.focused-sidebar-item = root.item-index; }
+            else if UiState.focused-sidebar-item == root.item-index { UiState.focused-sidebar-item = -1; }
+        }
         clicked => { UiState.screen = change-to; }
+        Tooltip {
+            VerticalLayout {
+                padding: 4px;
+                Text {
+                    text: root.label;
+                    color: UiState.theme.text-50;
+                }
+
+                Text {
+                    text: UiState.shortcut-modifier + "+" + root.shortcut;
+                    color: UiState.theme.text-200;
+                }
+            }
+        }
     }
 
     if progress > 0: ProgressRing {
@@ -39,6 +61,7 @@ component NavigationItem inherits Rectangle {
 }
 
 export component Sidebar inherits Rectangle {
+    in property <int> focus-request: -1;
     in property <bool> minimized: true;
 
     width: minimized ? 60px : 240px;
@@ -55,13 +78,19 @@ export component Sidebar inherits Rectangle {
         }
 
         NavigationItem {
-            label: "Dashboard";
+            label: "Calendar";
+            item-index: 0;
+            focus-request: root.focus-request;
+            shortcut: "1";
             icon: @image-url("../icons/calendar-days.svg");
             change-to: dashboard;
         }
 
         NavigationItem {
             label: "Notifications";
+            item-index: 1;
+            focus-request: root.focus-request;
+            shortcut: "2";
             icon: @image-url("../icons/bell.svg");
             progress: NotificationUi.progress;
             change-to: notifs;
@@ -69,6 +98,9 @@ export component Sidebar inherits Rectangle {
 
         NavigationItem {
             label: "Courses";
+            item-index: 2;
+            focus-request: root.focus-request;
+            shortcut: "3";
             icon: @image-url("../icons/book-text.svg");
             change-to: courses;
         }
@@ -86,6 +118,8 @@ export component Sidebar inherits Rectangle {
                 spacing: 8px;
                 alignment: start;
                 for tab[index] in CoursesUi.tabs: Rectangle {
+                    property <int> focus-request: root.focus-request;
+                    changed focus-request => { if self.focus-request == index + 3 { tab-action.focus(); } }
                     width: tabs.visible-width;
                     height: 44px;
                     border-radius: 6px;
@@ -100,15 +134,16 @@ export component Sidebar inherits Rectangle {
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
                         border-radius: 15px;
-                        background: UiState.theme.background-400;
+                        background: oklch(0.7941, 0.04, 28.31, 1);
                         clip: true;
                         Image {
                             source: tab.image;
+                            visible: !UiState.shift-held || !tab-action.has-hover;
                             width: parent.width;
                             height: parent.height;
                         }
 
-                        if tab.image.width == 0: Text {
+                        if tab.image.width == 0 && (!UiState.shift-held || !tab-action.has-hover): Text {
                             text: tab.title;
                             width: parent.width - 8px;
                             x: 4px;
@@ -118,11 +153,31 @@ export component Sidebar inherits Rectangle {
                             vertical-alignment: center;
                             color: UiState.theme.text-50;
                         }
+                        if UiState.shift-held && tab-action.has-hover: Image {
+                            source: @image-url("../icons/x.svg");
+                            colorize: oklch(0.7903, 0.0986, 28.31, 1);
+                            width: parent.width;
+                            height: parent.height;
+                        }
                     }
 
                     tab-action := HoverableButton {
                         text: tab.title;
-                        clicked => { CoursesUi.select-tab(index); }
+                        changed has-focus => {
+                            if self.has-focus { UiState.focused-sidebar-item = index + 3; }
+                            else if UiState.focused-sidebar-item == index + 3 { UiState.focused-sidebar-item = -1; }
+                        }
+                        clicked => {
+                            if UiState.shift-held { CoursesUi.close-tab(index); }
+                            else { CoursesUi.select-tab(index); }
+                        }
+                        Tooltip {
+                            Text {
+                                text: tab.title + (index < 6 ? " — " + UiState.shortcut-modifier + "+" + (index + 4) : "")
+                                    + "\nClose: " + UiState.shortcut-modifier + "+W, or Shift-click.\nNavigate sidebar: " + UiState.shortcut-modifier + "+" + (UiState.shortcut-modifier == "Cmd" ? "Option" : "Alt") + "+↑/↓";
+                                color: UiState.theme.text-50;
+                            }
+                        }
                     }
                 }
             }
@@ -130,6 +185,8 @@ export component Sidebar inherits Rectangle {
 
         NavigationItem {
             label: "Settings";
+            item-index: CoursesUi.tabs.length + 3;
+            focus-request: root.focus-request;
             icon: @image-url("../icons/settings.svg");
             change-to: settings;
         }

@@ -1,9 +1,9 @@
-import { Dashboard } from "components/dashboard/dashboard.slint";
+import { Dashboard, DashboardMenu } from "components/dashboard/dashboard.slint";
 import { Screen } from "types/screen.slint";
-import { Courses } from "components/courses/courses.slint";
-import { Materials } from "components/materials/materials.slint";
+import { Courses, CoursesMenu } from "components/courses/courses.slint";
+import { Materials, MaterialsMenu } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
-import { UiState, CoursesUi } from "globals.slint";
+import { UiState, CoursesUi, DashboardUi } from "globals.slint";
 export {
     UiState,
     DashboardUi,
@@ -13,7 +13,10 @@ export {
 } from "globals.slint";
 import "fonts/MozillaText.ttf";
 import { Notifications } from "components/notifications/notifications.slint";
-import { AssignmentView } from "components/assignment/assignment-view.slint";
+import {
+    AssignmentView,
+    AssignmentMenu,
+} from "components/assignment/assignment-view.slint";
 
 export component AppWindow inherits Window {
     title: "foam";
@@ -23,6 +26,122 @@ export component AppWindow inherits Window {
 
     background: UiState.theme.background-800;
     in property <bool> custom-titlebar: false;
+    in-out property <int> sidebar-focus-request: -1;
+    callback navigate-sidebar(int);
+    callback step-sidebar(int);
+
+    MenuBar {
+        Menu {
+            title: "Navigate";
+            MenuItem {
+                title: "Calendar";
+                shortcut: @keys(Control + Digit1);
+                activated => { root.navigate-sidebar(0); }
+            }
+
+            MenuItem {
+                title: "Notifications";
+                shortcut: @keys(Control + Digit2);
+                activated => { root.navigate-sidebar(1); }
+            }
+
+            MenuItem {
+                title: "Courses";
+                shortcut: @keys(Control + Digit3);
+                activated => { root.navigate-sidebar(2); }
+            }
+        }
+
+        Menu {
+            title: "Tabs";
+            if CoursesUi.tabs.length > 0: MenuItem {
+                title: "Tab 1";
+                shortcut: @keys(Control + Digit4);
+                enabled: CoursesUi.tabs.length > 0;
+                activated => { root.navigate-sidebar(3); }
+            }
+            if CoursesUi.tabs.length > 1: MenuItem {
+                title: "Tab 2";
+                shortcut: @keys(Control + Digit5);
+                enabled: CoursesUi.tabs.length > 1;
+                activated => { root.navigate-sidebar(4); }
+            }
+            if CoursesUi.tabs.length > 2: MenuItem {
+                title: "Tab 3";
+                shortcut: @keys(Control + Digit6);
+                enabled: CoursesUi.tabs.length > 2;
+                activated => { root.navigate-sidebar(5); }
+            }
+            if CoursesUi.tabs.length > 3: MenuItem {
+                title: "Tab 4";
+                shortcut: @keys(Control + Digit7);
+                enabled: CoursesUi.tabs.length > 3;
+                activated => { root.navigate-sidebar(6); }
+            }
+            if CoursesUi.tabs.length > 4: MenuItem {
+                title: "Tab 5";
+                shortcut: @keys(Control + Digit8);
+                enabled: CoursesUi.tabs.length > 4;
+                activated => { root.navigate-sidebar(7); }
+            }
+            if CoursesUi.tabs.length > 5: MenuItem {
+                title: "Tab 6";
+                shortcut: @keys(Control + Digit9);
+                enabled: CoursesUi.tabs.length > 5;
+                activated => { root.navigate-sidebar(8); }
+            }
+            MenuSeparator { }
+
+            MenuItem {
+                title: "Previous sidebar item";
+                shortcut: @keys(Control + Alt + UpArrow);
+                activated => { root.step-sidebar(-1); }
+            }
+
+            MenuItem {
+                title: "Next sidebar item";
+                shortcut: @keys(Control + Alt + DownArrow);
+                activated => { root.step-sidebar(1); }
+            }
+        }
+
+        if UiState.screen == Screen.dashboard: Menu {
+            title: "Actions";
+            for item[index] in DashboardMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { DashboardMenu.activate(index); }
+            }
+        }
+        if UiState.screen == Screen.courses: Menu {
+            title: "Actions";
+            for item[index] in CoursesMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { CoursesMenu.activate(index); }
+            }
+        }
+        if UiState.screen == Screen.materials: Menu {
+            title: "Actions";
+            for item[index] in MaterialsMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { MaterialsMenu.activate(index); }
+            }
+        }
+        if UiState.screen == Screen.assignment: Menu {
+            title: "Actions";
+            for item[index] in AssignmentMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { AssignmentMenu.activate(index); }
+            }
+        }
+    }
 
     VerticalLayout {
         spacing: 0px;
@@ -65,6 +184,7 @@ export component AppWindow inherits Window {
                 custom-titlebar: root.custom-titlebar;
             }
             navigation := Sidebar {
+                focus-request: root.sidebar-focus-request;
                 x: 0px;
                 y: UiState.top-bar-height;
                 height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;

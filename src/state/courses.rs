@@ -106,6 +106,12 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         select_tab(&ui, index);
     });
     let weak = ui.as_weak();
+    global.on_close_tab(move |index| {
+        if let Some(ui) = weak.upgrade() {
+            close_tab(&ui, index);
+        }
+    });
+    let weak = ui.as_weak();
     global.on_activate_course(move |course, icon| {
         let Some(ui) = weak.upgrade() else { return };
         match ensure_course_tab(&ui, &course, Some(icon)) {
@@ -348,6 +354,44 @@ pub fn show_assignment(ui: &AppWindow, course: &str, id: &str) -> io::Result<()>
         tabs.set_row_data(index, tab);
     }
     Ok(())
+}
+
+pub fn close_tab(ui: &AppWindow, index: i32) {
+    let global = ui.global::<CoursesUi>();
+    let tabs = global.get_tabs();
+    let Some(model) = tabs.as_any().downcast_ref::<VecModel<CourseTab>>() else {
+        return;
+    };
+    let Ok(row) = usize::try_from(index) else {
+        return;
+    };
+    if row >= model.row_count() {
+        return;
+    }
+    let active = global.get_active_tab();
+    let showing_tab = matches!(
+        ui.global::<UiState>().get_screen(),
+        Screen::Materials | Screen::Assignment
+    );
+    ui.global::<UiState>().set_focused_sidebar_item(-1);
+    model.remove(row);
+    if model.row_count() == 0 {
+        global.set_active_tab(-1);
+        global.set_course_id("".into());
+        global.set_folder_id("".into());
+        if showing_tab {
+            ui.global::<UiState>().set_screen(Screen::Courses);
+        }
+    } else if active == index {
+        let next = row.min(model.row_count() - 1) as i32;
+        if showing_tab {
+            select_tab(ui, next);
+        } else {
+            global.set_active_tab(next);
+        }
+    } else if active > index {
+        global.set_active_tab(active - 1);
+    }
 }
 
 pub fn select_tab(ui: &AppWindow, index: i32) {

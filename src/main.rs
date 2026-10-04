@@ -1,6 +1,7 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use slint::ComponentHandle;
 use std::error::Error;
 
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
@@ -56,7 +57,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(target_os = "macos")]
     let quit_target = macos_quit::new_target();
 
+    let mut sidebar = state::sidebar::Sidebar::new(&ui);
     ui.window().on_winit_window_event(move |_window, event| {
+        if sidebar.handle_event(event) == EventResult::PreventDefault {
+            return EventResult::PreventDefault;
+        }
         if let winit::event::WindowEvent::Focused(focus) = event
             && *focus
         {

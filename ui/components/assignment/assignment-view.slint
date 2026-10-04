@@ -10,6 +10,17 @@ import { SelectableText } from "../selectable-text.slint";
 import { TopBar } from "../materials/top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
+import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+
+export global AssignmentMenu {
+    out property <[ScreenMenuItem]> items: [
+        { title: "Close tab", shortcut: @keys(Control + W), enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length },
+    ];
+    public function activate(index: int) {
+        if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
+    }
+}
+
 export component AssignmentView inherits Rectangle {
     in property <length> sidebar-width: 0px;
     in property <bool> custom-titlebar: false;

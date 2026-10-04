@@ -6,6 +6,9 @@ import { CourseItem, MaterialItem, CourseTab } from "types/course-ui.slint";
 import { AssignmentWithDetails } from "types/assignment-ui.slint";
 
 export global UiState {
+    in-out property <bool> shift-held: false;
+    in-out property <string> shortcut-modifier: "Ctrl";
+    in-out property <int> focused-sidebar-item: -1;
     in-out property <Screen> screen: Screen.dashboard;
     in-out property <ColorPalette> theme: Theme.dark;
     in-out property <length> top-bar-height: 32px;
@@ -43,6 +46,7 @@ export global CoursesUi {
     in-out property <[CourseTab]> tabs;
     in-out property <int> active-tab: -1;
     callback select-tab(int);
+    callback close-tab(int);
     in-out property <string> course-id;
     in-out property <string> folder-id;
     in-out property <string> folder-title: "Courses";

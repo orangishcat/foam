@@ -10,30 +10,27 @@ import { UiState, DashboardUi, AssignmentUi } from "../../globals.slint";
 import { DashboardBottomBar } from "bottom-bar.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 
+import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+
+export global DashboardMenu {
+    out property <[ScreenMenuItem]> items: [
+        { title: "View item", shortcut: @keys(V), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
+        { title: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done", shortcut: @keys(D), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
+        { title: "Unselect item", shortcut: @keys(Escape), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
+    ];
+    public function activate(index: int) {
+        if index == 0 { DashboardUi.open-selected(); }
+        else if index == 1 { DashboardUi.toggle-selected-done(); }
+        else if index == 2 { DashboardUi.unselect(); }
+    }
+}
+
 export component Dashboard inherits FocusScope {
     in property <length> sidebar-width: 0px;
     in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     init => { root.focus(); }
-    private property <bool> actions-enabled:
-        !DashboardUi.selected-assignment.course-id.is-empty;
-
-    KeyBinding {
-        keys: @keys(V);
-        enabled: root.actions-enabled;
-        activated => { DashboardUi.open-selected(); }
-    }
-    KeyBinding {
-        keys: @keys(D);
-        enabled: root.actions-enabled;
-        activated => { DashboardUi.toggle-selected-done(); }
-    }
-    KeyBinding {
-        keys: @keys(Escape);
-        enabled: root.actions-enabled;
-        activated => { DashboardUi.unselect(); }
-    }
 
     Rectangle { background: UiState.theme.background-800; }
     vertical-stretch: 1;
