@@ -36,13 +36,19 @@ export component TopBar inherits TopBarFrame {
                     title: item.title;
                     kind: item.kind;
                     activated => {
+                        if item.kind == "course" {
+                            CoursesUi.navigate-course(item.course-id);
+                            CoursesUi.navigate-folder(item.course-id, "");
+                        }
                         if item.kind == "folder" {
                             CoursesUi.navigate-folder(item.course-id, item.id);
                         }
                         if item.kind == "assignment" {
                             CoursesUi.navigate-assignment(item.course-id, item.id);
                         }
-                        if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
+                        if item.kind == "document" {
+                            DocumentUi.open(item.course-id, item.id);
+                        }
                     }
                 }
             }

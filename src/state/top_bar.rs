@@ -7,7 +7,7 @@ use crate::{
 use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
 use std::io;
 
-pub fn get_browser_data(
+pub fn get_path_data(
     ui: &AppWindow,
 ) -> Result<
     (
@@ -82,7 +82,7 @@ pub fn refresh_file_view(ui: &AppWindow) {
     };
 
     courses_ui.set_browser_error("".into());
-    match get_browser_data(ui) {
+    match get_path_data(ui) {
         Ok((title, parent, items, siblings)) => {
             courses_ui.set_folder_title(title.into());
             courses_ui.set_parent_title(parent.into());

@@ -9,7 +9,11 @@ import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 
 export global CoursesMenu {
     out property <[ScreenMenuItem]> items: [
-        { title: CoursesUi.show-hidden ? "Hide hidden courses" : "Show hidden courses", shortcut: @keys(H), enabled: true },
+        {
+            title: CoursesUi.show-hidden ? "Hide hidden courses" : "Show hidden courses",
+            shortcut: @keys(H),
+            enabled: true
+        },
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.show-hidden = !CoursesUi.show-hidden; }
@@ -66,7 +70,7 @@ export component Courses inherits FocusScope {
 
                                 course-action := HoverableButton {
                                     text: course.title;
-                                    clicked => { CoursesUi.activate-course(course.id, course.icon); }
+                                    clicked => { CoursesUi.navigate-course-with-image(course.id, course.icon); }
                                     HorizontalLayout {
                                         spacing: 8px;
                                         Rectangle {

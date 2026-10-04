@@ -7,7 +7,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 use crate::{
     AppWindow, AssignmentFile, AssignmentUi, AssignmentWithDetails, Screen, SubmissionRow, UiState,
     database,
-    state::bottom_bar::refresh_file_view,
+    state::top_bar::refresh_file_view,
     types::{assignment::Assignment, attachment::Attachments},
 };
 

@@ -4,7 +4,7 @@ use crate::{
     UiState,
     api::schoology::{self, RequestResult},
     database, filesystem,
-    state::bottom_bar::refresh_file_view,
+    state::top_bar::refresh_file_view,
     thread_manager,
     types::course::Course,
     ui::{self},
@@ -112,7 +112,15 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
         }
     });
     let weak = ui.as_weak();
-    global.on_activate_course(move |course, icon| {
+    global.on_navigate_course(move |course| {
+        let Some(ui) = weak.upgrade() else { return };
+        match ensure_course_tab(&ui, &course, None) {
+            Ok(index) => select_tab(&ui, index as i32),
+            Err(err) => log::warn!("Opening course failed: {err}"),
+        }
+    });
+    let weak = ui.as_weak();
+    global.on_navigate_course_with_image(move |course, icon| {
         let Some(ui) = weak.upgrade() else { return };
         match ensure_course_tab(&ui, &course, Some(icon)) {
             Ok(index) => select_tab(&ui, index as i32),

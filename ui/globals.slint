@@ -54,7 +54,8 @@ export global CoursesUi {
     in-out property <string> browser-error;
     in-out property <[MaterialItem]> materials;
     in-out property <[MaterialItem]> parent-materials;
-    callback activate-course(string, image);
+    callback navigate-course(string);
+    callback navigate-course-with-image(string, image);
     callback navigate-folder(string, string);
     callback navigate-assignment(string, string);
     in-out property <[CourseItem]> courses;

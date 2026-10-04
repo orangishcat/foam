@@ -7,8 +7,8 @@ use slint::{ComponentHandle, Model};
 use crate::{
     AppWindow, CoursesUi, DocumentUi, Screen, UiState, database, filesystem,
     state::{
-        bottom_bar::refresh_file_view,
         courses::{ensure_course_tab, root_folder},
+        top_bar::refresh_file_view,
     },
     types::material::Material,
 };
