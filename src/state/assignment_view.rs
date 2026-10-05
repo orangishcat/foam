@@ -87,12 +87,15 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
          FROM assignments a LEFT JOIN courses c ON c.course_id = a.course_id
          WHERE a.id = ?2 AND (a.course_id = ?1 OR EXISTS (
              SELECT 1 FROM json_each(c.aliases) WHERE value = ?1
-         ))".into(),
+         ))"
+        .into(),
         params![course, id],
-        |row| Ok((
-            serde_rusqlite::from_row::<Assignment>(row).map_err(Error::other)?,
-            row.get::<_, String>("course_title").map_err(Error::other)?,
-        )),
+        |row| {
+            Ok((
+                serde_rusqlite::from_row::<Assignment>(row).map_err(Error::other)?,
+                row.get::<_, String>("course_title").map_err(Error::other)?,
+            ))
+        },
     )?;
     Ok(rows.into_iter().next().map(|(assignment, course_name)| {
         let grade = match (&assignment.score, &assignment.letter_grade) {
@@ -121,6 +124,11 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
             grade: grade.into(),
             submission_policy: assignment.allow_submissions,
             attachments: files(&assignment.attachments),
+            submission_file_count: assignment
+                .submissions
+                .iter()
+                .map(|submission| submission.attachments.files.file.len() as i32)
+                .sum(),
             submissions: ModelRc::new(VecModel::from(
                 assignment
                     .submissions
@@ -147,6 +155,13 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
 }
 
 pub fn init(ui: &AppWindow) {
+    let weak = ui.as_weak();
+    ui.global::<AssignmentUi>()
+        .on_view_submissions(move |index| {
+            if let Some(ui) = weak.upgrade() {
+                crate::state::attachment_view::open_submissions(&ui, index);
+            }
+        });
     let weak = ui.as_weak();
     ui.global::<AssignmentUi>()
         .on_view_attachments(move |index| {

@@ -10,12 +10,13 @@ export global AttachmentMenu {
     in-out property <string> error;
     in-out property <int> index;
     in-out property <int> count;
+    in-out property <string> kind: "attachment";
     callback step(int);
     callback open-browser();
     callback close-preview();
     out property <[ScreenMenuItem]> items: [
-        { title: "Previous attachment", shortcut: @keys(LeftArrow), enabled: index > 0 },
-        { title: "Next attachment", shortcut: @keys(RightArrow), enabled: index + 1 < count },
+        { title: "Previous " + kind, shortcut: @keys(LeftArrow), enabled: index > 0 },
+        { title: "Next " + kind, shortcut: @keys(RightArrow), enabled: index + 1 < count },
         { title: "Close preview", shortcut: @keys(Escape), enabled: true },
     ];
     public function activate(index: int) {
@@ -50,33 +51,34 @@ export component AttachmentDialog inherits Rectangle {
             ScreenTopBar {
                 title: AttachmentMenu.caption + " • " + (AttachmentMenu.index + 1) + " / " + AttachmentMenu.count;
                 icon: @image-url("../../icons/file-text.svg");
-                HorizontalLayout {
-                    alignment: end;
-                    horizontal-stretch: 1;
-                    if AttachmentMenu.index > 0: SelectedItemAction {
-                        hotkey-name: "←";
-                        hotkey: @keys(LeftArrow);
-                        action-name: "Previous attachment";
-                        action => { AttachmentMenu.activate(0); }
-                    }
-                    if AttachmentMenu.index + 1 < AttachmentMenu.count: SelectedItemAction {
-                        hotkey-name: "→";
-                        hotkey: @keys(RightArrow);
-                        action-name: "Next attachment";
-                        action => { AttachmentMenu.activate(1); }
-                    }
 
-                    SelectedItemAction {
-                        hotkey-name: "Esc";
-                        hotkey: @keys(Escape);
-                        action-name: "Close preview";
-                        action => { AttachmentMenu.activate(2); }
-                    }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                if AttachmentMenu.index > 0: SelectedItemAction {
+                    hotkey-name: "←";
+                    hotkey: @keys(LeftArrow);
+                    action-name: "Previous " + AttachmentMenu.kind;
+                    action => { AttachmentMenu.activate(0); }
+                }
+                if AttachmentMenu.index + 1 < AttachmentMenu.count: SelectedItemAction {
+                    hotkey-name: "→";
+                    hotkey: @keys(RightArrow);
+                    action-name: "Next " + AttachmentMenu.kind;
+                    action => { AttachmentMenu.activate(1); }
+                }
+
+                SelectedItemAction {
+                    hotkey-name: "Esc";
+                    hotkey: @keys(Escape);
+                    action-name: "Close preview";
+                    action => { AttachmentMenu.activate(2); }
                 }
             }
 
             Text {
-                text: AttachmentMenu.error.is-empty ? "Loading attachment…" : AttachmentMenu.error;
+                text: AttachmentMenu.error.is-empty ? "Loading " + AttachmentMenu.kind + "…" : AttachmentMenu.error;
                 color: UiState.theme.text-200;
                 wrap: word-wrap;
                 vertical-alignment: center;

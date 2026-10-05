@@ -5,17 +5,23 @@ import { BottomBarFrame } from "../bottom-bar-frame.slint";
 export component AssignmentBottomBar inherits BottomBarFrame {
     HorizontalLayout {
         alignment: center;
-        if AssignmentUi.assignment.attachments.length > 0: SelectedItemAction {
-            hotkey-name: "V";
-            hotkey: @keys(V);
-            action-name: "View attachments";
-            action => { AssignmentUi.view-attachments(0); }
-        }
         if !AssignmentUi.assignment.id.is-empty: SelectedItemAction {
             hotkey-name: "O";
             hotkey: @keys(O);
             action-name: "Open in browser";
             action => { AssignmentUi.open-browser(); }
+        }
+        if AssignmentUi.assignment.attachments.length > 0: SelectedItemAction {
+            hotkey-name: "A";
+            hotkey: @keys(A);
+            action-name: "View attachments";
+            action => { AssignmentUi.view-attachments(0); }
+        }
+        if AssignmentUi.assignment.submission-file-count > 0: SelectedItemAction {
+            hotkey-name: "S";
+            hotkey: @keys(S);
+            action-name: "View submissions";
+            action => { AssignmentUi.view-submissions(0); }
         }
     }
 }

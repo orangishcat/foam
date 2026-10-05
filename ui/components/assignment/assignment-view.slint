@@ -22,7 +22,7 @@ export global AssignmentMenu {
         },
         {
             title: "View attachments",
-            shortcut: @keys(V),
+            shortcut: @keys(A),
             enabled: AssignmentUi.assignment.attachments.length > 0
         },
         {
@@ -30,11 +30,17 @@ export global AssignmentMenu {
             shortcut: @keys(O),
             enabled: !AssignmentUi.assignment.id.is-empty
         },
+        {
+            title: "View submissions",
+            shortcut: @keys(S),
+            enabled: AssignmentUi.assignment.submission-file-count > 0
+        },
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
         else if index == 1 { AssignmentUi.view-attachments(0); }
         else if index == 2 { AssignmentUi.open-browser(); }
+        else if index == 3 { AssignmentUi.view-submissions(0); }
     }
 }
 
@@ -210,36 +216,41 @@ export component AssignmentView inherits Rectangle {
                                         if AssignmentUi.assignment.submissions.length > 0: VerticalLayout {
                                             spacing: 10px;
 
-                                            for submission in AssignmentUi.assignment.submissions: Rectangle {
-                                                background: UiState.theme.background-750;
-                                                border-radius: 6px;
+                                            for submission[index] in AssignmentUi.assignment.submissions: sub-btn := HoverableButton {
+                                                enabled: submission.files.length > 0;
+                                                clicked => { AssignmentUi.view-submissions(index); }
                                                 height: content.preferred-height + 20px;
-                                                content := VerticalLayout {
-                                                    padding: 10px;
-                                                    SelectableText {
-                                                        text: "Revision " + submission.id;
-                                                        color: UiState.theme.text-100;
-                                                        font-size: 14px;
-                                                    }
-
-                                                    SelectableText {
-                                                        text: submission.created-at + " · " + submission.status;
-                                                        color: UiState.theme.text-300;
-                                                    }
-
-                                                    if !submission.body.is-empty: SelectableText {
-                                                        text: submission.body;
-                                                        color: UiState.theme.text-100;
-                                                    }
-                                                    for file in submission.files: VerticalLayout {
-                                                        SelectableText {
-                                                            text: file.title;
+                                                Rectangle {
+                                                    background: sub-btn.has-hover ? UiState.theme.background-700 : UiState.theme.background-750;
+                                                    border-radius: 6px;
+                                                    height: parent.height;
+                                                    content := VerticalLayout {
+                                                        padding: 10px;
+                                                        Text {
+                                                            text: "Revision " + submission.id;
                                                             color: UiState.theme.text-100;
+                                                            font-size: 14px;
                                                         }
 
-                                                        if !file.details.is-empty: SelectableText {
-                                                            text: file.details;
-                                                            color: UiState.theme.text-400;
+                                                        Text {
+                                                            text: submission.created-at + " · " + submission.status;
+                                                            color: UiState.theme.text-300;
+                                                        }
+
+                                                        if !submission.body.is-empty: SelectableText {
+                                                            text: submission.body;
+                                                            color: UiState.theme.text-100;
+                                                        }
+                                                        for file in submission.files: VerticalLayout {
+                                                            Text {
+                                                                text: file.title;
+                                                                color: UiState.theme.text-100;
+                                                            }
+
+                                                            if !file.details.is-empty: Text {
+                                                                text: file.details;
+                                                                color: UiState.theme.text-400;
+                                                            }
                                                         }
                                                     }
                                                 }

@@ -125,7 +125,7 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
         Err(error) => preview
             .window
             .global::<AttachmentMenu>()
-            .set_error(format!("Could not preview attachment: {error}").into()),
+            .set_error(format!("Could not preview item: {error}").into()),
     }
 }
 
@@ -191,6 +191,25 @@ pub fn open(ui: &AppWindow, index: i32) {
         .attachments
         .iter()
         .collect::<Vec<_>>();
+    open_items(ui, files, index, "attachment");
+}
+
+pub fn open_submissions(ui: &AppWindow, revision: i32) {
+    let assignment = ui.global::<AssignmentUi>().get_assignment();
+    let mut items = Vec::new();
+    let mut selected = None;
+    for (index, submission) in assignment.submissions.iter().enumerate() {
+        if index as i32 == revision {
+            selected = Some(items.len() as i32);
+        }
+        items.extend(submission.files.iter());
+    }
+    if let Some(index) = selected {
+        open_items(ui, items, index, "submission file");
+    }
+}
+
+fn open_items(ui: &AppWindow, files: Vec<AssignmentFile>, index: i32, kind: &str) {
     if index < 0 || index as usize >= files.len() {
         return;
     }
@@ -198,6 +217,7 @@ pub fn open(ui: &AppWindow, index: i32) {
     let window = ui.clone_strong();
     let menu = window.global::<AttachmentMenu>();
     menu.set_count(files.len() as i32);
+    menu.set_kind(kind.into());
     menu.on_step(|delta| action(if delta < 0 { "previous" } else { "next" }));
     menu.on_open_browser(|| action("open"));
     menu.on_close_preview(close);
