@@ -20,12 +20,20 @@ fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
          WHERE m.type = 'document' AND m.material_id = ?2
          AND (m.course_id = ?1 OR EXISTS (
              SELECT 1 FROM json_each(c.aliases) WHERE value = ?1
-         ))".into(),
+         ))"
+        .into(),
         params![course, id],
-        |row| Ok((row.get::<_, String>(0).map_err(io::Error::other)?,
-            row.get::<_, String>(1).map_err(io::Error::other)?,
-            row.get::<_, String>(2).map_err(io::Error::other)?)),
-    )?.into_iter().next().ok_or_else(|| io::Error::other("Document no longer exists"))?;
+        |row| {
+            Ok((
+                row.get::<_, String>(0).map_err(io::Error::other)?,
+                row.get::<_, String>(1).map_err(io::Error::other)?,
+                row.get::<_, String>(2).map_err(io::Error::other)?,
+            ))
+        },
+    )?
+    .into_iter()
+    .next()
+    .ok_or_else(|| io::Error::other("Document no longer exists"))?;
     let Material::Document(document) = serde_json::from_str(&material).map_err(io::Error::other)?
     else {
         return Err(io::Error::other("Invalid document data"));

@@ -28,9 +28,12 @@ export component DocumentView inherits Rectangle {
                 x: root.viewer-x + 16px;
                 y: 16px;
                 width: max(0px, root.viewer-width - 32px);
+                height: max(0px, parent.height - 32px);
                 text: DocumentUi.error.is-empty ? "Loading document…" : DocumentUi.error;
                 color: UiState.theme.text-200;
                 wrap: word-wrap;
+                horizontal-alignment: center;
+                vertical-alignment: center;
             }
         }
         BottomBarFrame { }

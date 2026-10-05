@@ -259,7 +259,11 @@ impl NotificationState {
         let global = ui.global::<crate::NotificationUi>();
         let selected_id = global.get_selected_notification().id;
         global.set_selected_notification(
-            models.iter().find(|n| n.id == selected_id).cloned().unwrap_or_default(),
+            models
+                .iter()
+                .find(|n| n.id == selected_id)
+                .cloned()
+                .unwrap_or_default(),
         );
         global.set_unread_count(models.iter().filter(|n| n.unread).count() as i32);
         global.set_progress(0.0);

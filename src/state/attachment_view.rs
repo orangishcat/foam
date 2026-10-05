@@ -17,6 +17,123 @@ struct Preview {
     index: usize,
     generation: u64,
     webview: Option<WebView>,
+    local_path: Option<std::path::PathBuf>,
+}
+
+fn wry_supported(extension: &str) -> bool {
+    matches!(
+        extension
+            .trim_start_matches('.')
+            .to_ascii_lowercase()
+            .as_str(),
+        "pdf"
+            | "html"
+            | "htm"
+            | "txt"
+            | "text"
+            | "csv"
+            | "json"
+            | "xml"
+            | "svg"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "bmp"
+            | "ico"
+            | "avif"
+            | "mp3"
+            | "mp4"
+            | "m4a"
+            | "wav"
+            | "ogg"
+            | "webm"
+            | "mov"
+    )
+}
+
+fn is_office_document(extension: &str) -> bool {
+    matches!(
+        extension
+            .trim_start_matches('.')
+            .to_ascii_lowercase()
+            .as_str(),
+        "doc"
+            | "docx"
+            | "docm"
+            | "dot"
+            | "dotx"
+            | "dotm"
+            | "xls"
+            | "xlsx"
+            | "xlsm"
+            | "xlsb"
+            | "xlt"
+            | "xltx"
+            | "xltm"
+            | "ppt"
+            | "pptx"
+            | "pptm"
+            | "pps"
+            | "ppsx"
+            | "ppsm"
+            | "pot"
+            | "potx"
+            | "potm"
+            | "odt"
+            | "ott"
+            | "ods"
+            | "ots"
+            | "odp"
+            | "otp"
+            | "odg"
+            | "otg"
+            | "odf"
+            | "rtf"
+    )
+}
+
+fn open_local(reveal: bool) {
+    let preview = PREVIEW.with(|slot| slot.borrow().clone());
+    let Some(preview) = preview else { return };
+    let preview = preview.borrow();
+    let Some(path) = &preview.local_path else {
+        return;
+    };
+    #[cfg(target_os = "macos")]
+    let result = {
+        let mut command = std::process::Command::new("open");
+        if reveal {
+            command.arg("-R");
+        }
+        command.arg(path).spawn()
+    };
+    #[cfg(target_os = "windows")]
+    let result = if reveal {
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", path.display()))
+            .spawn()
+    } else {
+        std::process::Command::new("rundll32")
+            .arg("url.dll,FileProtocolHandler")
+            .arg(path)
+            .spawn()
+    };
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let result = std::process::Command::new("xdg-open")
+        .arg(if reveal {
+            path.parent().unwrap_or(path)
+        } else {
+            path.as_path()
+        })
+        .spawn();
+    if let Err(error) = result {
+        preview
+            .window
+            .global::<AttachmentMenu>()
+            .set_error(format!("Could not open attachment: {error}").into());
+    }
 }
 
 thread_local! {
@@ -96,6 +213,36 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
     if generation != preview.generation {
         return;
     }
+    if let Source::Local(path, extension) = &source {
+        match file_url(path, extension).and_then(|url| {
+            url.to_file_path()
+                .map_err(|_| std::io::Error::other("Invalid attachment path"))
+        }) {
+            Ok(path) => {
+                preview.local_path = Some(path);
+                preview
+                    .window
+                    .global::<AttachmentMenu>()
+                    .set_file_ready(true);
+            }
+            Err(error) => {
+                preview
+                    .window
+                    .global::<AttachmentMenu>()
+                    .set_error(error.to_string().into());
+                return;
+            }
+        }
+    }
+    if preview.window.global::<AttachmentMenu>().get_unsupported() {
+        if preview.local_path.is_none() {
+            preview
+                .window
+                .global::<AttachmentMenu>()
+                .set_error("Could not download attachment for external opening.".into());
+        }
+        return;
+    }
     let result = (|| -> Result<WebView, Box<dyn std::error::Error + Send + Sync>> {
         let builder = WebViewBuilder::new().with_bounds(bounds(&preview.window));
         let builder = match source {
@@ -135,7 +282,18 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
         preview.index = index;
         preview.generation = GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         preview.webview = None;
+        preview.local_path = None;
         let file = preview.files[index].clone();
+        let menu = preview.window.global::<AttachmentMenu>();
+        menu.set_unsupported(!wry_supported(&file.extension));
+        menu.set_extension(
+            file.extension
+                .trim_start_matches('.')
+                .to_ascii_lowercase()
+                .into(),
+        );
+        menu.set_is_office_document(is_office_document(&file.extension));
+        menu.set_file_ready(false);
         preview
             .window
             .global::<AttachmentMenu>()
@@ -220,6 +378,9 @@ fn open_items(ui: &AppWindow, files: Vec<AssignmentFile>, index: i32, kind: &str
     menu.set_kind(kind.into());
     menu.on_step(|delta| action(if delta < 0 { "previous" } else { "next" }));
     menu.on_open_browser(|| action("open"));
+    menu.on_open_external(|| open_local(false));
+    menu.on_open_libreoffice_link(|| open_browser("https://www.libreoffice.org/"));
+    menu.on_reveal_file(|| open_local(true));
     menu.on_close_preview(close);
     menu.set_visible(true);
     let preview = Rc::new(RefCell::new(Preview {
@@ -228,6 +389,7 @@ fn open_items(ui: &AppWindow, files: Vec<AssignmentFile>, index: i32, kind: &str
         index: index as usize,
         generation: 0,
         webview: None,
+        local_path: None,
     }));
     let weak = Rc::downgrade(&preview);
     preview
