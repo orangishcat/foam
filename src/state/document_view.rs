@@ -14,11 +14,17 @@ use crate::{
 };
 
 fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
-    let (parent, material) = database::from_sql_map(
-        "SELECT parent_id, data FROM materials WHERE course_id = ? AND type = 'document' AND material_id = ?".into(),
+    let (parent, material, canonical_course) = database::from_sql_map(
+        "SELECT m.parent_id, m.data, m.course_id
+         FROM materials m LEFT JOIN courses c ON c.course_id = m.course_id
+         WHERE m.type = 'document' AND m.material_id = ?2
+         AND (m.course_id = ?1 OR EXISTS (
+             SELECT 1 FROM json_each(c.aliases) WHERE value = ?1
+         ))".into(),
         params![course, id],
         |row| Ok((row.get::<_, String>(0).map_err(io::Error::other)?,
-            row.get::<_, String>(1).map_err(io::Error::other)?)),
+            row.get::<_, String>(1).map_err(io::Error::other)?,
+            row.get::<_, String>(2).map_err(io::Error::other)?)),
     )?.into_iter().next().ok_or_else(|| io::Error::other("Document no longer exists"))?;
     let Material::Document(document) = serde_json::from_str(&material).map_err(io::Error::other)?
     else {
@@ -36,6 +42,7 @@ fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
     if url.trim().is_empty() {
         return Err(io::Error::other("Document has no resource URL"));
     }
+    let course = canonical_course.as_str();
     let index = ensure_course_tab(ui, course, None)?;
     let courses = ui.global::<CoursesUi>();
     courses.set_active_tab(index as i32);

@@ -148,7 +148,7 @@ export component Courses inherits FocusScope {
                                                         spacing: 4px;
                                                         alignment: start;
                                                         Text {
-                                                            text: course.section;
+                                                            text: course.section + " • ID " + course.id;
                                                             color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
                                                             overflow: elide;
                                                         }

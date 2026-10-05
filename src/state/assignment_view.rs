@@ -83,7 +83,11 @@ impl IfEmpty for str {
 
 fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
     let rows = database::from_sql_map(
-        "SELECT a.*, COALESCE(c.course_title, a.course_id) AS course_title FROM assignments a LEFT JOIN courses c ON c.course_id = a.course_id WHERE a.course_id = ? AND a.id = ?".into(),
+        "SELECT a.*, COALESCE(c.course_title, a.course_id) AS course_title
+         FROM assignments a LEFT JOIN courses c ON c.course_id = a.course_id
+         WHERE a.id = ?2 AND (a.course_id = ?1 OR EXISTS (
+             SELECT 1 FROM json_each(c.aliases) WHERE value = ?1
+         ))".into(),
         params![course, id],
         |row| Ok((
             serde_rusqlite::from_row::<Assignment>(row).map_err(Error::other)?,
@@ -157,7 +161,8 @@ pub fn init(ui: &AppWindow) {
             if !assignment.id.is_empty() {
                 crate::state::attachment_view::open_browser(&format!(
                     "https://{}.schoology.com/assignment/{}",
-                    crate::config::config().subdomain.trim(), assignment.id
+                    crate::config::config().subdomain.trim(),
+                    assignment.id
                 ));
             }
         }
@@ -169,7 +174,7 @@ pub fn init(ui: &AppWindow) {
         global.set_error("".into());
         match load(&course, &id) {
             Ok(Some(assignment)) => {
-                match crate::state::courses::show_assignment(&ui, &course, &id) {
+                match crate::state::courses::show_assignment(&ui, &assignment.course_id, &id) {
                     Ok(()) => {
                         global.set_assignment(assignment);
                         ui.global::<UiState>().set_screen(Screen::Assignment);
@@ -186,8 +191,10 @@ pub fn init(ui: &AppWindow) {
                     title: "Assignment".into(),
                     ..Default::default()
                 });
-                global.set_error(format!("Assignment no longer exists: {id}").into());
-                log::warn!("Assignment no longer exists: {id}");
+                global.set_error(
+                    format!("Assignment no longer exists: id={id} with course={course}").into(),
+                );
+                log::warn!("Assignment no longer exists:  id={id} with course={course}");
             }
             Err(err) => {
                 log::warn!("Loading assignment {id} failed: {err}");

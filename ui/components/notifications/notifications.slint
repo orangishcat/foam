@@ -5,7 +5,8 @@ import {
     VerticalBox,
     ListView,
 } from "std-widgets.slint";
-import { UiState, NotificationUi } from "../../globals.slint";
+import { UiState, NotificationUi, AssignmentUi, DocumentUi } from "../../globals.slint";
+import { HoverableButton } from "../hoverable-button.slint";
 import { NotificationType } from "../../types/notification-ui.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
@@ -38,7 +39,8 @@ export component Notifications inherits Rectangle {
                                 border-width: 1px;
                                 height: min(120px, max(30px, self.preferred-height));
                                 border-color: UiState.theme.background-400;
-                                background: UiState.theme.background-700;
+                                background: action.has-hover || action.has-focus
+                                    ? UiState.theme.background-600 : UiState.theme.background-700;
 
                                 preferred-height: title.preferred-height + course.preferred-height
                                     + content.padding-top + content.padding-bottom + 32px;
@@ -92,6 +94,20 @@ export component Notifications inherits Rectangle {
                                             text: notif.course;
                                             vertical-alignment: top;
                                             wrap: word-wrap;
+                                        }
+                                    }
+                                }
+                                action := HoverableButton {
+                                    text: notif.title;
+                                    enabled: notif.course-id != "" && notif.resource-id != ""
+                                        && (notif.n-type == NotificationType.new-assignment
+                                            || notif.n-type == NotificationType.new-grade
+                                            || notif.n-type == NotificationType.new-document);
+                                    clicked => {
+                                        if notif.n-type == NotificationType.new-document {
+                                            DocumentUi.open(notif.course-id, notif.resource-id);
+                                        } else {
+                                            AssignmentUi.open(notif.course-id, notif.resource-id);
                                         }
                                     }
                                 }

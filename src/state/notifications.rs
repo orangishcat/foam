@@ -18,7 +18,7 @@ use crate::{
     types::{
         assignment::Assignment,
         material::MaterialType,
-        notification::{self, Notification},
+        notification::{self, Notification, NotificationEvent},
         submission,
     },
     ui,
@@ -199,12 +199,14 @@ impl NotificationState {
                 title: n.title.into(),
                 course: course.into(),
                 course_id: n.course_id.into(),
-                n_type: match n.material_type {
-                    Some(MaterialType::Assignment | MaterialType::Assessment) => {
+                resource_id: n.resource_id.into(),
+                n_type: match (n.event, n.material_type) {
+                    (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
+                    (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
                         crate::NotificationType::NewAssignment
                     }
-                    Some(MaterialType::Document) => crate::NotificationType::NewDocument,
-                    Some(MaterialType::Link) => crate::NotificationType::NewLink,
+                    (_, Some(MaterialType::Document)) => crate::NotificationType::NewDocument,
+                    (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
                     _ => crate::NotificationType::Unknown,
                 },
                 icon_color: match n.material_type {
