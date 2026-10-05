@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT NOT NULL,
+    manual_mark INTEGER,
     event TEXT NOT NULL,
     title TEXT NOT NULL,
     viewed INTEGER NOT NULL,

@@ -9,7 +9,7 @@ import { Courses, CoursesMenu } from "components/courses/courses.slint";
 import { Materials, MaterialsMenu } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { DocumentView } from "components/document/document-view.slint";
-import { UiState, CoursesUi, DashboardUi } from "globals.slint";
+import { UiState, CoursesUi, DashboardUi, NotificationUi } from "globals.slint";
 export {
     UiState,
     DashboardUi,
@@ -19,7 +19,7 @@ export {
     DocumentUi,
 } from "globals.slint";
 import "fonts/MozillaText.ttf";
-import { Notifications } from "components/notifications/notifications.slint";
+import { Notifications, NotificationsMenu } from "components/notifications/notifications.slint";
 import {
     AssignmentView,
     AssignmentMenu,
@@ -34,6 +34,11 @@ export component AppWindow inherits Window {
     background: UiState.theme.background-800;
     in property <bool> custom-titlebar: false;
     in-out property <int> sidebar-focus-request: -1;
+    private property <bool> notifications-visible: UiState.screen == Screen.notifs;
+    changed notifications-visible => {
+        if self.notifications-visible { NotificationUi.opened(); }
+        else { NotificationUi.closed(); }
+    }
     callback navigate-sidebar(int);
     callback step-sidebar(int);
     out property <length> attachment-x: attachment.viewer-x;
@@ -138,6 +143,15 @@ export component AppWindow inherits Window {
                 shortcut: item.shortcut;
                 enabled: item.enabled;
                 activated => { DashboardMenu.activate(index); }
+            }
+        }
+        if !AttachmentMenu.visible && UiState.screen == Screen.notifs: Menu {
+            title: "Actions";
+            for item[index] in NotificationsMenu.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { NotificationsMenu.activate(index); }
             }
         }
         if !AttachmentMenu.visible && UiState.screen == Screen.courses: Menu {

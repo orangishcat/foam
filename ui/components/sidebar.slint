@@ -15,6 +15,7 @@ component NavigationItem inherits Rectangle {
 
     in property <Screen> change-to;
     in property <float> progress: 0;
+    in property <int> unread-count: 0;
 
     height: 44px;
     border-radius: 6px;
@@ -50,6 +51,23 @@ component NavigationItem inherits Rectangle {
     Image {
         source: icon;
         colorize: UiState.theme.text-200;
+    }
+
+    if root.unread-count > 0: Rectangle {
+        width: count.preferred-width + 8px;
+        height: self.width;
+        x: parent.width - self.width * 1.5;
+        y: parent.height - self.height * 1.5;
+        border-radius: self.width / 2;
+        background: UiState.theme.primary-500;
+        count := Text {
+            text: root.unread-count;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
     }
     // Text {
     //     text: root.label;
@@ -93,6 +111,7 @@ export component Sidebar inherits Rectangle {
             shortcut: "2";
             icon: @image-url("../icons/bell.svg");
             progress: NotificationUi.progress;
+            unread-count: NotificationUi.unread-count;
             change-to: notifs;
         }
 

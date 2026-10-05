@@ -51,6 +51,7 @@ impl SchoologyNotification {
                 continue;
             }
             result.push(Notification {
+                manual_mark: None,
                 event,
                 title: decode_title(&arg.title),
                 viewed: self.viewed,

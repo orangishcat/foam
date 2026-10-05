@@ -75,6 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     database::init()?;
     state().init();
+    state::notifications::NotificationState::init(&ui);
     let snapshot = state().clone();
     snapshot.sync_ui(&ui);
     state::document_view::init(&ui);

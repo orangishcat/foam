@@ -1,0 +1,29 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { NotificationUi } from "../../globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component NotificationsBottomBar inherits BottomBarFrame {
+    if !NotificationUi.selected-notification.id.is-empty: Rectangle {
+        HorizontalLayout {
+            alignment: center;
+            if NotificationUi.can-open-selected: SelectedItemAction {
+                hotkey-name: "V";
+                hotkey: @keys(V);
+                action-name: "View item";
+                action => { NotificationUi.open-selected(); }
+            }
+            SelectedItemAction {
+                hotkey-name: "D";
+                hotkey: @keys(D);
+                action-name: NotificationUi.selected-notification.unread ? "Mark as read" : "Mark as unread";
+                action => { NotificationUi.toggle-selected-read(); }
+            }
+            SelectedItemAction {
+                hotkey-name: "Esc";
+                hotkey: @keys(Escape);
+                action-name: "Unselect item";
+                action => { NotificationUi.unselect(); }
+            }
+        }
+    }
+}

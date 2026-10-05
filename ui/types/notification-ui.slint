@@ -1,6 +1,8 @@
 export enum NotificationType { new_assignment, new_document, new_grade, new_link, unknown }
 
 export struct Notification {
+    id: string,
+    unread: bool,
     title: string,
     n_type: NotificationType,
     icon_color: color,

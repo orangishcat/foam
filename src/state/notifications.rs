@@ -26,6 +26,10 @@ use crate::{
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NotificationState {
+    #[serde(default)]
+    pub last_opened: DateTime<Local>,
+    #[serde(skip)]
+    visit_cutoff: Option<DateTime<Local>>,
     pub last_update: DateTime<Local>,
     pub last_sync: DateTime<Local>,
     pub last_submission_sync: DateTime<Local>,
@@ -40,6 +44,32 @@ pub struct NotificationState {
 }
 
 impl NotificationState {
+    pub fn init(ui: &AppWindow) {
+        ui.global::<crate::NotificationUi>().on_closed(ui::sync_ui);
+        ui.global::<crate::NotificationUi>().on_opened(|| {
+            let mut app = state();
+            let mut next = app.notif.clone();
+            next.visit_cutoff = Some(next.last_opened);
+            next.last_opened = Local::now();
+            match save_sync_state(&next) {
+                Ok(()) => app.notif = next,
+                Err(err) => log::warn!("Saving notification opened time failed: {err}"),
+            }
+            drop(app);
+            ui::sync_ui();
+        });
+        ui.global::<crate::NotificationUi>()
+            .on_set_read(|id, read| {
+                if let Err(err) = database::execute(
+                    "UPDATE notifications SET manual_mark = ? WHERE id = ?".to_owned(),
+                    &[&read, &id.as_str()],
+                ) {
+                    log::warn!("Marking notification failed: {err}");
+                }
+                ui::sync_ui();
+            });
+    }
+
     pub fn load(&mut self) {
         match load_sync_state() {
             Ok(saved) => *self = saved,
@@ -186,6 +216,11 @@ impl NotificationState {
     }
 
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        let cutoff = if ui.global::<UiState>().get_screen() == crate::Screen::Notifs {
+            self.visit_cutoff.unwrap_or(self.last_opened)
+        } else {
+            self.last_opened
+        };
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
@@ -195,29 +230,38 @@ impl NotificationState {
             })?;
         let models = notifications
             .into_iter()
-            .map(|(n, course)| crate::Notification {
-                title: n.title.into(),
-                course: course.into(),
-                course_id: n.course_id.into(),
-                resource_id: n.resource_id.into(),
-                n_type: match (n.event, n.material_type) {
-                    (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
-                    (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
-                        crate::NotificationType::NewAssignment
-                    }
-                    (_, Some(MaterialType::Document)) => crate::NotificationType::NewDocument,
-                    (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
-                    _ => crate::NotificationType::Unknown,
-                },
-                icon_color: match n.material_type {
-                    Some(MaterialType::Assignment | MaterialType::Assessment) => {
-                        ui.global::<UiState>().get_theme().accent_400
-                    }
-                    _ => ui.global::<UiState>().get_theme().text_400,
-                },
+            .map(|(n, course)| {
+                Ok(crate::Notification {
+                    id: n.id()?.into(),
+                    unread: n.is_unread(cutoff),
+                    title: n.title.into(),
+                    course: course.into(),
+                    course_id: n.course_id.into(),
+                    resource_id: n.resource_id.into(),
+                    n_type: match (n.event, n.material_type) {
+                        (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
+                        (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
+                            crate::NotificationType::NewAssignment
+                        }
+                        (_, Some(MaterialType::Document)) => crate::NotificationType::NewDocument,
+                        (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
+                        _ => crate::NotificationType::Unknown,
+                    },
+                    icon_color: match n.material_type {
+                        Some(MaterialType::Assignment | MaterialType::Assessment) => {
+                            ui.global::<UiState>().get_theme().accent_400
+                        }
+                        _ => ui.global::<UiState>().get_theme().text_400,
+                    },
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<io::Result<Vec<_>>>()?;
         let global = ui.global::<crate::NotificationUi>();
+        let selected_id = global.get_selected_notification().id;
+        global.set_selected_notification(
+            models.iter().find(|n| n.id == selected_id).cloned().unwrap_or_default(),
+        );
+        global.set_unread_count(models.iter().filter(|n| n.unread).count() as i32);
         global.set_progress(0.0);
         global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
         global.set_notifications(ModelRc::new(VecModel::from(models)));
