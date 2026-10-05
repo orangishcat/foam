@@ -27,11 +27,13 @@ export global AttachmentMenu {
         { title: "Previous " + kind, shortcut: @keys(LeftArrow), enabled: index > 0 },
         { title: "Next " + kind, shortcut: @keys(RightArrow), enabled: index + 1 < count },
         { title: "Close preview", shortcut: @keys(Escape), enabled: true },
+        { title: "Open in file manager", shortcut: @keys(O), enabled: file-ready },
     ];
     public function activate(index: int) {
         if index == 0 { step(-1); }
         else if index == 1 { step(1); }
         else if index == 2 { close-preview(); }
+        else if index == 3 && file-ready { reveal-file(); }
     }
 }
 
@@ -68,14 +70,21 @@ export component AttachmentDialog inherits Rectangle {
                 if AttachmentMenu.index > 0: SelectedItemAction {
                     hotkey-name: "←";
                     hotkey: @keys(LeftArrow);
-                    action-name: "Previous " + AttachmentMenu.kind;
+                    action-name: "Previous";
                     action => { AttachmentMenu.activate(0); }
                 }
                 if AttachmentMenu.index + 1 < AttachmentMenu.count: SelectedItemAction {
                     hotkey-name: "→";
                     hotkey: @keys(RightArrow);
-                    action-name: "Next " + AttachmentMenu.kind;
+                    action-name: "Next ";
                     action => { AttachmentMenu.activate(1); }
+                }
+
+                if AttachmentMenu.file-ready: SelectedItemAction {
+                    hotkey-name: "O";
+                    hotkey: @keys(O);
+                    action-name: "Open in file manager";
+                    action => { AttachmentMenu.activate(3); }
                 }
 
                 SelectedItemAction {
@@ -165,7 +174,7 @@ export component AttachmentDialog inherits Rectangle {
                     }
 
                     Button {
-                        text: "Show in file manager";
+                        text: "Open in file manager (O)";
                         enabled: AttachmentMenu.file-ready;
                         clicked => { AttachmentMenu.reveal-file(); }
                     }

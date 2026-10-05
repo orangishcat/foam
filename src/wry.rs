@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    io::{self, Read},
+    io,
     path::{Path, PathBuf},
 };
 
@@ -13,7 +13,7 @@ use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 use crate::{AppWindow, DocumentUi, Screen, UiState};
 
 pub enum Source {
-    Local(PathBuf, String),
+    Local(PathBuf),
     Remote(String),
 }
 
@@ -59,34 +59,8 @@ pub fn init(ui: &AppWindow) {
     });
 }
 
-/// Preserve the file type for native viewers without duplicating cached bytes.
-pub(crate) fn file_url(path: &Path, extension: &str) -> io::Result<reqwest::Url> {
-    let mut path = path.canonicalize()?;
-    let extension = extension.trim_start_matches('.');
-    let extension = if !extension.is_empty()
-        && extension.len() <= 16
-        && extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
-        extension
-    } else {
-        // Documents without attachment metadata can still be PDFs.
-        let mut magic = [0; 5];
-        let mut file = std::fs::File::open(&path)?;
-        if file.read_exact(&mut magic).is_ok() && &magic == b"%PDF-" {
-            "pdf"
-        } else {
-            ""
-        }
-    };
-    if !extension.is_empty() && path.extension().is_none() {
-        let named = path.with_extension(extension);
-        match std::fs::hard_link(&path, &named) {
-            Ok(()) => {}
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists && named.is_file() => {}
-            Err(error) => return Err(error),
-        }
-        path = named;
-    }
+pub(crate) fn file_url(path: &Path) -> io::Result<reqwest::Url> {
+    let path = path.canonicalize()?;
     reqwest::Url::from_file_path(path).map_err(|_| io::Error::other("Invalid document file path"))
 }
 
@@ -116,7 +90,7 @@ fn update(ui: &AppWindow) {
                             return;
                         }
                     },
-                    Source::Local(path, extension) => match file_url(&path, &extension) {
+                    Source::Local(path) => match file_url(&path) {
                         Ok(url) => builder.with_url(url.as_str()),
                         Err(error) => {
                             ui.global::<DocumentUi>().set_error(

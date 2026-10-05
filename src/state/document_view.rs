@@ -95,17 +95,16 @@ fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
             }
         })
         .unwrap_or_default();
-    let downloaded_extension = extension.clone();
     let weak = ui.as_weak();
-    let cached = filesystem::asset_from_url_result(request, &url, move |result| {
+    let cached = filesystem::asset_from_url_result(request, &url, &extension, move |result| {
         let source = match result {
-            Ok(path) => Source::Local(path, downloaded_extension),
+            Ok(path) => Source::Local(path),
             Err(_) => Source::Remote(remote),
         };
         let _ = weak.upgrade_in_event_loop(move |ui| ready(&ui, generation, source));
     });
     if let Some(path) = cached {
-        ready(ui, generation, Source::Local(path, extension));
+        ready(ui, generation, Source::Local(path));
     }
     Ok(())
 }

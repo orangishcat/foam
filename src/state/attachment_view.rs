@@ -213,8 +213,8 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
     if generation != preview.generation {
         return;
     }
-    if let Source::Local(path, extension) = &source {
-        match file_url(path, extension).and_then(|url| {
+    if let Source::Local(path) = &source {
+        match file_url(path).and_then(|url| {
             url.to_file_path()
                 .map_err(|_| std::io::Error::other("Invalid attachment path"))
         }) {
@@ -246,9 +246,7 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
     let result = (|| -> Result<WebView, Box<dyn std::error::Error + Send + Sync>> {
         let builder = WebViewBuilder::new().with_bounds(bounds(&preview.window));
         let builder = match source {
-            Source::Local(path, extension) => {
-                builder.with_url(file_url(&path, &extension)?.as_str())
-            }
+            Source::Local(path) => builder.with_url(file_url(&path)?.as_str()),
             Source::Remote(url) => {
                 let headers = crate::api::schoology::resource_headers(&url)?;
                 builder.with_url(url).with_headers(headers)
@@ -323,10 +321,9 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
     let weak_window = preview.borrow().window.as_weak();
     let remote = url.clone();
     let extension = file.extension.to_string();
-    let downloaded_extension = extension.clone();
-    let cached = filesystem::asset_from_url_result(request, &url, move |result| {
+    let cached = filesystem::asset_from_url_result(request, &url, &extension, move |result| {
         let source = match result {
-            Ok(path) => Source::Local(path, downloaded_extension),
+            Ok(path) => Source::Local(path),
             Err(_) => Source::Remote(remote),
         };
         let _ = weak_window.upgrade_in_event_loop(move |_window| {
@@ -338,7 +335,7 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
         });
     });
     if let Some(path) = cached {
-        ready(preview, generation, Source::Local(path, extension));
+        ready(preview, generation, Source::Local(path));
     }
 }
 

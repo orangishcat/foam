@@ -18,7 +18,7 @@ pub fn asset_from_url(
     url: &str,
     on_download_complete: impl FnOnce(PathBuf) + Send + 'static,
 ) -> Option<PathBuf> {
-    asset_from_url_result(request, url, move |result| {
+    asset_from_url_result(request, url, "", move |result| {
         if let Ok(path) = result {
             on_download_complete(path);
         }
@@ -28,6 +28,7 @@ pub fn asset_from_url(
 pub fn asset_from_url_result(
     request: RequestBuilder,
     url: &str,
+    extension: &str,
     on_complete: impl FnOnce(io::Result<PathBuf>) + Send + 'static,
 ) -> Option<PathBuf> {
     if url.trim().is_empty() {
@@ -51,6 +52,15 @@ pub fn asset_from_url_result(
         Err(error) => log::warn!("Asset cache lookup failed for {url}: {error}"),
     }
 
+    let extension = extension.trim_start_matches('.');
+    let extension = if !extension.is_empty()
+        && extension.len() <= 16
+        && extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
+    {
+        extension.to_ascii_lowercase()
+    } else {
+        String::new()
+    };
     let url = url.to_owned();
     thread_manager::spawn_thread("download asset", move || {
         log::debug!("Downloading asset from {url}");
@@ -80,11 +90,16 @@ pub fn asset_from_url_result(
                 )));
             }
             let hash = format!("{:x}", Sha256::digest(&bytes));
-            let path = config()
+            let mut path = config()
                 .data_dir()
                 .join("attachments")
                 .join(&hash[..2])
                 .join(&hash);
+            if !extension.is_empty() {
+                path.set_extension(&extension);
+            } else if bytes.starts_with(b"%PDF-") {
+                path.set_extension("pdf");
+            }
             std::fs::create_dir_all(path.parent().expect("attachment has parent"))?;
             if !path.exists() {
                 let temporary = path.with_extension(format!(
