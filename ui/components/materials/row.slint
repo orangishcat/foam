@@ -9,19 +9,19 @@ export component Row inherits Rectangle {
     in property <float> tint;
 
     private property <bool> navigable: item.kind == "folder" || item.kind == "course";
-    height: 40px;
-    border-radius: 5px;
+    height: 2.5rem;
+    border-radius: 0.3125rem;
     background: (selected ? UiState.theme.background-600
         : action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent);
     HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 10px;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        spacing: 0.625rem;
         VerticalLayout {
             alignment: center;
             Icon {
-                width: 20px;
-                height: 20px;
+                width: 1.25rem;
+                height: 1.25rem;
                 kind: item.kind;
             }
         }
@@ -31,11 +31,12 @@ export component Row inherits Rectangle {
             color: UiState.theme.text-50;
             vertical-alignment: center;
             overflow: elide;
-            font-size: 18px;
+            font-size: 1.125rem;
             horizontal-stretch: 1;
         }
 
         Text {
+            font-size: 0.75rem;
             text: root.navigable ? "›" : "";
             color: UiState.theme.text-200;
             vertical-alignment: center;

@@ -39,7 +39,7 @@ export global NotificationsMenu {
 }
 
 export component Notifications inherits FocusScope {
-    in property <length> sidebar-width: 0px;
+    in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
@@ -49,7 +49,7 @@ export component Notifications inherits FocusScope {
     }
 
     VerticalLayout {
-        spacing: 0px;
+        spacing: 0rem;
         ScreenTopBar {
             custom-titlebar: root.custom-titlebar;
             title: "Notifications";
@@ -63,34 +63,34 @@ export component Notifications inherits FocusScope {
                 width: parent.width - root.sidebar-width;
                 height: parent.height;
                 VerticalBox {
-                    padding: 32px;
+                    padding: 2rem;
                     ListView {
                         for notif in NotificationUi.notifications: Rectangle {
-                            height: inner.height + 10px;
+                            height: inner.height + 0.625rem;
                             inner := Rectangle {
-                                border-radius: 5px;
-                                border-width: 1px;
-                                height: min(120px, max(30px, self.preferred-height));
+                                border-radius: 0.3125rem;
+                                border-width: 0.0625rem;
+                                height: min(7.5rem, max(1.875rem, self.preferred-height));
                                 border-color: UiState.theme.background-400;
                                 background: NotificationUi.selected-notification.id == notif.id
                                     ? UiState.theme.background-500 : action.has-hover || action.has-focus
                                     ? UiState.theme.background-600 : UiState.theme.background-700;
 
                                 preferred-height: title.preferred-height + course.preferred-height
-                                    + content.padding-top + content.padding-bottom + 32px;
+                                    + content.padding-top + content.padding-bottom + 2rem;
                                 clip: true;
 
                                 HorizontalLayout {
-                                    padding: 2px;
+                                    padding: 0.1245rem;
                                     alignment: start;
-                                    spacing: 12px;
+                                    spacing: 0.75rem;
 
-                                    padding-left: 12px;
-                                    padding-right: 12px;
+                                    padding-left: 0.75rem;
+                                    padding-right: 0.75rem;
                                     Rectangle {
-                                        width: 10px;
-                                        height: 10px;
-                                        border-radius: 5px;
+                                        width: 0.625rem;
+                                        height: 0.625rem;
+                                        border-radius: 0.3125rem;
                                         background: notif.unread ? oklch(0.851, 0.06, 244.09, 1) : transparent;
                                         cross-axis-self-alignment: center;
                                     }
@@ -98,33 +98,33 @@ export component Notifications inherits FocusScope {
                                     if notif.n_type == NotificationType.new-assignment: Image {
                                         source: @image-url("../../icons/file-plus.svg");
                                         colorize: notif.icon-color;
-                                        height: 64px;
+                                        height: 4rem;
                                     }
                                     if notif.n_type == NotificationType.new-document: Image {
                                         source: @image-url("../../icons/file-text.svg");
                                         colorize: notif.icon-color;
-                                        height: 64px;
+                                        height: 4rem;
                                     }
                                     if notif.n_type == NotificationType.new-grade: Image {
                                         source: @image-url("../../icons/circle-check-big.svg");
                                         colorize: notif.icon-color;
-                                        height: 64px;
+                                        height: 4rem;
                                     }
                                     if notif.n_type == NotificationType.new_link: Image {
                                         source: @image-url("../../icons/link.svg");
                                         colorize: notif.icon-color;
-                                        height: 64px;
+                                        height: 4rem;
                                     }
                                     if notif.n_type == NotificationType.unknown: Image {
                                         source: @image-url("../../icons/square-plus.svg");
                                         colorize: notif.icon-color;
-                                        height: 64px;
+                                        height: 4rem;
                                     }
                                     content := VerticalLayout {
-                                        spacing: 4px;
+                                        spacing: 0.25rem;
                                         title := Text {
                                             text: notif.title;
-                                            font-size: 18px;
+                                            font-size: 1.125rem;
                                             font-weight: 700;
                                             vertical-alignment: bottom;
                                             wrap: word-wrap;
@@ -132,7 +132,7 @@ export component Notifications inherits FocusScope {
 
                                         course := Text {
                                             color: UiState.theme.text-400;
-                                            font-size: 12px;
+                                            font-size: 0.75rem;
                                             text: notif.course;
                                             vertical-alignment: top;
                                             wrap: word-wrap;

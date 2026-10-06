@@ -6,16 +6,16 @@ export component ScreenTopBar inherits TopBarFrame {
     in property <image> icon;
 
     HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 6px;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        spacing: 0.375rem;
         alignment: start;
 
         VerticalLayout {
             alignment: center;
             Image {
-                width: 14px;
-                height: 14px;
+                width: 0.875rem;
+                height: 0.875rem;
                 source: root.icon;
                 colorize: oklch(0.65323, 0.06856, 57.29578, 1.0);
             }
@@ -24,7 +24,7 @@ export component ScreenTopBar inherits TopBarFrame {
         Text {
             text: root.title;
             color: UiState.theme.text-200;
-            font-size: 12px;
+            font-size: 0.75rem;
             vertical-alignment: center;
         }
 

@@ -15,7 +15,11 @@ import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 
 export global MaterialsMenu {
     out property <[ScreenMenuItem]> items: [
-        { title: "Close tab", shortcut: @keys(Control + W), enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length },
+        {
+            title: "Close tab",
+            shortcut: @keys(Control + W),
+            enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length
+        },
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
@@ -23,11 +27,11 @@ export global MaterialsMenu {
 }
 
 export component Materials inherits Rectangle {
-    in property <length> sidebar-width: 0px;
+    in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     in property <CourseTab> tab;
     VerticalLayout {
-        spacing: 0px;
+        spacing: 0rem;
         TopBar {
             tab: root.tab;
             custom-titlebar: root.custom-titlebar;
@@ -40,7 +44,7 @@ export component Materials inherits Rectangle {
                 width: parent.width - root.sidebar-width;
                 height: parent.height;
                 HorizontalLayout {
-                    spacing: 0px;
+                    spacing: 0rem;
                     Sidebar {
                         tab <=> root.tab;
                     }
@@ -50,17 +54,17 @@ export component Materials inherits Rectangle {
                         list := ScrollView {
                             horizontal-scrollbar-policy: always-off;
                             VerticalLayout {
-                                padding: 16px;
+                                padding: 1rem;
                                 for item[i] in root.tab.materials: VerticalLayout {
-                                    padding-bottom: 4px;
+                                    padding-bottom: 0.25rem;
                                     Row {
                                         width: list.visible-width;
                                         item: item;
                                     }
 
                                     if i < root.tab.materials.length - 1: Rectangle {
-                                        border-width: 1px;
-                                        height: 1px;
+                                        border-width: 0.0625rem;
+                                        height: 0.0625rem;
                                         border-color: UiState.theme.background-700;
                                     }
                                 }

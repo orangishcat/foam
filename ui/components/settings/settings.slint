@@ -1,0 +1,108 @@
+import { Button, Slider, ScrollView } from "std-widgets.slint";
+import { UiState, SettingsUi } from "../../globals.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component Settings inherits Rectangle {
+    in property <length> sidebar-width;
+    in property <bool> custom-titlebar;
+    VerticalLayout {
+        spacing: 0rem;
+        ScreenTopBar {
+            title: "Settings";
+            icon: @image-url("../../icons/settings.svg");
+            custom-titlebar: root.custom-titlebar;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            ScrollView {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    padding: 1.5rem;
+                    spacing: 1rem;
+                    alignment: start;
+                    Text {
+                        text: "Appearance";
+                        font-size: 1rem;
+                        font-weight: 700;
+                        color: UiState.theme.text-50;
+                    }
+
+                    Text {
+                        font-size: 0.75rem;
+                        text: "Font size";
+                        font-weight: 600;
+                        color: UiState.theme.text-50;
+                    }
+
+                    Text {
+                        font-size: 0.75rem;
+                        text: "Resize text and interface elements throughout Foam.";
+                        wrap: word-wrap;
+                        color: UiState.theme.text-200;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 1rem;
+                        Slider {
+                            minimum: 12;
+                            maximum: 24;
+                            value: SettingsUi.font-size;
+                            changed value => { SettingsUi.set-font-size(round(self.value)); }
+                        }
+
+                        Text {
+                            font-size: 0.75rem;
+                            text: SettingsUi.font-size;
+                            min-width: 2rem;
+                            color: UiState.theme.text-50;
+                            vertical-alignment: center;
+                        }
+
+                        Button {
+                            text: "Reset";
+                            enabled: SettingsUi.font-size != 16;
+                            clicked => { SettingsUi.set-font-size(16); }
+                        }
+                    }
+
+                    Rectangle {
+                        background: UiState.theme.background-700;
+                        border-radius: 0.5rem;
+                        VerticalLayout {
+                            padding: 1rem;
+                            spacing: 0.5rem;
+                            Text {
+                                text: "Preview";
+                                font-size: 1.25rem;
+                                font-weight: 600;
+                                color: UiState.theme.text-50;
+                            }
+
+                            Text {
+                                font-size: 0.75rem;
+                                text: "Your courses, assignments, and notifications will use this size.";
+                                wrap: word-wrap;
+                                color: UiState.theme.text-200;
+                            }
+                        }
+                    }
+
+                    Text {
+                        font-size: 0.75rem;
+                        text: SettingsUi.save-error;
+                        visible: !SettingsUi.save-error.is-empty;
+                        wrap: word-wrap;
+                        color: UiState.theme.text-200;
+                    }
+                }
+            }
+        }
+
+        BottomBarFrame { }
+    }
+}

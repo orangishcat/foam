@@ -14,9 +14,21 @@ import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 
 export global DashboardMenu {
     out property <[ScreenMenuItem]> items: [
-        { title: "View item", shortcut: @keys(V), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
-        { title: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done", shortcut: @keys(D), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
-        { title: "Unselect item", shortcut: @keys(Escape), enabled: !DashboardUi.selected-assignment.course-id.is-empty },
+        {
+            title: "View item",
+            shortcut: @keys(V),
+            enabled: !DashboardUi.selected-assignment.course-id.is-empty
+        },
+        {
+            title: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done",
+            shortcut: @keys(D),
+            enabled: !DashboardUi.selected-assignment.course-id.is-empty
+        },
+        {
+            title: "Unselect item",
+            shortcut: @keys(Escape),
+            enabled: !DashboardUi.selected-assignment.course-id.is-empty
+        },
     ];
     public function activate(index: int) {
         if index == 0 { DashboardUi.open-selected(); }
@@ -26,23 +38,27 @@ export global DashboardMenu {
 }
 
 export component Dashboard inherits FocusScope {
-    in property <length> sidebar-width: 0px;
+    in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
     init => { root.focus(); }
 
-    Rectangle { background: UiState.theme.background-800; }
+    Rectangle {
+        background: UiState.theme.background-800;
+    }
+
     vertical-stretch: 1;
 
     VerticalLayout {
-        spacing: 0px;
+        spacing: 0rem;
         vertical-stretch: 1;
         ScreenTopBar {
             custom-titlebar: root.custom-titlebar;
             title: "Dashboard";
             icon: @image-url("../../icons/calendar-days.svg");
         }
+
         Rectangle {
             vertical-stretch: 1;
             Rectangle {
@@ -55,6 +71,7 @@ export component Dashboard inherits FocusScope {
                         vertical-stretch: 1;
 
                         Text {
+                            font-size: 0.75rem;
                             text: col.title;
                             horizontal-alignment: center;
                         }
@@ -66,7 +83,7 @@ export component Dashboard inherits FocusScope {
                                 horizontal-scrollbar-policy: always-off;
                                 content-width: self.visible-width;
                                 for assignment[y] in col.assignments: Rectangle {
-                                    height: inner.height + 8px;
+                                    height: inner.height + 0.5rem;
                                     item-button := HoverableButton {
                                         text: assignment.title;
                                         clicked => {
@@ -75,42 +92,45 @@ export component Dashboard inherits FocusScope {
                                             DashboardUi.sel-row = y;
                                         }
                                     }
-                                    inner := Rectangle {
-                                            background: {
-                                                let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
-                                                    (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
-                                                    oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
-                                                let selected = DashboardUi.selected-assignment.id == assignment.id;
 
-                                                oklch(
+                                    inner := Rectangle {
+                                        background: {
+                                            let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
+                                                (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
+                                                oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
+                                            let selected = DashboardUi.selected-assignment.id == assignment.id;
+
+                                            oklch(
                                             c.lightness + (item-button.has-hover || item-button.has-focus ? 0.1 : 0) + (selected ? 0.2 : 0),
                                             c.chroma + (item-button.has-hover || item-button.has-focus ? 0.02 : 0) + (selected ? 0.06 : 0),
                                             c.hue,
                                             c.alpha)
-                                            };
-                                            animate background { duration: 50ms; }
-                                            border-radius: 5px;
-                                            height: min(120px, max(40px, self.preferred-height));
+                                        };
+                                        animate background { duration: 50ms; }
+                                        border-radius: 0.3125rem;
+                                        height: min(7.5rem, max(2.5rem, self.preferred-height));
                                     // Text measurements include font size, weight, and wrapping.
                                     preferred-height: title.preferred-height + course.preferred-height
-                                                + content.padding-top + content.padding-bottom + 16px;
-                                            clip: true;
+                                            + content.padding-top + content.padding-bottom + 1rem;
+                                        clip: true;
 
-                                            content := VerticalBox {
-                                                spacing: 2px;
-                                                title := Text {
-                                                    text: assignment.title;
-                                                    font-weight: 700;
-                                                    wrap: word-wrap;
-                                                }
+                                        content := VerticalBox {
+                                            spacing: 0.125rem;
+                                            title := Text {
+                                                font-size: 0.75rem;
+                                                text: assignment.title;
+                                                font-weight: 700;
+                                                wrap: word-wrap;
+                                            }
 
-                                                course := Text {
-                                                    color: UiState.theme.text-400;
-                                                    text: assignment.course-name;
-                                                    wrap: word-wrap;
-                                                }
+                                            course := Text {
+                                                font-size: 0.75rem;
+                                                color: UiState.theme.text-400;
+                                                text: assignment.course-name;
+                                                wrap: word-wrap;
                                             }
                                         }
+                                    }
                                 }
                             }
                         }
@@ -118,6 +138,7 @@ export component Dashboard inherits FocusScope {
                 }
             }
         }
+
         DashboardBottomBar { }
     }
 }

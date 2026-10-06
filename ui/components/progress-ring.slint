@@ -4,8 +4,8 @@ export component ProgressRing inherits Rectangle {
     in property <color> progress-color: #78aaff;
     private property <float> p: min(1, max(0, root.progress));
 
-    width: 36px;
-    height: 36px;
+    width: 2.25rem;
+    height: 2.25rem;
     background: transparent;
 
     Path {
@@ -15,7 +15,7 @@ export component ProgressRing inherits Rectangle {
         viewbox-height: 100;
         fill: transparent;
         stroke: root.track-color;
-        stroke-width: 2px;
+        stroke-width: 0.1245rem;
 
         MoveTo {
             x: 50;
@@ -46,7 +46,7 @@ export component ProgressRing inherits Rectangle {
         viewbox-height: 100;
         fill: transparent;
         stroke: root.progress-color;
-        stroke-width: 2px;
+        stroke-width: 0.1245rem;
         visible: root.p > 0;
 
         MoveTo {

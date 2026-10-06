@@ -6,13 +6,20 @@ import { CourseItem, MaterialItem, CourseTab } from "types/course-ui.slint";
 import { AssignmentWithDetails } from "types/assignment-ui.slint";
 
 export global UiState {
+    in-out property <length> font-size;
     in-out property <bool> shift-held: false;
     in-out property <string> shortcut-modifier: "Ctrl";
     in-out property <int> focused-sidebar-item: -1;
     in-out property <Screen> screen: Screen.dashboard;
     in-out property <ColorPalette> theme: Theme.dark;
-    in-out property <length> top-bar-height: 32px;
-    in-out property <length> bottom-bar-height: 28px;
+    out property <length> top-bar-height: font-size * 2;
+    out property <length> bottom-bar-height: font-size * 1.75;
+}
+
+export global SettingsUi {
+    in-out property <int> font-size: 16;
+    in-out property <string> save-error;
+    callback set-font-size(int);
 }
 
 export global DashboardUi {

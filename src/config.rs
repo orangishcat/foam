@@ -34,6 +34,9 @@ pub struct AppConfig {
     #[derivative(Default(value = "15 * 1024 * 1024"))]
     pub max_attachment_bytes: u64,
 
+    #[derivative(Default(value = "16"))]
+    pub font_size: i32,
+
     #[serde(skip)]
     data_dir: PathBuf,
 }

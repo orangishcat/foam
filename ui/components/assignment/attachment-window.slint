@@ -42,23 +42,23 @@ export component AttachmentDialog inherits Rectangle {
     out property <length> viewer-x: panel.x;
     out property <length> viewer-y: panel.y + UiState.top-bar-height;
     out property <length> viewer-width: panel.width;
-    out property <length> viewer-height: max(0px, panel.height - UiState.top-bar-height);
+    out property <length> viewer-height: max(0rem, panel.height - UiState.top-bar-height);
     TouchArea {
         clicked => { AttachmentMenu.close-preview(); }
     }
 
     panel := Rectangle {
-        x: 24px;
-        y: UiState.top-bar-height + 12px;
-        width: max(0px, root.width - 48px);
-        height: max(0px, root.height - self.y - 24px);
+        x: 1.5rem;
+        y: UiState.top-bar-height + 0.75rem;
+        width: max(0rem, root.width - 3rem);
+        height: max(0rem, root.height - self.y - 1.5rem);
         background: UiState.theme.background-800;
-        border-radius: 10px;
+        border-radius: 0.625rem;
         clip: true;
         TouchArea { }
 
         VerticalLayout {
-            spacing: 0px;
+            spacing: 0rem;
             ScreenTopBar {
                 title: AttachmentMenu.caption + " • " + (AttachmentMenu.index + 1) + " / " + AttachmentMenu.count;
                 icon: @image-url("../../icons/file-text.svg");
@@ -97,8 +97,8 @@ export component AttachmentDialog inherits Rectangle {
 
             VerticalLayout {
                 alignment: center;
-                spacing: 16px;
-                padding: 24px;
+                spacing: 1rem;
+                padding: 1.5rem;
                 horizontal-stretch: 1;
                 vertical-stretch: 1;
                 Text {
@@ -107,15 +107,16 @@ export component AttachmentDialog inherits Rectangle {
                     wrap: word-wrap;
                     horizontal-alignment: center;
                     vertical-alignment: center;
-                    font-size: 14px;
+                    font-size: 0.875rem;
                     horizontal-stretch: 1;
                     vertical-stretch: 0;
                 }
 
                 if AttachmentMenu.unsupported && AttachmentMenu.is-office-document: VerticalLayout {
-                    spacing: 4px;
+                    spacing: 0.25rem;
                     vertical-stretch: 0;
                     Text {
+                        font-size: 0.75rem;
                         text: "for viewing office documents like this one,";
                         color: UiState.theme.text-200;
                         wrap: word-wrap;
@@ -125,9 +126,10 @@ export component AttachmentDialog inherits Rectangle {
 
                     HorizontalLayout {
                         alignment: center;
-                        spacing: 4px;
+                        spacing: 0.25rem;
                         vertical-stretch: 0;
                         Text {
+                            font-size: 0.75rem;
                             text: "i recommend";
                             color: UiState.theme.text-200;
                             vertical-alignment: center;
@@ -139,23 +141,25 @@ export component AttachmentDialog inherits Rectangle {
                             accessible-role: button;
                             accessible-label: "LibreOffice homepage";
                             width: link-text.preferred-width;
-                            height: link-text.preferred-height + 2px;
+                            height: link-text.preferred-height + 0.1245rem;
                             clicked => { AttachmentMenu.open-libreoffice-link(); }
                             link-text := Text {
+                                font-size: 0.75rem;
                                 text: "LibreOffice";
                                 color: #66aaff;
                                 horizontal-alignment: center;
                             }
 
                             Rectangle {
-                                y: parent.height - 1px;
-                                height: 1px;
+                                y: parent.height - 0.0625rem;
+                                height: 0.0625rem;
                                 background: #66aaff;
                             }
                         }
                     }
                 }
                 if AttachmentMenu.unsupported && !AttachmentMenu.error.is-empty: Text {
+                    font-size: 0.75rem;
                     text: AttachmentMenu.error;
                     color: UiState.theme.text-200;
                     wrap: word-wrap;
@@ -165,7 +169,7 @@ export component AttachmentDialog inherits Rectangle {
                 }
                 if AttachmentMenu.unsupported: HorizontalLayout {
                     alignment: center;
-                    spacing: 12px;
+                    spacing: 0.75rem;
                     vertical-stretch: 0;
                     Button {
                         text: "Open in external app";

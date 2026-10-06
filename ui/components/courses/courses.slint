@@ -21,7 +21,7 @@ export global CoursesMenu {
 }
 
 export component Courses inherits FocusScope {
-    in property <length> sidebar-width: 0px;
+    in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     focus-on-tab-navigation: false;
     focus-on-click: false;
@@ -33,12 +33,12 @@ export component Courses inherits FocusScope {
 
     private property <int> drag-from: -1;
     private property <int> drag-to: -1;
-    private property <length> drag-pointer-y: 0px;
+    private property <length> drag-pointer-y: 0rem;
     private property <CourseItem> dragged-course;
-    private property <length> period-tab-width: 16px + CoursesUi.period-character-count * 11px;
+    private property <length> period-tab-width: 1rem + CoursesUi.period-character-count * 0.6875rem;
 
     VerticalLayout {
-        spacing: 0px;
+        spacing: 0rem;
         ScreenTopBar {
             custom-titlebar: root.custom-titlebar;
             title: "Courses";
@@ -53,42 +53,42 @@ export component Courses inherits FocusScope {
                 height: parent.height;
                 Rectangle {
                     list := ScrollView {
-                        x: 32px;
-                        y: 32px;
-                        width: parent.width - 64px;
-                        height: parent.height - 64px;
+                        x: 2rem;
+                        y: 2rem;
+                        width: parent.width - 4rem;
+                        height: parent.height - 4rem;
                         horizontal-scrollbar-policy: always-off;
                         mouse-drag-pan-enabled: false;
 
                         VerticalLayout {
-                            spacing: 0px;
+                            spacing: 0rem;
                             for course[i] in CoursesUi.courses: Rectangle {
                                 visible: root.show-hidden || !course.hidden;
                                 width: list.visible-width;
-                                height: root.show-hidden || !course.hidden ? 88px : 0px;
+                                height: root.show-hidden || !course.hidden ? 5.5rem : 0rem;
                                 background: transparent;
 
                                 course-action := HoverableButton {
                                     text: course.title;
                                     clicked => { CoursesUi.navigate-course-with-image(course.id, course.icon); }
                                     HorizontalLayout {
-                                        spacing: 8px;
+                                        spacing: 0.5rem;
                                         Rectangle {
                                             width: root.period-tab-width;
-                                            height: 74px;
-                                            border-radius: 8px;
-                                            border-width: 1px;
+                                            height: 4.625rem;
+                                            border-radius: 0.5rem;
+                                            border-width: 0.0625rem;
                                             border-color: UiState.theme.background-500;
 
                                             period-input := TextInput {
-                                                x: 8px;
-                                                y: 8px;
-                                                width: parent.width - 16px;
-                                                height: parent.height - 16px;
+                                                x: 0.5rem;
+                                                y: 0.5rem;
+                                                width: parent.width - 1rem;
+                                                height: parent.height - 1rem;
                                                 text: course.period;
                                                 color: UiState.theme.text-200;
                                                 font-family: "monospace";
-                                                font-size: 16px;
+                                                font-size: 1rem;
                                                 horizontal-alignment: center;
                                                 vertical-alignment: center;
                                                 single-line: true;
@@ -99,25 +99,25 @@ export component Courses inherits FocusScope {
                                         }
 
                                         Rectangle {
-                                            y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -82px
-                                                : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 82px
-                                                : 0px;
-                                            height: 74px;
-                                            border-radius: 8px;
-                                            border-width: 1px;
+                                            y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -5.125rem
+                                                : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 5.125rem
+                                                : 0rem;
+                                            height: 4.625rem;
+                                            border-radius: 0.5rem;
+                                            border-width: 0.0625rem;
                                             border-color: UiState.theme.background-500;
                                             background: course-action.has-hover || course-action.has-focus ? UiState.theme.background-600 :
                                                 course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
                                             opacity: root.drag-from == i ? 0 : 1;
 
                                             HorizontalLayout {
-                                                padding: 16px;
-                                                spacing: 16px;
+                                                padding: 1rem;
+                                                spacing: 1rem;
 
                                                 Rectangle {
-                                                    width: 84px;
-                                                    height: 42px;
-                                                    border-radius: 8px;
+                                                    width: 5.25rem;
+                                                    height: 2.625rem;
+                                                    border-radius: 0.5rem;
                                                     clip: true;
                                                     opacity: course.hidden ? 0.4 : 1;
                                                     Image {
@@ -135,30 +135,33 @@ export component Courses inherits FocusScope {
                                                 }
 
                                                 VerticalLayout {
-                                                    spacing: 4px;
+                                                    spacing: 0.25rem;
                                                     Text {
                                                         text: course.title;
-                                                        font-size: 18px;
+                                                        font-size: 1.125rem;
                                                         font-weight: 700;
                                                         color: course.hidden ? UiState.theme.text-400 : UiState.theme.text-50;
                                                         overflow: elide;
                                                     }
 
                                                     HorizontalLayout {
-                                                        spacing: 4px;
+                                                        spacing: 0.25rem;
                                                         alignment: start;
                                                         Text {
+                                                            font-size: 0.75rem;
                                                             text: course.section + " • ID " + course.id;
                                                             color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
                                                             overflow: elide;
                                                         }
 
                                                         if course.hidden: Text {
+                                                            font-size: 0.75rem;
                                                             text: "•";
                                                             color: UiState.theme.text-500;
                                                             overflow: elide;
                                                         }
                                                         if course.hidden: Text {
+                                                            font-size: 0.75rem;
                                                             text: "Hidden";
                                                             color: oklch(0.7471, 0.1422, 20.3, 1);
                                                             overflow: elide;
@@ -167,11 +170,11 @@ export component Courses inherits FocusScope {
                                                 }
 
                                                 HorizontalLayout {
-                                                    spacing: 16px;
+                                                    spacing: 1rem;
                                                     opacity: course-action.has-hover || course-action.has-focus || period-input.has-focus || hide-action.has-focus ? 1 : 0;
                                                     drag-layout := Rectangle {
-                                                        width: 32px;
-                                                        border-radius: 10px;
+                                                        width: 2rem;
+                                                        border-radius: 0.625rem;
                                                         background: {
                                                             let color = UiState.theme.background-400.to-oklch();
                                                             drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
@@ -199,8 +202,8 @@ export component Courses inherits FocusScope {
                                                     }
 
                                                     hide-rectangle := Rectangle {
-                                                        width: 32px;
-                                                        border-radius: 10px;
+                                                        width: 2rem;
+                                                        border-radius: 0.625rem;
                                                         background: {
                                                             let color = UiState.theme.background-400.to-oklch();
                                                             hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
@@ -244,7 +247,7 @@ export component Courses inherits FocusScope {
                             root.dragged-course = CoursesUi.courses[source];
                             root.drag-pointer-y = event.position.y;
                             root.drag-to = Math.max(0, Math.min(CoursesUi.courses.length - 1,
-                        Math.round((event.position.y - list.viewport-y - 37px) / 82px)));
+                        Math.round((event.position.y - list.viewport-y - 2.3125rem) / 5.125rem)));
                             return DragAction.move;
                         }
                         dropped(event) => {
@@ -260,24 +263,24 @@ export component Courses inherits FocusScope {
                     Rectangle {
                         visible: root.drag-from >= 0;
                         x: list.x;
-                        y: list.y + root.drag-pointer-y - 37px;
+                        y: list.y + root.drag-pointer-y - 2.3125rem;
                         width: list.visible-width;
-                        height: 74px;
-                        border-radius: 8px;
-                        border-width: 1px;
+                        height: 4.625rem;
+                        border-radius: 0.5rem;
+                        border-width: 0.0625rem;
                         border-color: UiState.theme.background-500;
                         background: UiState.theme.background-700;
                         opacity: 0.65;
 
                         HorizontalLayout {
-                            padding: 16px;
-                            spacing: 16px;
+                            padding: 1rem;
+                            spacing: 1rem;
 
                             VerticalLayout {
-                                spacing: 4px;
+                                spacing: 0.25rem;
                                 Text {
                                     text: root.dragged-course.title;
-                                    font-size: 18px;
+                                    font-size: 1.125rem;
                                     font-weight: 700;
                                     color: UiState.theme.text-50;
                                     overflow: elide;

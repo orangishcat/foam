@@ -12,9 +12,9 @@ export component TopBar inherits TopBarFrame {
         horizontal-scrollbar-policy: always-off;
         vertical-scrollbar-policy: always-off;
         HorizontalLayout {
-            padding-left: 12px;
-            padding-right: 12px;
-            spacing: 8px;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            spacing: 0.5rem;
             alignment: start;
             Breadcrumb {
                 title: "Courses";
@@ -23,10 +23,10 @@ export component TopBar inherits TopBarFrame {
             }
 
             for item in root.tab.breadcrumbs: HorizontalLayout {
-                spacing: 8px;
+                spacing: 0.5rem;
                 Image {
-                    width: 12px;
-                    y: 10px;
+                    width: 0.75rem;
+                    y: 0.625rem;
                     source: @image-url("../../icons/chevron-right.svg");
                     colorize: UiState.theme.text-200;
                     vertical-alignment: top;

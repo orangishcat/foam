@@ -8,7 +8,7 @@ export component Sidebar inherits Rectangle {
     in property <[MaterialItem]> items: tab.parent-materials;
     in property <string> selected-id: tab.folder-id;
 
-    width: 200px;
+    width: 12.5rem;
     background: {
         let c = UiState.theme.background-800.to-oklch();
         oklch(c.lightness - 0.03, c.chroma, c.hue, c.alpha)
@@ -16,15 +16,15 @@ export component Sidebar inherits Rectangle {
     sidebar := ScrollView {
         horizontal-scrollbar-policy: always-off;
         VerticalLayout {
-            spacing: 2px;
+            spacing: 0.1245rem;
 
-            padding-top: 16px;
-            padding-bottom: 16px;
-            padding-left: 8px;
-            padding-right: 8px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
 
             for item[i] in root.items: VerticalLayout {
-                padding-bottom: 2px;
+                padding-bottom: 0.1245rem;
                 Row {
                     width: sidebar.visible-width;
                     item: item;

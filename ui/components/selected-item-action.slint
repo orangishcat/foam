@@ -14,7 +14,7 @@ export component SelectedItemAction {
         }
 
         Rectangle {
-            border-radius: 5px;
+            border-radius: 0.3125rem;
             background: {
                 let hoverBg = UiState.theme.background-600.to-oklch();
                 action-button.has-hover || action-button.has-focus ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
@@ -22,24 +22,24 @@ export component SelectedItemAction {
             vl := VerticalLayout {
                 alignment: center;
 
-                padding-left: 16px;
-                padding-right: 16px;
+                padding-left: 1rem;
+                padding-right: 1rem;
                 HorizontalLayout {
                     alignment: center;
-                    spacing: 10px;
+                    spacing: 0.625rem;
                     Rectangle {
-                        border-width: 1px;
-                        border-radius: 5px;
+                        border-width: 0.0625rem;
+                        border-radius: 0.3125rem;
                         border-color: UiState.theme.background-600;
                         VerticalLayout {
-                            padding-top: 1px;
-                            padding-bottom: 1px;
-                            padding-left: 5px;
-                            padding-right: 5px;
+                            padding-top: 0.0625rem;
+                            padding-bottom: 0.0625rem;
+                            padding-left: 0.3125rem;
+                            padding-right: 0.3125rem;
 
                             Text {
                                 text: hotkey-name;
-                                font-size: 10px;
+                                font-size: 0.625rem;
                                 font-weight: 700;
                             }
                         }
@@ -48,7 +48,7 @@ export component SelectedItemAction {
                     Rectangle {
                         Text {
                             text: action-name;
-                            font-size: 12px;
+                            font-size: 0.75rem;
                         }
                     }
                 }

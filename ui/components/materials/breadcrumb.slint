@@ -8,17 +8,17 @@ export component Breadcrumb inherits Rectangle {
     callback activated();
     height: UiState.top-bar-height;
     background: action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     accessible-role: button;
     accessible-label: title;
     HorizontalLayout {
-        spacing: 6px;
+        spacing: 0.375rem;
         alignment: center;
         VerticalLayout {
             alignment: center;
             Icon {
-                width: 14px;
-                height: 14px;
+                width: 0.875rem;
+                height: 0.875rem;
                 kind: root.kind;
             }
         }
@@ -26,7 +26,7 @@ export component Breadcrumb inherits Rectangle {
         Text {
             text: root.title;
             color: UiState.theme.text-200;
-            font-size: 12px;
+            font-size: 0.75rem;
             vertical-alignment: center;
         }
     }

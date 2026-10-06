@@ -13,8 +13,12 @@ export component DocumentView inherits Rectangle {
     out property <length> viewer-width: root.width - viewer-x;
     out property <length> viewer-height: root.height - viewer-y - UiState.bottom-bar-height;
     VerticalLayout {
-        spacing: 0px;
-        TopBar { tab: root.tab; custom-titlebar: root.custom-titlebar; }
+        spacing: 0rem;
+        TopBar {
+            tab: root.tab;
+            custom-titlebar: root.custom-titlebar;
+        }
+
         Rectangle {
             vertical-stretch: 1;
             files := Sidebar {
@@ -24,11 +28,13 @@ export component DocumentView inherits Rectangle {
                 items: root.tab.materials;
                 selected-id: DocumentUi.id;
             }
+
             Text {
-                x: root.viewer-x + 16px;
-                y: 16px;
-                width: max(0px, root.viewer-width - 32px);
-                height: max(0px, parent.height - 32px);
+                font-size: 0.75rem;
+                x: root.viewer-x + 1rem;
+                y: 1rem;
+                width: max(0rem, root.viewer-width - 2rem);
+                height: max(0rem, parent.height - 2rem);
                 text: DocumentUi.error.is-empty ? "Loading document…" : DocumentUi.error;
                 color: UiState.theme.text-200;
                 wrap: word-wrap;
@@ -36,6 +42,7 @@ export component DocumentView inherits Rectangle {
                 vertical-alignment: center;
             }
         }
+
         BottomBarFrame { }
     }
 }

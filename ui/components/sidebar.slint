@@ -17,8 +17,8 @@ component NavigationItem inherits Rectangle {
     in property <float> progress: 0;
     in property <int> unread-count: 0;
 
-    height: 44px;
-    border-radius: 6px;
+    height: 2.75rem;
+    border-radius: 0.375rem;
     background: UiState.screen == change-to ? UiState.theme.background-700 : (action.has-hover || action.has-focus ? UiState.theme.background-600 : transparent);
 
     action := HoverableButton {
@@ -30,13 +30,15 @@ component NavigationItem inherits Rectangle {
         clicked => { UiState.screen = change-to; }
         Tooltip {
             VerticalLayout {
-                padding: 4px;
+                padding: 0.25rem;
                 Text {
+                    font-size: 0.75rem;
                     text: root.label;
                     color: UiState.theme.text-50;
                 }
 
                 Text {
+                    font-size: 0.75rem;
                     text: UiState.shortcut-modifier + "+" + root.shortcut;
                     color: UiState.theme.text-200;
                 }
@@ -54,7 +56,7 @@ component NavigationItem inherits Rectangle {
     }
 
     if root.unread-count > 0: Rectangle {
-        width: count.preferred-width + 8px;
+        width: count.preferred-width + 0.5rem;
         height: self.width;
         x: parent.width - self.width * 1.5;
         y: parent.height - self.height * 1.5;
@@ -63,7 +65,7 @@ component NavigationItem inherits Rectangle {
         count := Text {
             text: root.unread-count;
             color: white;
-            font-size: 11px;
+            font-size: 0.6875rem;
             font-weight: 700;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -72,9 +74,9 @@ component NavigationItem inherits Rectangle {
     // Text {
     //     text: root.label;
     //     color: selected ? UiState.theme.text-50 : UiState.theme.text-200;
-    //     font-size: 16px;
+    //     font-size: 1rem;
     //     vertical-alignment: center;
-    //     x: 16px;
+    //     x: 1rem;
     // }
 }
 
@@ -82,17 +84,17 @@ export component Sidebar inherits Rectangle {
     in property <int> focus-request: -1;
     in property <bool> minimized: true;
 
-    width: minimized ? 60px : 240px;
+    width: minimized ? 3.75rem : 15rem;
     background: UiState.theme.background-900;
 
     VerticalLayout {
-        padding-left: 8px;
-        padding-right: 8px;
-        padding-bottom: 4px;
-        spacing: 10px;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-bottom: 0.25rem;
+        spacing: 0.625rem;
 
         Rectangle {
-            height: 0px;
+            height: 0rem;
         }
 
         NavigationItem {
@@ -125,34 +127,34 @@ export component Sidebar inherits Rectangle {
         }
 
         Rectangle {
-            border-width: 1px;
+            border-width: 0.0625rem;
             border-color: UiState.theme.background-700;
-            height: 1px;
+            height: 0.0625rem;
         }
 
         tabs := ScrollView {
             vertical-stretch: 1;
             horizontal-scrollbar-policy: always-off;
             VerticalLayout {
-                spacing: 8px;
+                spacing: 0.5rem;
                 alignment: start;
                 for tab[index] in CoursesUi.tabs: Rectangle {
                     property <int> focus-request: root.focus-request;
                     changed focus-request => { if self.focus-request == index + 3 { tab-action.focus(); } }
                     width: tabs.visible-width;
-                    height: 44px;
-                    border-radius: 6px;
+                    height: 2.75rem;
+                    border-radius: 0.375rem;
                     background: (UiState.screen == Screen.materials || UiState.screen == Screen.assignment) && CoursesUi.active-tab == index
                         ? UiState.theme.background-700
                         : tab-action.has-hover || tab-action.has-focus ? UiState.theme.background-600 : transparent;
                     accessible-role: button;
                     accessible-label: tab.title;
                     Rectangle {
-                        width: 30px;
-                        height: 30px;
+                        width: 1.875rem;
+                        height: 1.875rem;
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
-                        border-radius: 15px;
+                        border-radius: 0.9375rem;
                         background: oklch(0.7941, 0.04, 28.31, 1);
                         clip: true;
                         Image {
@@ -163,9 +165,10 @@ export component Sidebar inherits Rectangle {
                         }
 
                         if tab.image.width == 0 && (!UiState.shift-held || !tab-action.has-hover): Text {
+                            font-size: 0.75rem;
                             text: tab.title;
-                            width: parent.width - 8px;
-                            x: 4px;
+                            width: parent.width - 0.5rem;
+                            x: 0.25rem;
                             height: parent.height;
                             overflow: elide;
                             horizontal-alignment: center;
@@ -192,13 +195,15 @@ export component Sidebar inherits Rectangle {
                         }
                         Tooltip {
                             VerticalLayout {
-                                padding: 4px;
+                                padding: 0.25rem;
                                 Text {
+                                    font-size: 0.75rem;
                                     text: tab.title;
                                     color: UiState.theme.text-50;
                                 }
 
                                 Text {
+                                    font-size: 0.75rem;
                                     text: UiState.shortcut-modifier + "+" + (index + 4);
                                     color: UiState.theme.text-400;
                                 }
