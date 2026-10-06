@@ -7,15 +7,18 @@ export component Breadcrumb inherits Rectangle {
     in property <string> kind;
     callback activated();
     height: UiState.top-bar-height;
+    width: content.preferred-width;
+    horizontal-stretch: 0;
     background: action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent;
     border-radius: 0.25rem;
     accessible-role: button;
     accessible-label: title;
-    HorizontalLayout {
+    content := HorizontalLayout {
         spacing: 0.375rem;
         alignment: center;
         VerticalLayout {
             alignment: center;
+            horizontal-stretch: 0;
             Icon {
                 width: 0.875rem;
                 height: 0.875rem;
