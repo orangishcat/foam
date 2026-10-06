@@ -6,23 +6,32 @@ use reqwest::{
     header::HeaderValue,
 };
 
-use crate::config::config_write;
+use crate::{account::Account, api::schoology::account::SchoologyAccountConfig};
 
 /// Keeps the configured session cookie in sync with the jar, including redirects.
+#[derive(Debug)]
 pub(super) struct SessionCookies {
     jar: Mutex<Jar>,
     url: Url,
     key: String,
+    acc: Mutex<SchoologyAccountConfig>,
 }
 
 impl SessionCookies {
-    pub(super) fn new(url: Url, key: String, value: String) -> Self {
+    pub(super) fn new(url: Url, account: &SchoologyAccountConfig) -> Self {
+        let key = account.cookie_key.clone();
+        let value = &account.cookie_value;
+        let mut acc = account.clone();
+        acc.api_client = Default::default();
+        acc.internal_client = Default::default();
+        acc.cookies = Default::default();
         let jar = Jar::default();
         jar.add_cookie_str(&format!("{key}={value}; Path=/; Secure"), &url);
         Self {
             jar: Mutex::new(jar),
             url,
             key,
+            acc: Mutex::new(acc),
         }
     }
 }
@@ -47,8 +56,8 @@ impl CookieStore for SessionCookies {
             })
             .unwrap_or_default();
 
-        let mut config = config_write();
-        // Do not overwrite a different account configured since this client was created.
+        let mut config = self.acc.lock().expect("account cookie lock is poisoned");
+        // Persist only the cookie belonging to this account's host and key.
         if config.cookie_key != self.key
             || self.url.host_str()
                 != Some(format!("{}.schoology.com", config.subdomain.trim()).as_str())
@@ -57,8 +66,10 @@ impl CookieStore for SessionCookies {
             return;
         }
         config.cookie_value = value.to_owned();
-        // save() logs failures; cookie-store callbacks cannot return an error.
-        let _ = config.save();
+        // Cookie-store callbacks cannot return an error.
+        if let Err(error) = config.save() {
+            log::warn!("Failed to save Schoology session cookie: {error}");
+        }
     }
 
     fn cookies(&self, url: &Url) -> Option<HeaderValue> {

@@ -1,4 +1,5 @@
-use super::{RequestResult, api_get};
+use super::RequestResult;
+use crate::api::schoology::account::SchoologyAccountConfig;
 use crate::types::{folder::Folder, material::Material};
 use log::info;
 use serde::Deserialize;
@@ -31,51 +32,6 @@ struct RawFolderResponse {
     folder_items: Vec<Value>,
 }
 
-/// Fetch a complete Schoology material tree as a standardized folder.
-pub fn course(course_id: &str, folder_id: &str) -> RequestResult<Folder> {
-    info!("scraping Schoology course tree: course={course_id}, folder={folder_id}");
-    let mut folder = scrape_folder(
-        course_id,
-        folder_id,
-        None,
-        &mut HashSet::new(),
-        None,
-        &HashSet::new(),
-    )?;
-    folder.set_course_id(course_id);
-    Ok(folder)
-}
-
-/// Refresh placement and fetch only notified materials absent from the cache.
-pub fn hierarchy(
-    course_id: &str,
-    existing: &[Material],
-    posted: &HashSet<String>,
-) -> RequestResult<Folder> {
-    let cached = existing
-        .iter()
-        .map(|m| {
-            (
-                (
-                    crate::types::material::MaterialType::from(m),
-                    material_id(m).to_owned(),
-                ),
-                m.clone(),
-            )
-        })
-        .collect();
-    let mut folder = scrape_folder(
-        course_id,
-        "0",
-        None,
-        &mut HashSet::new(),
-        Some(&cached),
-        posted,
-    )?;
-    folder.set_course_id(course_id);
-    Ok(folder)
-}
-
 pub(crate) fn material_id(material: &Material) -> &str {
     match material {
         Material::Folder(m) => &m.id,
@@ -84,68 +40,6 @@ pub(crate) fn material_id(material: &Material) -> &str {
         Material::Assessment(m) => &m.id,
         Material::Link(m) => &m.id,
     }
-}
-
-fn scrape_folder(
-    course_id: &str,
-    folder_id: &str,
-    url: Option<&str>,
-    visited: &mut HashSet<String>,
-    cached: Option<&HashMap<(crate::types::material::MaterialType, String), Material>>,
-    posted: &HashSet<String>,
-) -> RequestResult<Folder> {
-    crate::thread_manager::check_cancelled()?;
-    if !visited.insert(folder_id.to_owned()) {
-        return Err(io::Error::other(format!("course folder cycle at {folder_id}")).into());
-    }
-    let fallback_url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
-    let raw: RawFolderResponse = api_get(url.unwrap_or(&fallback_url))?;
-    let meta = CourseMaterial::from_raw(raw.self_folder)?;
-    let mut folder = Folder {
-        id: meta.id,
-        title: meta.title,
-        body: meta.body,
-        materials: Vec::with_capacity(raw.folder_items.len()),
-    };
-    for item in raw.folder_items {
-        let material = CourseMaterial::from_raw(item)?;
-        if material.material_type == "folder" {
-            let child = scrape_folder(
-                course_id,
-                &material.id,
-                material.location.as_deref(),
-                visited,
-                cached,
-                posted,
-            )?;
-            folder.materials.push(Material::Folder(Box::new(child)));
-        } else if let Some(cached) = cached {
-            use crate::types::material::MaterialType;
-            let kind = match material.material_type.as_str() {
-                "assignment" => Some(MaterialType::Assignment),
-                "document" => Some(MaterialType::Document),
-                "link" => Some(MaterialType::Link),
-                "assessment" | "test/quiz" | "quiz" => Some(MaterialType::Assessment),
-                _ => None,
-            };
-            if let Some(value) = kind.and_then(|kind| cached.get(&(kind, material.id.clone()))) {
-                folder.materials.push(value.clone());
-            } else if posted.contains(&material.id) {
-                match materials::scrape(&material) {
-                    Ok(Some(value)) => folder.materials.push(value),
-                    Ok(None) => {}
-                    Err(err) => {
-                        log::warn!("Fetching posted material {} failed: {err}", material.id)
-                    }
-                }
-            }
-        } else {
-            if let Some(material) = materials::scrape(&material)? {
-                folder.materials.push(material);
-            }
-        }
-    }
-    Ok(folder)
 }
 
 impl CourseMaterial {
@@ -179,5 +73,117 @@ fn scalar_as_string(value: &Value) -> Option<String> {
         Value::String(v) => Some(v.clone()),
         Value::Number(v) => Some(v.to_string()),
         _ => None,
+    }
+}
+
+impl SchoologyAccountConfig {
+    /// Fetch a complete Schoology material tree as a standardized folder.
+    pub fn course(&self, course_id: &str, folder_id: &str) -> RequestResult<Folder> {
+        info!("scraping Schoology course tree: course={course_id}, folder={folder_id}");
+        let mut folder = self.scrape_folder(
+            course_id,
+            folder_id,
+            None,
+            &mut HashSet::new(),
+            None,
+            &HashSet::new(),
+        )?;
+        folder.set_course_id(course_id);
+        Ok(folder)
+    }
+
+    /// Refresh placement and fetch only notified materials absent from the cache.
+    pub fn hierarchy(
+        &self,
+        course_id: &str,
+        existing: &[Material],
+        posted: &HashSet<String>,
+    ) -> RequestResult<Folder> {
+        let cached = existing
+            .iter()
+            .map(|m| {
+                (
+                    (
+                        crate::types::material::MaterialType::from(m),
+                        material_id(m).to_owned(),
+                    ),
+                    m.clone(),
+                )
+            })
+            .collect();
+        let mut folder = self.scrape_folder(
+            course_id,
+            "0",
+            None,
+            &mut HashSet::new(),
+            Some(&cached),
+            posted,
+        )?;
+        folder.set_course_id(course_id);
+        Ok(folder)
+    }
+
+    fn scrape_folder(
+        &self,
+        course_id: &str,
+        folder_id: &str,
+        url: Option<&str>,
+        visited: &mut HashSet<String>,
+        cached: Option<&HashMap<(crate::types::material::MaterialType, String), Material>>,
+        posted: &HashSet<String>,
+    ) -> RequestResult<Folder> {
+        crate::thread_manager::check_cancelled()?;
+        if !visited.insert(folder_id.to_owned()) {
+            return Err(io::Error::other(format!("course folder cycle at {folder_id}")).into());
+        }
+        let fallback_url = format!("{API_ROOT}/{course_id}/folder/{folder_id}");
+        let raw: RawFolderResponse = self.api_get(url.unwrap_or(&fallback_url))?;
+        let meta = CourseMaterial::from_raw(raw.self_folder)?;
+        let mut folder = Folder {
+            id: meta.id,
+            title: meta.title,
+            body: meta.body,
+            materials: Vec::with_capacity(raw.folder_items.len()),
+        };
+        for item in raw.folder_items {
+            let material = CourseMaterial::from_raw(item)?;
+            if material.material_type == "folder" {
+                let child = self.scrape_folder(
+                    course_id,
+                    &material.id,
+                    material.location.as_deref(),
+                    visited,
+                    cached,
+                    posted,
+                )?;
+                folder.materials.push(Material::Folder(Box::new(child)));
+            } else if let Some(cached) = cached {
+                use crate::types::material::MaterialType;
+                let kind = match material.material_type.as_str() {
+                    "assignment" => Some(MaterialType::Assignment),
+                    "document" => Some(MaterialType::Document),
+                    "link" => Some(MaterialType::Link),
+                    "assessment" | "test/quiz" | "quiz" => Some(MaterialType::Assessment),
+                    _ => None,
+                };
+                if let Some(value) = kind.and_then(|kind| cached.get(&(kind, material.id.clone())))
+                {
+                    folder.materials.push(value.clone());
+                } else if posted.contains(&material.id) {
+                    match self.scrape_material(&material) {
+                        Ok(Some(value)) => folder.materials.push(value),
+                        Ok(None) => {}
+                        Err(err) => {
+                            log::warn!("Fetching posted material {} failed: {err}", material.id)
+                        }
+                    }
+                }
+            } else {
+                if let Some(material) = self.scrape_material(&material)? {
+                    folder.materials.push(material);
+                }
+            }
+        }
+        Ok(folder)
     }
 }

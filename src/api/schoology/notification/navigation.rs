@@ -1,8 +1,9 @@
+use crate::api::schoology::account::SchoologyAccountConfig;
 use std::collections::HashSet;
 
 use chrono::{DateTime, Days, Local, NaiveTime, TimeZone};
 
-use super::super::{RequestResult, internal_get};
+use super::super::RequestResult;
 use crate::{
     api::schoology::types::notification::{NotificationsResponse, SchoologyNotification},
     types::{
@@ -12,16 +13,6 @@ use crate::{
 };
 
 const ROUTE: &str = "/iapi2/site-navigation/notifications";
-
-pub fn scrape_notifications() -> RequestResult<Vec<Notification>> {
-    let response: NotificationsResponse = internal_get(ROUTE)?;
-    let now = Local::now();
-    Ok(response
-        .data
-        .into_iter()
-        .flat_map(|item| item.into_notifications(now))
-        .collect())
-}
 
 impl SchoologyNotification {
     fn into_notifications(self, now: DateTime<Local>) -> Vec<Notification> {
@@ -109,4 +100,16 @@ fn parse_created(value: &str, now: DateTime<Local>) -> DateTime<Local> {
         Local.from_local_datetime(&date.and_time(time)).single()
     })();
     parsed.unwrap_or(now)
+}
+
+impl SchoologyAccountConfig {
+    pub fn scrape_notifications(&self) -> RequestResult<Vec<Notification>> {
+        let response: NotificationsResponse = self.internal_get(ROUTE)?;
+        let now = Local::now();
+        Ok(response
+            .data
+            .into_iter()
+            .flat_map(|item| item.into_notifications(now))
+            .collect())
+    }
 }

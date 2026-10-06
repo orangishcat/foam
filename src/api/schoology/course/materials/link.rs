@@ -1,4 +1,5 @@
-use super::{CourseMaterial, api_get, types::Attachments};
+use super::{CourseMaterial, types::Attachments};
+use crate::api::schoology::account::SchoologyAccountConfig;
 use crate::api::{
     schoology::RequestResult,
     types::{LooseInt, LooseString},
@@ -19,18 +20,24 @@ pub struct Link {
     pub display_inline: LooseInt,
 }
 
-/// Scrapes a link document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>
-pub fn scrape(_material: &CourseMaterial, url: &str) -> RequestResult<crate::types::link::Link> {
-    info!("scraping Schoology link: {url}");
-    let response: Link = api_get(url)?;
-    Ok(crate::types::link::Link {
-        id: response.id.0,
-        title: response.title,
-        url: response.url,
-        course_fid: response.course_fid.0,
-        available: response.available.0 != 0,
-        published: response.published.0 != 0,
-        attachments: response.attachments.into(),
-        display_inline: response.display_inline.0 != 0,
-    })
+impl SchoologyAccountConfig {
+    /// Scrapes a link document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>
+    pub fn scrape_link(
+        &self,
+        _material: &CourseMaterial,
+        url: &str,
+    ) -> RequestResult<crate::types::link::Link> {
+        info!("scraping Schoology link: {url}");
+        let response: Link = self.api_get(url)?;
+        Ok(crate::types::link::Link {
+            id: response.id.0,
+            title: response.title,
+            url: response.url,
+            course_fid: response.course_fid.0,
+            available: response.available.0 != 0,
+            published: response.published.0 != 0,
+            attachments: response.attachments.into(),
+            display_inline: response.display_inline.0 != 0,
+        })
+    }
 }

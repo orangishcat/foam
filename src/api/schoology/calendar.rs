@@ -1,4 +1,5 @@
 //! Updates to cached assignments from Schoology's calendar export.
+use crate::api::schoology::account::SchoologyAccountConfig;
 use std::{
     collections::{HashMap, HashSet},
     io,
@@ -11,7 +12,6 @@ use regex::Regex;
 
 use super::RequestResult;
 use crate::{
-    config::config,
     database,
     thread_manager::check_cancelled,
     types::{folder::Folder, material::Material},
@@ -25,24 +25,6 @@ static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
 static DESCRIPTION_LINK: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?i)\s+- Link: https?://[^\s<>"']+/assignment/\d+\s*$"#).unwrap()
 });
-
-/// The feed URL is a bearer credential; never include it in request errors.
-pub fn fetch() -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
-    let url = config().calendar_url.clone();
-    if url.trim().is_empty() {
-        return Ok((Vec::new(), Vec::new()));
-    }
-    crate::thread_manager::check_cancelled()?;
-    let url = feed_url(&url)?;
-    let body = super::new_client()?
-        .get(url)
-        .send()
-        .and_then(reqwest::blocking::Response::error_for_status)
-        .and_then(reqwest::blocking::Response::text)
-        .map_err(reqwest::Error::without_url)?;
-    crate::thread_manager::check_cancelled()?;
-    parse(&body)
-}
 
 fn feed_url(value: &str) -> RequestResult<reqwest::Url> {
     let value = value.trim();
@@ -184,107 +166,6 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
     Ok((ids, assignments))
 }
 
-pub fn apply(
-    ids: &[String],
-    cal_assignments: &[CalendarAssignment],
-    publish_progress: impl FnMut(f32),
-) -> io::Result<usize> {
-    if ids.len() != cal_assignments.len() {
-        return Err(io::Error::other(
-            "calendar IDs and assignments have different lengths",
-        ));
-    }
-    scrape_missing(ids, publish_progress)?;
-    database::bulk_execute(
-        UPDATE_CALENDAR.to_owned(),
-        calendar_updates(ids, cal_assignments)?,
-    )
-}
-
-fn scrape_missing(ids: &[String], mut publish_progress: impl FnMut(f32)) -> io::Result<()> {
-    let mut missing: HashSet<String> = ids.iter().cloned().collect();
-    let existing: Vec<String> = database::from_sql_map(
-        "SELECT DISTINCT id FROM assignments".to_owned(),
-        &[],
-        |row| row.get(0).map_err(io::Error::other),
-    )?;
-    for id in existing {
-        missing.remove(&id);
-    }
-    if missing.is_empty() {
-        publish_progress(1.0);
-        return Ok(());
-    }
-    let total_missing = missing.len();
-    publish_progress(0.0);
-    let courses: Vec<String> =
-        database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
-            row.get(0).map_err(io::Error::other)
-        })?;
-    for course_id in courses {
-        if missing.is_empty() {
-            break;
-        }
-        crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
-        let cached = crate::types::material::materials(&course_id)?;
-        match super::course::hierarchy(&course_id, &cached, &missing) {
-            Ok(root) => {
-                let found = assignments_in(&root, &missing);
-                if !found.is_empty() {
-                    crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
-                    crate::types::material::store_calendar_assignments(&course_id, &root, &found)?;
-                    for id in found {
-                        missing.remove(&id);
-                    }
-                    publish_progress((total_missing - missing.len()) as f32 / total_missing as f32);
-                }
-            }
-            Err(err) => {
-                log::warn!("Finding calendar assignments in course {course_id} failed: {err}")
-            }
-        }
-
-        // Some assignments appear in the calendar but not in course materials.
-        // The section assignment endpoint can still identify and fetch them.
-        for id in missing.iter().cloned().collect::<Vec<_>>() {
-            check_cancelled()?;
-            let url = format!("https://api.schoology.com/v1/sections/{course_id}/assignments/{id}");
-            let material = super::course::CourseMaterial {
-                id: id.clone(),
-                title: String::new(),
-                body: String::new(),
-                material_type: "assignment".to_owned(),
-                location: Some(url.clone()),
-            };
-            match super::course::materials::assignment::scrape(&material, &url) {
-                Ok(assignment) if assignment.id == id => {
-                    crate::types::material::store_assignment(&course_id, "0", &assignment)?;
-                    missing.remove(&id);
-                    publish_progress((total_missing - missing.len()) as f32 / total_missing as f32);
-                }
-                Ok(_) => {
-                    log::warn!("Schoology returned a different assignment for calendar ID {id}")
-                }
-                Err(err)
-                    if err
-                        .downcast_ref::<reqwest::Error>()
-                        .and_then(reqwest::Error::status)
-                        .is_some_and(|status| {
-                            status == reqwest::StatusCode::FORBIDDEN
-                                || status == reqwest::StatusCode::NOT_FOUND
-                        }) => {}
-                Err(err) => log::warn!(
-                    "Fetching calendar assignment {id} in course {course_id} failed: {err}"
-                ),
-            }
-        }
-    }
-    for id in missing {
-        log::warn!("Calendar assignment {id} was not found in any loaded course");
-    }
-    Ok(())
-}
-
 fn assignments_in(folder: &Folder, wanted: &HashSet<String>) -> HashSet<String> {
     let mut found = HashSet::new();
     for material in &folder.materials {
@@ -327,4 +208,137 @@ pub(crate) fn calendar_updates(
             )
         })
         .collect())
+}
+
+impl SchoologyAccountConfig {
+    /// The feed URL is a bearer credential; never include it in request errors.
+    pub fn fetch_calendar(&self) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
+        let calendar_url = &self.calendar_url;
+        if calendar_url.trim().is_empty() {
+            return Ok((Vec::new(), Vec::new()));
+        }
+        crate::thread_manager::check_cancelled()?;
+        let url = feed_url(calendar_url)?;
+        let body = Self::new_client()?
+            .get(url)
+            .send()
+            .and_then(reqwest::blocking::Response::error_for_status)
+            .and_then(reqwest::blocking::Response::text)
+            .map_err(reqwest::Error::without_url)?;
+        crate::thread_manager::check_cancelled()?;
+        parse(&body)
+    }
+
+    pub fn apply_calendar(
+        &self,
+        ids: &[String],
+        cal_assignments: &[CalendarAssignment],
+        publish_progress: impl FnMut(f32),
+    ) -> io::Result<usize> {
+        if ids.len() != cal_assignments.len() {
+            return Err(io::Error::other(
+                "calendar IDs and assignments have different lengths",
+            ));
+        }
+        self.scrape_missing_calendar(ids, publish_progress)?;
+        database::bulk_execute(
+            UPDATE_CALENDAR.to_owned(),
+            calendar_updates(ids, cal_assignments)?,
+        )
+    }
+
+    fn scrape_missing_calendar(
+        &self,
+        ids: &[String],
+        mut publish_progress: impl FnMut(f32),
+    ) -> io::Result<()> {
+        let mut missing: HashSet<String> = ids.iter().cloned().collect();
+        let existing: Vec<String> = database::from_sql_map(
+            "SELECT DISTINCT id FROM assignments".to_owned(),
+            &[],
+            |row| row.get(0).map_err(io::Error::other),
+        )?;
+        for id in existing {
+            missing.remove(&id);
+        }
+        if missing.is_empty() {
+            publish_progress(1.0);
+            return Ok(());
+        }
+        let total_missing = missing.len();
+        publish_progress(0.0);
+        let courses: Vec<String> =
+            database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
+                row.get(0).map_err(io::Error::other)
+            })?;
+        for course_id in courses {
+            if missing.is_empty() {
+                break;
+            }
+            crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
+            let cached = crate::types::material::materials(&course_id)?;
+            match self.hierarchy(&course_id, &cached, &missing) {
+                Ok(root) => {
+                    let found = assignments_in(&root, &missing);
+                    if !found.is_empty() {
+                        crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
+                        crate::types::material::store_calendar_assignments(
+                            &course_id, &root, &found,
+                        )?;
+                        for id in found {
+                            missing.remove(&id);
+                        }
+                        publish_progress(
+                            (total_missing - missing.len()) as f32 / total_missing as f32,
+                        );
+                    }
+                }
+                Err(err) => {
+                    log::warn!("Finding calendar assignments in course {course_id} failed: {err}")
+                }
+            }
+
+            // Some assignments appear in the calendar but not in course materials.
+            // The section assignment endpoint can still identify and fetch them.
+            for id in missing.iter().cloned().collect::<Vec<_>>() {
+                check_cancelled()?;
+                let url =
+                    format!("https://api.schoology.com/v1/sections/{course_id}/assignments/{id}");
+                let material = super::course::CourseMaterial {
+                    id: id.clone(),
+                    title: String::new(),
+                    body: String::new(),
+                    material_type: "assignment".to_owned(),
+                    location: Some(url.clone()),
+                };
+                match self.scrape_assignment(&material, &url) {
+                    Ok(assignment) if assignment.id == id => {
+                        crate::types::material::store_assignment(&course_id, "0", &assignment)?;
+                        missing.remove(&id);
+                        publish_progress(
+                            (total_missing - missing.len()) as f32 / total_missing as f32,
+                        );
+                    }
+                    Ok(_) => {
+                        log::warn!("Schoology returned a different assignment for calendar ID {id}")
+                    }
+                    Err(err)
+                        if err
+                            .downcast_ref::<reqwest::Error>()
+                            .and_then(reqwest::Error::status)
+                            .is_some_and(|status| {
+                                status == reqwest::StatusCode::FORBIDDEN
+                                    || status == reqwest::StatusCode::NOT_FOUND
+                            }) => {}
+                    Err(err) => log::warn!(
+                        "Fetching calendar assignment {id} in course {course_id} failed: {err}"
+                    ),
+                }
+            }
+        }
+        for id in missing {
+            log::warn!("Calendar assignment {id} was not found in any loaded course");
+        }
+        Ok(())
+    }
 }

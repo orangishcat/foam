@@ -26,78 +26,9 @@ export component Settings inherits Rectangle {
                     spacing: 1rem;
                     alignment: start;
                     Text {
-                        text: "Appearance";
-                        font-size: 1rem;
-                        font-weight: 700;
-                        color: UiState.theme.text-50;
-                    }
-
-                    Text {
-                        font-size: 0.75rem;
-                        text: "Font size";
-                        font-weight: 600;
-                        color: UiState.theme.text-50;
-                    }
-
-                    Text {
-                        font-size: 0.75rem;
-                        text: "Resize text and interface elements throughout Foam.";
-                        wrap: word-wrap;
-                        color: UiState.theme.text-200;
-                    }
-
-                    HorizontalLayout {
-                        spacing: 1rem;
-                        Slider {
-                            minimum: 12;
-                            maximum: 24;
-                            value: SettingsUi.font-size;
-                            changed value => { SettingsUi.set-font-size(round(self.value)); }
-                        }
-
-                        Text {
-                            font-size: 0.75rem;
-                            text: SettingsUi.font-size;
-                            min-width: 2rem;
-                            color: UiState.theme.text-50;
-                            vertical-alignment: center;
-                        }
-
-                        Button {
-                            text: "Reset";
-                            enabled: SettingsUi.font-size != 16;
-                            clicked => { SettingsUi.set-font-size(16); }
-                        }
-                    }
-
-                    Rectangle {
-                        background: UiState.theme.background-700;
-                        border-radius: 0.5rem;
-                        VerticalLayout {
-                            padding: 1rem;
-                            spacing: 0.5rem;
-                            Text {
-                                text: "Preview";
-                                font-size: 1.25rem;
-                                font-weight: 600;
-                                color: UiState.theme.text-50;
-                            }
-
-                            Text {
-                                font-size: 0.75rem;
-                                text: "Your courses, assignments, and notifications will use this size.";
-                                wrap: word-wrap;
-                                color: UiState.theme.text-200;
-                            }
-                        }
-                    }
-
-                    Text {
-                        font-size: 0.75rem;
-                        text: SettingsUi.save-error;
-                        visible: !SettingsUi.save-error.is-empty;
-                        wrap: word-wrap;
-                        color: UiState.theme.text-200;
+                        text: "currently empty...";
+                        font-size: 1.25rem;
+                        color: UiState.theme.text-400;
                     }
                 }
             }

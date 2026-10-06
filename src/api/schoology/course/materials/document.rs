@@ -1,4 +1,5 @@
-use super::{CourseMaterial, api_get, types::Attachments};
+use super::{CourseMaterial, types::Attachments};
+use crate::api::schoology::account::SchoologyAccountConfig;
 use crate::api::{
     schoology::RequestResult,
     types::{LooseInt, LooseString},
@@ -22,16 +23,6 @@ pub struct Document {
     pub auto_publish_grades: LooseInt,
 }
 
-/// Scrapes a document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>
-pub fn scrape(
-    _material: &CourseMaterial,
-    url: &str,
-) -> RequestResult<crate::types::document::Document> {
-    info!("scraping Schoology document: {url}");
-    let response: Document = api_get(url)?;
-    Ok(response.into())
-}
-
 impl From<Document> for crate::types::document::Document {
     fn from(response: Document) -> Self {
         Self {
@@ -41,5 +32,18 @@ impl From<Document> for crate::types::document::Document {
             course_fid: response.course_fid.0,
             attachments: response.attachments.into(),
         }
+    }
+}
+
+impl SchoologyAccountConfig {
+    /// Scrapes a document. Schoology API: <https://developers.schoology.com/api-documentation/rest-api-v1/documents/>
+    pub fn scrape_document(
+        &self,
+        _material: &CourseMaterial,
+        url: &str,
+    ) -> RequestResult<crate::types::document::Document> {
+        info!("scraping Schoology document: {url}");
+        let response: Document = self.api_get(url)?;
+        Ok(response.into())
     }
 }

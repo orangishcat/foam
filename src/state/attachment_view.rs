@@ -1,3 +1,4 @@
+use crate::account::RequestError;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use slint::{ComponentHandle, Model, winit_030::WinitWindowAccessor};
@@ -248,7 +249,7 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
         let builder = match source {
             Source::Local(path) => builder.with_url(file_url(&path)?.as_str()),
             Source::Remote(url) => {
-                let headers = crate::api::schoology::resource_headers(&url)?;
+                let headers = crate::account::active_account()?.resource_headers(&url)?;
                 builder.with_url(url).with_headers(headers)
             }
         };
@@ -307,7 +308,10 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
         (file, preview.generation)
     };
     let url = file.url.to_string();
-    let request = match crate::api::schoology::resource_get_request(&url) {
+    let request = match crate::account::active_account()
+        .map_err(|error| -> RequestError { error.into() })
+        .and_then(|account| account.get_resource(&url))
+    {
         Ok(request) => request,
         Err(error) => {
             preview

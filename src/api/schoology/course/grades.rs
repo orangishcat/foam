@@ -1,34 +1,12 @@
+use crate::api::schoology::account::SchoologyAccountConfig;
 use std::{collections::HashMap, io};
 
 use rusqlite::Connection;
 
 use crate::{
-    api::schoology::{RequestResult, api_get, types::grades::GradesResponse},
-    config::config,
+    api::schoology::{RequestResult, types::grades::GradesResponse},
     database,
 };
-
-pub fn scrape_grades() -> RequestResult<()> {
-    apply(&fetch()?)?;
-    Ok(())
-}
-
-pub(crate) fn fetch() -> RequestResult<GradesResponse> {
-    let url = format!(
-        "https://api.schoology.com/v1/users/{}/grades",
-        config().user_id
-    );
-    api_get(&url)
-}
-
-pub(crate) fn apply(response: &GradesResponse) -> io::Result<()> {
-    let updates = {
-        let connection = database::connection()?;
-        grade_updates(&connection, response)?
-    };
-    database::bulk_execute(UPDATE_GRADES.to_owned(), updates)?;
-    Ok(())
-}
 
 pub(crate) const UPDATE_GRADES: &str =
     "UPDATE assignments SET score = ?, letter_grade = ? WHERE course_id = ? AND id = ?";
@@ -64,4 +42,25 @@ pub(crate) fn grade_updates(
         .into_iter()
         .map(|((course_id, id), (score, letter))| (score, letter, course_id, id))
         .collect())
+}
+
+impl SchoologyAccountConfig {
+    pub fn scrape_grades(&self) -> RequestResult<()> {
+        self.apply_grades(&self.fetch_grades()?)?;
+        Ok(())
+    }
+
+    pub(crate) fn fetch_grades(&self) -> RequestResult<GradesResponse> {
+        let url = format!("https://api.schoology.com/v1/users/{}/grades", self.user_id);
+        self.api_get(&url)
+    }
+
+    pub(crate) fn apply_grades(&self, response: &GradesResponse) -> io::Result<()> {
+        let updates = {
+            let connection = database::connection()?;
+            grade_updates(&connection, response)?
+        };
+        database::bulk_execute(UPDATE_GRADES.to_owned(), updates)?;
+        Ok(())
+    }
 }

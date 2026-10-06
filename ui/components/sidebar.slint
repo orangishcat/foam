@@ -71,13 +71,6 @@ component NavigationItem inherits Rectangle {
             vertical-alignment: center;
         }
     }
-    // Text {
-    //     text: root.label;
-    //     color: selected ? UiState.theme.text-50 : UiState.theme.text-200;
-    //     font-size: 1rem;
-    //     vertical-alignment: center;
-    //     x: 1rem;
-    // }
 }
 
 export component Sidebar inherits Rectangle {
@@ -218,6 +211,7 @@ export component Sidebar inherits Rectangle {
             label: "Settings";
             item-index: CoursesUi.tabs.length + 3;
             focus-request: root.focus-request;
+            shortcut: "alt+space";
             icon: @image-url("../icons/settings.svg");
             change-to: settings;
         }

@@ -174,11 +174,16 @@ pub fn init(ui: &AppWindow) {
         if let Some(ui) = weak.upgrade() {
             let assignment = ui.global::<AssignmentUi>().get_assignment();
             if !assignment.id.is_empty() {
-                crate::state::attachment_view::open_browser(&format!(
-                    "https://{}.schoology.com/assignment/{}",
-                    crate::config::config().subdomain.trim(),
-                    assignment.id
-                ));
+                let account = match crate::account::active_account() {
+                    Ok(account) => account,
+                    Err(error) => {
+                        log::warn!("Getting active account failed: {error}");
+                        return;
+                    }
+                };
+                crate::state::attachment_view::open_browser(
+                    &account.assignment_url(&assignment.id),
+                );
             }
         }
     });

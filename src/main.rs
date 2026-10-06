@@ -10,11 +10,13 @@ use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use crate::platform::macos::macos_quit;
 use crate::{config::config, state::state::state, ui::WEAK_UI};
 
+mod account;
 mod api;
 mod config;
 mod database;
 mod filesystem;
 mod platform;
+mod plugin;
 mod state;
 mod thread_manager;
 mod types;
@@ -92,11 +94,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     database::init()?;
+    plugin::init()?;
     state().init();
-    state::notifications::NotificationState::init(&ui);
-    let snapshot = state().clone();
-    snapshot.sync_ui(&ui);
-    state::document_view::init(&ui);
+
+    state().sync_ui(&ui);
 
     match ui.run() {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),

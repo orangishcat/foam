@@ -81,15 +81,23 @@ fn update(ui: &AppWindow) {
             ui.window().with_winit_window(|window| {
                 let builder = WebViewBuilder::new().with_bounds(bounds);
                 let builder = match source {
-                    Source::Remote(url) => match crate::api::schoology::resource_headers(&url) {
-                        Ok(headers) => builder.with_url(url).with_headers(headers),
-                        Err(error) => {
-                            ui.global::<DocumentUi>().set_error(
-                                format!("Could not authenticate document request: {error}").into(),
-                            );
-                            return;
+                    Source::Remote(url) => {
+                        match crate::account::active_account()
+                            .map_err(|error| -> crate::api::schoology::RequestError {
+                                error.into()
+                            })
+                            .and_then(|account| account.resource_headers(&url))
+                        {
+                            Ok(headers) => builder.with_url(url).with_headers(headers),
+                            Err(error) => {
+                                ui.global::<DocumentUi>().set_error(
+                                    format!("Could not authenticate document request: {error}")
+                                        .into(),
+                                );
+                                return;
+                            }
                         }
-                    },
+                    }
                     Source::Local(path) => match file_url(&path) {
                         Ok(url) => builder.with_url(url.as_str()),
                         Err(error) => {

@@ -2,7 +2,7 @@ use crate::{
     AppWindow, CourseItem, CourseTab, CoursesUi, MaterialItem,
     Screen::{self},
     UiState,
-    api::schoology::{self, RequestResult},
+    api::schoology::RequestResult,
     database, filesystem,
     state::top_bar::refresh_file_view,
     thread_manager,
@@ -53,7 +53,10 @@ pub fn sync_ui(ui: &AppWindow) -> io::Result<()> {
             let icon_url = course.logo_img_src.clone();
             if !icon_url.trim().is_empty() {
                 thread_manager::spawn_thread("download icon", move || {
-                    match schoology::internal_get_request(&icon_url) {
+                    match crate::account::active_account()
+                        .map_err(|error| -> crate::api::schoology::RequestError { error.into() })
+                        .and_then(|account| account.get_resource(&icon_url))
+                    {
                         Ok(request) => {
                             let downloaded_id = id.clone();
                             if let Some(path) =
@@ -262,7 +265,9 @@ fn course_tab_image(course: &str) -> slint::Image {
         .filter(|url| !url.trim().is_empty()) else {
             return Ok(None);
         };
-        let request = schoology::internal_get_request(&url).map_err(io::Error::other)?;
+        let request = crate::account::active_account()?
+            .get_resource(&url)
+            .map_err(io::Error::other)?;
         let course_id = course.to_owned();
         let path = filesystem::asset_from_url(request, &url, move |path| {
             let bytes = match std::fs::read(&path) {
@@ -481,7 +486,7 @@ pub fn ensure_loaded() -> RequestResult<()> {
         |row| row.get::<_, String>(0).map_err(std::io::Error::other),
     )?;
     if loaded.is_empty() {
-        schoology::course::courses::scrape_courses()?;
+        crate::account::active_account()?.scrape_courses()?;
         database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
     }
     Ok(())

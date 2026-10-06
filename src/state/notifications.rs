@@ -44,33 +44,7 @@ pub struct NotificationState {
 }
 
 impl NotificationState {
-    pub fn init(ui: &AppWindow) {
-        ui.global::<crate::NotificationUi>().on_closed(ui::sync_ui);
-        ui.global::<crate::NotificationUi>().on_opened(|| {
-            let mut app = state();
-            let mut next = app.notif.clone();
-            next.visit_cutoff = Some(next.last_opened);
-            next.last_opened = Local::now();
-            match save_sync_state(&next) {
-                Ok(()) => app.notif = next,
-                Err(err) => log::warn!("Saving notification opened time failed: {err}"),
-            }
-            drop(app);
-            ui::sync_ui();
-        });
-        ui.global::<crate::NotificationUi>()
-            .on_set_read(|id, read| {
-                if let Err(err) = database::execute(
-                    "UPDATE notifications SET manual_mark = ? WHERE id = ?".to_owned(),
-                    &[&read, &id.as_str()],
-                ) {
-                    log::warn!("Marking notification failed: {err}");
-                }
-                ui::sync_ui();
-            });
-    }
-
-    pub fn load(&mut self) {
+    pub fn init(&mut self) {
         match load_sync_state() {
             Ok(saved) => *self = saved,
             Err(err) => log::warn!("Loading notification sync state failed: {err}"),
@@ -119,7 +93,7 @@ impl NotificationState {
         let check_started = Local::now();
         let result = (|| -> schoology::RequestResult<()> {
             courses::ensure_loaded()?;
-            let mut notifications = schoology::notification::scrape_notifications()?;
+            let mut notifications = crate::account::active_account()?.scrape_notifications()?;
             let previous = notification::notifications()?;
             let last_sync = state().notif.last_sync;
             for n in &mut notifications {
@@ -133,8 +107,8 @@ impl NotificationState {
                     .map_or(n.created < last_sync, |old| old.is_processed);
             }
             check_cancelled()?;
-            let update_result =
-                schoology::notification::update::update(&mut notifications, Self::publish_progress);
+            let update_result = crate::account::active_account()?
+                .update_notifications(&mut notifications, &mut Self::publish_progress);
             Self::sync_calendar();
             let mut app = state();
             let mut next = app.notif.clone();
@@ -167,13 +141,12 @@ impl NotificationState {
     }
 
     fn sync_calendar() {
-        match schoology::calendar::fetch().and_then(|(ids, assignments)| {
-            Ok(schoology::calendar::apply(
-                &ids,
-                &assignments,
-                Self::publish_progress,
-            )?)
-        }) {
+        match crate::account::active_account()
+            .map_err(|error| -> schoology::RequestError { error.into() })
+            .and_then(|account| {
+                let (ids, assignments) = account.fetch_calendar()?;
+                Ok(account.apply_calendar(&ids, &assignments, &mut Self::publish_progress)?)
+            }) {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
@@ -198,7 +171,7 @@ impl NotificationState {
                 ),
                 &[],
             )?;
-            schoology::course::submissions::scrape_submissions(&mut assignments)?;
+            crate::account::active_account()?.scrape_submissions(&mut assignments)?;
             check_cancelled()?;
             submission::update_submissions(&assignments)?;
             let mut app = state();
@@ -269,6 +242,28 @@ impl NotificationState {
         global.set_progress(0.0);
         global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
         global.set_notifications(ModelRc::new(VecModel::from(models)));
+        global.on_closed(ui::sync_ui);
+        global.on_opened(|| {
+            let mut app = state();
+            let mut next = app.notif.clone();
+            next.visit_cutoff = Some(next.last_opened);
+            next.last_opened = Local::now();
+            match save_sync_state(&next) {
+                Ok(()) => app.notif = next,
+                Err(err) => log::warn!("Saving notification opened time failed: {err}"),
+            }
+            drop(app);
+            ui::sync_ui();
+        });
+        global.on_set_read(|id, read| {
+            if let Err(err) = database::execute(
+                "UPDATE notifications SET manual_mark = ? WHERE id = ?".to_owned(),
+                &[&read, &id.as_str()],
+            ) {
+                log::warn!("Marking notification failed: {err}");
+            }
+            ui::sync_ui();
+        });
         Ok(())
     }
 
