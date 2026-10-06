@@ -75,52 +75,51 @@ impl Account for SchoologyAccountConfig {
 
     fn fast_sync(&self) -> io::Result<()> {
         let check_started = chrono::Local::now();
-        (|| -> RequestResult<()> {
-            let loaded = database::from_sql_map(
-                "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
-                &[],
-                |row| row.get::<_, String>(0).map_err(io::Error::other),
-            )?;
-            if loaded.is_empty() {
-                self.scrape_courses()?;
-                database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
-            }
-            let mut notifications = self.scrape_notifications()?;
-            let previous = notification::notifications()?;
-            let last_sync = state().notif.last_sync;
-            for n in &mut notifications {
-                n.is_processed = previous
-                    .iter()
-                    .find(|old| {
-                        old.event == n.event
-                            && old.resource_id == n.resource_id
-                            && old.created == n.created
-                    })
-                    .map_or(n.created < last_sync, |old| old.is_processed);
-            }
-            check_cancelled()?;
-            let update_result = self.update_notifications(&mut notifications, &mut NotificationState::publish_progress);
-            match self.fetch_calendar().and_then(|(ids, assignments)| {
-                Ok(self.apply_calendar(&ids, &assignments, &mut NotificationState::publish_progress)?)
-            }) {
-                Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
-                Err(err) => log::warn!("Calendar sync failed: {err}"),
-            }
-            let mut app = state();
-            let mut next = app.notif.clone();
-            if update_result.is_ok() {
-                next.last_sync = check_started;
-            }
-            next.last_update = chrono::Local::now();
-            next.last_update_success =
-                update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
-            if next.last_update_success {
-                next.scrape_attempts = 0;
-            }
-            notification::save_notifications(&notifications, &next)?;
-            app.notif = next;
-            update_result
-        })().map_err(io::Error::other)
+        let loaded = database::from_sql_map(
+            "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
+            &[],
+            |row| row.get::<_, String>(0).map_err(io::Error::other),
+        )?;
+        if loaded.is_empty() {
+            self.scrape_courses().map_err(io::Error::other)?;
+            database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
+        }
+        let mut notifications = self.scrape_notifications().map_err(io::Error::other)?;
+        let previous = notification::notifications()?;
+        let last_sync = state().notif.last_sync;
+        for n in &mut notifications {
+            n.is_processed = previous
+                .iter()
+                .find(|old| {
+                    old.event == n.event
+                        && old.resource_id == n.resource_id
+                        && old.created == n.created
+                })
+                .map_or(n.created < last_sync, |old| old.is_processed);
+        }
+        check_cancelled()?;
+        let update_result =
+            self.update_notifications(&mut notifications, &mut NotificationState::publish_progress);
+        match self.fetch_calendar().and_then(|(ids, assignments)| {
+            Ok(self.apply_calendar(&ids, &assignments, &mut NotificationState::publish_progress)?)
+        }) {
+            Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
+            Err(err) => log::warn!("Calendar sync failed: {err}"),
+        }
+        let mut app = state();
+        let mut next = app.notif.clone();
+        if update_result.is_ok() {
+            next.last_sync = check_started;
+        }
+        next.last_update = chrono::Local::now();
+        next.last_update_success =
+            update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
+        if next.last_update_success {
+            next.scrape_attempts = 0;
+        }
+        notification::save_notifications(&notifications, &next)?;
+        app.notif = next;
+        update_result.map_err(io::Error::other)
     }
 
     fn slow_sync(&self) -> io::Result<()> {
