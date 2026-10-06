@@ -9,29 +9,6 @@ pub trait Account: Send {
     fn clone_account(&self) -> Box<dyn Account>;
     fn assignment_url(&self, id: &str) -> String;
     fn resource_headers(&self, url: &str) -> RequestResult<reqwest::header::HeaderMap>;
-    fn scrape_courses(&self) -> RequestResult<Vec<crate::types::course::Course>>;
-    fn scrape_notifications(&self) -> RequestResult<Vec<crate::types::notification::Notification>>;
-    fn update_notifications(
-        &self,
-        notifications: &mut [crate::types::notification::Notification],
-        progress: &mut dyn FnMut(f32),
-    ) -> RequestResult<()>;
-    fn fetch_calendar(
-        &self,
-    ) -> RequestResult<(
-        Vec<String>,
-        Vec<crate::api::schoology::calendar::CalendarAssignment>,
-    )>;
-    fn apply_calendar(
-        &self,
-        ids: &[String],
-        assignments: &[crate::api::schoology::calendar::CalendarAssignment],
-        progress: &mut dyn FnMut(f32),
-    ) -> io::Result<usize>;
-    fn scrape_submissions(
-        &self,
-        assignments: &mut [crate::types::assignment::Assignment],
-    ) -> RequestResult<()>;
     fn load() -> Result<Self, io::Error>
     where
         Self: Sized;

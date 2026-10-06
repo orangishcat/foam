@@ -1,9 +1,7 @@
 use crate::{
     AppWindow, CourseItem, CourseTab, CoursesUi, MaterialItem,
     Screen::{self},
-    UiState,
-    api::schoology::RequestResult,
-    database, filesystem,
+    UiState, database, filesystem,
     state::top_bar::refresh_file_view,
     thread_manager,
     types::course::Course,
@@ -477,17 +475,4 @@ pub fn children(course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {
             kind: row.get::<_, String>(2).map_err(io::Error::other)?.into(),
         }),
     )
-}
-
-pub fn ensure_loaded() -> RequestResult<()> {
-    let loaded = database::from_sql_map(
-        "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
-        &[],
-        |row| row.get::<_, String>(0).map_err(std::io::Error::other),
-    )?;
-    if loaded.is_empty() {
-        crate::account::active_account()?.scrape_courses()?;
-        database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
-    }
-    Ok(())
 }

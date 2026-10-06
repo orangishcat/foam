@@ -9,17 +9,14 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
-    AppWindow, UiState,
-    api::{self, schoology},
+    AppWindow, UiState, api,
     config::config,
     database,
-    state::{courses, state::state},
-    thread_manager::{self, check_cancelled},
+    state::state::state,
+    thread_manager,
     types::{
-        assignment::Assignment,
         material::MaterialType,
-        notification::{self, Notification, NotificationEvent},
-        submission,
+        notification::{Notification, NotificationEvent},
     },
     ui,
 };
@@ -34,13 +31,13 @@ pub struct NotificationState {
     pub last_sync: DateTime<Local>,
     pub last_submission_sync: DateTime<Local>,
     #[serde(skip)]
-    last_update_success: bool,
+    pub(crate) last_update_success: bool,
     #[serde(skip)]
-    scrape_attempts: u32,
+    pub(crate) scrape_attempts: u32,
     #[serde(skip)]
     is_checking_notifications: bool,
     #[serde(skip)]
-    is_checking_submissions: bool,
+    is_slow_syncing: bool,
 }
 
 impl NotificationState {
@@ -57,22 +54,18 @@ impl NotificationState {
         {
             self.is_checking_notifications = true;
             self.scrape_attempts += 1;
-            if let Err(err) =
-                thread_manager::spawn_thread("sync notifications", Self::sync_notifications)
-            {
+            if let Err(err) = thread_manager::spawn_thread("sync notifications", Self::fast_sync) {
                 self.is_checking_notifications = false;
                 log::warn!("Starting notification sync failed: {err}");
             }
         }
         // Submission sync can run alongside notifications: each updates only its own SQL columns.
-        if !self.is_checking_submissions
+        if !self.is_slow_syncing
             && Local::now() - self.last_submission_sync >= config().submission_refresh_duration
         {
-            self.is_checking_submissions = true;
-            if let Err(err) =
-                thread_manager::spawn_thread("sync submissions", Self::sync_submissions)
-            {
-                self.is_checking_submissions = false;
+            self.is_slow_syncing = true;
+            if let Err(err) = thread_manager::spawn_thread("sync submissions", Self::slow_sync) {
+                self.is_slow_syncing = false;
                 log::warn!("Starting submission sync failed: {err}");
             }
         }
@@ -89,42 +82,8 @@ impl NotificationState {
         }
     }
 
-    fn sync_notifications() {
-        let check_started = Local::now();
-        let result = (|| -> schoology::RequestResult<()> {
-            courses::ensure_loaded()?;
-            let mut notifications = crate::account::active_account()?.scrape_notifications()?;
-            let previous = notification::notifications()?;
-            let last_sync = state().notif.last_sync;
-            for n in &mut notifications {
-                n.is_processed = previous
-                    .iter()
-                    .find(|old| {
-                        old.event == n.event
-                            && old.resource_id == n.resource_id
-                            && old.created == n.created
-                    })
-                    .map_or(n.created < last_sync, |old| old.is_processed);
-            }
-            check_cancelled()?;
-            let update_result = crate::account::active_account()?
-                .update_notifications(&mut notifications, &mut Self::publish_progress);
-            Self::sync_calendar();
-            let mut app = state();
-            let mut next = app.notif.clone();
-            if update_result.is_ok() {
-                next.last_sync = check_started;
-            }
-            next.last_update = Local::now();
-            next.last_update_success =
-                update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
-            if next.last_update_success {
-                next.scrape_attempts = 0;
-            }
-            notification::save_notifications(&notifications, &next)?;
-            app.notif = next;
-            update_result
-        })();
+    fn fast_sync() {
+        let result = crate::account::active_account().and_then(|account| account.fast_sync());
         {
             let mut app = state();
             app.notif.is_checking_notifications = false;
@@ -140,48 +99,9 @@ impl NotificationState {
         ui::sync_ui();
     }
 
-    fn sync_calendar() {
-        match crate::account::active_account()
-            .map_err(|error| -> schoology::RequestError { error.into() })
-            .and_then(|account| {
-                let (ids, assignments) = account.fetch_calendar()?;
-                Ok(account.apply_calendar(&ids, &assignments, &mut Self::publish_progress)?)
-            }) {
-            Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
-            Err(err) => log::warn!("Calendar sync failed: {err}"),
-        }
-    }
-
-    fn sync_submissions() {
-        let check_started = Local::now();
-        let result = (|| -> schoology::RequestResult<()> {
-            // Initial course loading fetches submissions itself; do not mark an empty cache synced.
-            let loaded = database::from_sql_map(
-                "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
-                &[],
-                |row| row.get::<_, String>(0).map_err(Error::other),
-            )?;
-            if loaded.is_empty() {
-                return Ok(());
-            }
-            let mut assignments = database::from_sql::<Assignment>(
-                format!(
-                    "SELECT * FROM assignments WHERE NOT ({})",
-                    include_str!("../sql/assignment/completed.sql")
-                ),
-                &[],
-            )?;
-            crate::account::active_account()?.scrape_submissions(&mut assignments)?;
-            check_cancelled()?;
-            submission::update_submissions(&assignments)?;
-            let mut app = state();
-            let mut next = app.notif.clone();
-            next.last_submission_sync = check_started;
-            save_sync_state(&next)?;
-            app.notif = next;
-            Ok(())
-        })();
-        state().notif.is_checking_submissions = false;
+    fn slow_sync() {
+        let result = crate::account::active_account().and_then(|account| account.slow_sync());
+        state().notif.is_slow_syncing = false;
         if let Err(err) = result {
             log::warn!("Submission sync failed: {err}");
         }
@@ -267,7 +187,7 @@ impl NotificationState {
         Ok(())
     }
 
-    fn publish_progress(progress: f32) {
+    pub(crate) fn publish_progress(progress: f32) {
         ui::run_on_ui_thread(move |ui| {
             ui.global::<crate::NotificationUi>().set_progress(progress);
         });

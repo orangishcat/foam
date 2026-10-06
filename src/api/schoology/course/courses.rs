@@ -7,8 +7,7 @@ use crate::{
         schoology::RequestResult,
         types::{LooseString, LooseUsize},
     },
-    database,
-    types::{assignment::Assignment, course::Course},
+    types::course::Course,
 };
 
 const PAGE_LIMIT: usize = 50;
@@ -67,14 +66,6 @@ impl SchoologyAccountConfig {
     pub fn scrape_courses(&self) -> RequestResult<Vec<Course>> {
         let courses = self.scrape_materials()?;
         self.scrape_grades()?;
-        for course in &courses {
-            let mut assignments = database::from_sql::<Assignment>(
-                "SELECT * FROM assignments WHERE course_id = ?".to_owned(),
-                &[&course.course_id],
-            )?;
-            self.scrape_submissions(&mut assignments)?;
-            crate::types::submission::update_submissions(&assignments)?;
-        }
         Ok(courses)
     }
 

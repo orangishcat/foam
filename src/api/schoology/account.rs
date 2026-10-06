@@ -11,6 +11,12 @@ use crate::{
     api::schoology::cookies,
     config::config,
     database, filesystem,
+    state::{
+        notifications::{NotificationState, save_sync_state},
+        state::state,
+    },
+    thread_manager::check_cancelled,
+    types::{assignment::Assignment, notification, submission},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -46,47 +52,6 @@ impl Account for SchoologyAccountConfig {
         Self::resource_headers(self, url)
     }
 
-    fn scrape_courses(&self) -> RequestResult<Vec<crate::types::course::Course>> {
-        Self::scrape_courses(self)
-    }
-
-    fn scrape_notifications(&self) -> RequestResult<Vec<crate::types::notification::Notification>> {
-        Self::scrape_notifications(self)
-    }
-
-    fn update_notifications(
-        &self,
-        notifications: &mut [crate::types::notification::Notification],
-        progress: &mut dyn FnMut(f32),
-    ) -> RequestResult<()> {
-        Self::update_notifications(self, notifications, progress)
-    }
-
-    fn fetch_calendar(
-        &self,
-    ) -> RequestResult<(
-        Vec<String>,
-        Vec<crate::api::schoology::calendar::CalendarAssignment>,
-    )> {
-        Self::fetch_calendar(self)
-    }
-
-    fn apply_calendar(
-        &self,
-        ids: &[String],
-        assignments: &[crate::api::schoology::calendar::CalendarAssignment],
-        progress: &mut dyn FnMut(f32),
-    ) -> io::Result<usize> {
-        Self::apply_calendar(self, ids, assignments, progress)
-    }
-
-    fn scrape_submissions(
-        &self,
-        assignments: &mut [crate::types::assignment::Assignment],
-    ) -> RequestResult<()> {
-        Self::scrape_submissions(self, assignments)
-    }
-
     fn load() -> Result<Self, std::io::Error> {
         // todo: supply the data dir
         filesystem::read_json(&config().data_dir().join("plugins").join("schoology.json"))
@@ -108,25 +73,86 @@ impl Account for SchoologyAccountConfig {
         Ok(request.header(ACCEPT, "*/*"))
     }
 
-    fn fast_sync(&self) -> Result<(), std::io::Error> {
-        self.scrape_notifications().map_err(io::Error::other)?;
-        let (ids, assignments) = self.fetch_calendar().map_err(io::Error::other)?;
-        self.apply_calendar(&ids, &assignments, |_| {})?;
-        Ok(())
+    fn fast_sync(&self) -> io::Result<()> {
+        let check_started = chrono::Local::now();
+        (|| -> RequestResult<()> {
+            let loaded = database::from_sql_map(
+                "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
+                &[],
+                |row| row.get::<_, String>(0).map_err(io::Error::other),
+            )?;
+            if loaded.is_empty() {
+                self.scrape_courses()?;
+                database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
+            }
+            let mut notifications = self.scrape_notifications()?;
+            let previous = notification::notifications()?;
+            let last_sync = state().notif.last_sync;
+            for n in &mut notifications {
+                n.is_processed = previous
+                    .iter()
+                    .find(|old| {
+                        old.event == n.event
+                            && old.resource_id == n.resource_id
+                            && old.created == n.created
+                    })
+                    .map_or(n.created < last_sync, |old| old.is_processed);
+            }
+            check_cancelled()?;
+            let update_result = self.update_notifications(&mut notifications, &mut NotificationState::publish_progress);
+            match self.fetch_calendar().and_then(|(ids, assignments)| {
+                Ok(self.apply_calendar(&ids, &assignments, &mut NotificationState::publish_progress)?)
+            }) {
+                Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
+                Err(err) => log::warn!("Calendar sync failed: {err}"),
+            }
+            let mut app = state();
+            let mut next = app.notif.clone();
+            if update_result.is_ok() {
+                next.last_sync = check_started;
+            }
+            next.last_update = chrono::Local::now();
+            next.last_update_success =
+                update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
+            if next.last_update_success {
+                next.scrape_attempts = 0;
+            }
+            notification::save_notifications(&notifications, &next)?;
+            app.notif = next;
+            update_result
+        })().map_err(io::Error::other)
     }
 
-    fn slow_sync(&self) -> Result<(), std::io::Error> {
-        let mut uncompleted_assignments = database::from_sql::<crate::types::assignment::Assignment>(
-            format!(
-                "SELECT * FROM assignments WHERE NOT ({})",
-                include_str!("../../sql/assignment/completed.sql")
-            ),
-            &[],
-        )?;
-        self.scrape_submissions(&mut uncompleted_assignments)
-            .map_err(io::Error::other)?;
-        crate::types::submission::update_submissions(&uncompleted_assignments)?;
-        Ok(())
+    fn slow_sync(&self) -> io::Result<()> {
+        let check_started = chrono::Local::now();
+        (|| -> RequestResult<()> {
+            // Wait for the fast sync to populate the initial course cache.
+            let loaded = database::from_sql_map(
+                "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
+                &[],
+                |row| row.get::<_, String>(0).map_err(io::Error::other),
+            )?;
+            if loaded.is_empty() {
+                return Ok(());
+            }
+            let mut assignments = database::from_sql::<Assignment>(
+                format!(
+                    "SELECT * FROM assignments WHERE NOT ({})",
+                    include_str!("../../sql/assignment/completed.sql")
+                ),
+                &[],
+            )?;
+            self.scrape_submissions(&mut assignments)?;
+            check_cancelled()?;
+            submission::update_submissions(&assignments)?;
+            let mut app = state();
+            let mut next = app.notif.clone();
+            next.last_submission_sync = check_started;
+            save_sync_state(&next)?;
+            app.notif = next;
+            Ok(())
+        })()
+        .map_err(io::Error::other)
     }
 }
 
