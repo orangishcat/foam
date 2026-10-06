@@ -64,6 +64,7 @@ export component Dashboard inherits FocusScope {
                             ListView {
                                 vertical-stretch: 1;
                                 horizontal-scrollbar-policy: always-off;
+                                content-width: self.visible-width;
                                 for assignment[y] in col.assignments: Rectangle {
                                     height: inner.height + 8px;
                                     item-button := HoverableButton {

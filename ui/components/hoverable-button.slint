@@ -6,22 +6,29 @@ export component HoverableButton inherits Rectangle {
     in property <bool> enabled: true;
     out property <bool> has-hover: hover.has-hover;
     out property <bool> has-focus: button.has-focus;
-    out property <bool> pressed: button.pressed;
+    out property <bool> pressed: hover.pressed || button.pressed;
     callback clicked();
     forward-focus: button;
 
+    button := Button {
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        text: root.text;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+
+    // Handle mouse input above the Button so its internal TouchArea cannot reset the cursor.
     hover := TouchArea {
         enabled: root.enabled;
         mouse-cursor: root.enabled ? pointer : default;
-        button := Button {
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            text: root.text;
-            enabled: root.enabled;
-            clicked => { root.clicked(); }
+        clicked => { button.clicked(); }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                button.focus();
+            }
         }
-
         @children
     }
 }
