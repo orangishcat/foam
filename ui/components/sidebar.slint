@@ -22,6 +22,7 @@ component NavigationItem inherits Rectangle {
     background: UiState.screen == change-to ? UiState.theme.background-700 : (action.has-hover || action.has-focus ? UiState.theme.background-600 : transparent);
 
     action := HoverableButton {
+        enabled: UiState.screen != Screen.onboarding;
         text: root.label;
         changed has-focus => {
             if self.has-focus { UiState.focused-sidebar-item = root.item-index; }
@@ -177,6 +178,7 @@ export component Sidebar inherits Rectangle {
                     }
 
                     tab-action := HoverableButton {
+                        enabled: UiState.screen != Screen.onboarding;
                         text: tab.title;
                         changed has-focus => {
                             if self.has-focus { UiState.focused-sidebar-item = index + 3; }

@@ -79,6 +79,9 @@ fn current_sidebar_item(ui: &AppWindow) -> i32 {
 }
 
 fn navigate_sidebar(ui: &AppWindow, target: i32) {
+    if ui.global::<UiState>().get_screen() == Screen::Onboarding {
+        return;
+    }
     let courses = ui.global::<CoursesUi>();
     let state = ui.global::<UiState>();
     let count = courses.get_tabs().row_count() as i32;

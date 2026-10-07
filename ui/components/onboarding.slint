@@ -1,0 +1,216 @@
+import { Button, LineEdit } from "std-widgets.slint";
+import { UiState, OnboardingUi } from "../globals.slint";
+import { ScreenTopBar } from "screen-top-bar.slint";
+import { BottomBarFrame } from "bottom-bar-frame.slint";
+import { HoverableButton } from "hoverable-button.slint";
+import { Theme } from "../palette.slint";
+
+component OnboardingLineEdit inherits LineEdit {
+    in property <int> edit-action;
+    in property <int> edit-request;
+    changed edit-request => {
+        if self.has-focus { self.edit(edit-action); }
+    }
+    public function edit(action: int) {
+        if action == 0 { self.cut(); }
+        else if action == 1 { self.copy(); }
+        else if action == 2 { self.paste(); }
+        else if action == 3 { self.select-all(); }
+    }
+}
+
+export component SchoologyOnboarding inherits Rectangle {
+    background: UiState.theme.background-800;
+    in property <length> sidebar-width;
+    in property <bool> custom-titlebar;
+    private property <bool> subdomain-focused;
+    private property <bool> api-key-focused;
+    private property <bool> api-secret-focused;
+    private property <bool> calendar-url-focused;
+    // Route the stable native Edit menu to the focused Slint input.
+    out property <bool> input-has-focus:
+        OnboardingUi.step == 1 ? subdomain-focused
+        : OnboardingUi.step == 3 ? api-key-focused || api-secret-focused
+        : OnboardingUi.step == 4 ? calendar-url-focused : false;
+    public function edit-input(action: int) {
+        root.edit-action = action;
+        root.edit-request += 1;
+    }
+    private property <int> edit-action;
+    private property <int> edit-request;
+    out property <length> viewer-x: sidebar-width + content.width * 0.45;
+    out property <length> viewer-y: UiState.top-bar-height;
+    out property <length> viewer-width: root.width - viewer-x;
+    out property <length> viewer-height: max(0px, root.height - viewer-y - UiState.bottom-bar-height);
+    ScreenTopBar {
+        title: "Onboarding";
+        custom-titlebar: root.custom-titlebar;
+        x: 0px;
+        y: 0px;
+    }
+
+    BottomBarFrame {
+        y: root.height - self.height;
+        width: root.width;
+    }
+
+    content := Rectangle {
+        x: root.sidebar-width;
+        y: UiState.top-bar-height;
+        width: root.width - root.sidebar-width;
+        height: root.height - UiState.top-bar-height - UiState.bottom-bar-height;
+        if OnboardingUi.step == 0: Text {
+            x: OnboardingUi.step == 0 ? (content.width - self.width) / 2 : 2rem;
+            y: OnboardingUi.step == 0 ? (content.height - 7.25rem) / 2 : 2rem;
+            text: OnboardingUi.step == 0 ? "Welcome to Foam" : "Add Schoology account";
+            font-size: 1.75rem;
+            color: UiState.theme.text-50;
+        }
+
+        if OnboardingUi.step == 0: add-account := HoverableButton {
+            x: (content.width - self.width) / 2;
+            y: (content.height - 7.25rem) / 2 + 4rem;
+            width: account-label.preferred-width + 4rem;
+            height: 3.25rem;
+            border-radius: 0.375rem;
+            background: self.pressed ? UiState.theme.background-700
+                : self.has-hover || self.has-focus ? UiState.theme.background-600
+                : UiState.theme.background-700;
+            text: "Add Schoology account";
+            clicked => { OnboardingUi.next(); }
+            HorizontalLayout {
+                padding: 0.75rem;
+                spacing: 0.75rem;
+                Image {
+                    source: @image-url("../icons/schoology.png");
+                    width: 1.75rem;
+                    height: 1.75rem;
+                    image-fit: contain;
+                }
+
+                account-label := Text {
+                    text: add-account.text;
+                    color: UiState.theme.text-200;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        if OnboardingUi.step > 0: Rectangle {
+            x: 0px;
+            y: 5rem;
+            width: content.width * 0.4;
+            height: max(0px, content.height - 5rem);
+            VerticalLayout {
+                padding: 2rem;
+                spacing: 0.5rem;
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    padding-bottom: 1rem;
+                    Text {
+                        text: "Add Schoology account";
+                        font-size: 1.75rem;
+                        color: UiState.theme.text-50;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Text {
+                    text: OnboardingUi.step == 1 ? "Enter your Schoology subdomain."
+                        : OnboardingUi.step == 2 ? "Log in to Schoology in the panel on the right. Click Next when you are signed in."
+                        : OnboardingUi.step == 3 ? "Copy your API key and secret from this page and paste them below."
+                        : "Click \"Export\", \"Share Calendar\", then paste your calendar feed link below.";
+                    wrap: word-wrap;
+                    line-height-factor: 1.25;
+                    color: UiState.theme.text-200;
+                }
+
+                if OnboardingUi.step == 1: HorizontalLayout {
+                    spacing: 0px;
+                    Text {
+                        text: "https://";
+                        color: UiState.theme.text-200;
+                        vertical-alignment: center;
+                    }
+
+                    subdomain-input := OnboardingLineEdit {
+                        edit-action: root.edit-action;
+                        edit-request: root.edit-request;
+                        changed has-focus => { root.subdomain-focused = self.has-focus; }
+                        text <=> OnboardingUi.subdomain;
+                    }
+
+                    Text {
+                        text: ".schoology.com";
+                        color: UiState.theme.text-200;
+                        vertical-alignment: center;
+                    }
+                }
+                if OnboardingUi.step == 3: VerticalLayout {
+                    spacing: 1rem;
+                    api-key-input := OnboardingLineEdit {
+                        edit-action: root.edit-action;
+                        edit-request: root.edit-request;
+                        changed has-focus => { root.api-key-focused = self.has-focus; }
+                        text <=> OnboardingUi.api-key;
+                        placeholder-text: "API key";
+                    }
+
+                    api-secret-input := OnboardingLineEdit {
+                        edit-action: root.edit-action;
+                        edit-request: root.edit-request;
+                        changed has-focus => { root.api-secret-focused = self.has-focus; }
+                        text <=> OnboardingUi.api-secret;
+                        placeholder-text: "API secret";
+                        input-type: password;
+                    }
+                }
+                if OnboardingUi.step == 4: calendar-url-input := OnboardingLineEdit {
+                    edit-action: root.edit-action;
+                    edit-request: root.edit-request;
+                    changed has-focus => { root.calendar-url-focused = self.has-focus; }
+                    text <=> OnboardingUi.calendar-url;
+                    placeholder-text: "webcal://…/calendar/feed/ical/…";
+                }
+                Text {
+                    text: OnboardingUi.error;
+                    wrap: word-wrap;
+                    color: UiState.theme.text-200;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                HorizontalLayout {
+                    spacing: 1rem;
+                    Button {
+                        text: "Previous";
+                        enabled: !OnboardingUi.busy;
+                        clicked => { OnboardingUi.previous(); }
+                    }
+
+                    Button {
+                        text: OnboardingUi.busy ? "Checking…" : "Next";
+                        enabled: !OnboardingUi.busy;
+                        clicked => { OnboardingUi.next(); }
+                    }
+
+                    Text {
+                        text: "Step \{OnboardingUi.step} of 4";
+                        color: UiState.theme.text-200;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+
+    if OnboardingUi.step > 0: Rectangle {
+        x: root.viewer-x;
+        y: root.viewer-y;
+        width: root.viewer-width;
+        height: root.viewer-height;
+        background: UiState.theme.background-850;
+    }
+}

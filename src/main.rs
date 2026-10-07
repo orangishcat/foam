@@ -81,6 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     state().init_ui(&ui);
     state().sync_ui(&ui);
+    api::schoology::onboarding::init(&ui);
 
     match ui.run() {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),

@@ -1,4 +1,5 @@
 import { Dashboard, DashboardMenu } from "components/dashboard/dashboard.slint";
+import { SchoologyOnboarding } from "components/onboarding.slint";
 import {
     AttachmentDialog,
     AttachmentMenu,
@@ -13,6 +14,7 @@ import { DocumentView } from "components/document/document-view.slint";
 import { UiState, CoursesUi, DashboardUi, NotificationUi } from "globals.slint";
 export {
     UiState,
+    OnboardingUi,
     SettingsUi,
     DashboardUi,
     NotificationUi,
@@ -21,7 +23,10 @@ export {
     DocumentUi,
 } from "globals.slint";
 import "fonts/MozillaText.ttf";
-import { Notifications, NotificationsMenu } from "components/notifications/notifications.slint";
+import {
+    Notifications,
+    NotificationsMenu,
+} from "components/notifications/notifications.slint";
 import {
     AssignmentView,
     AssignmentMenu,
@@ -46,6 +51,16 @@ export component AppWindow inherits Window {
     private property <Screen> active-screen: UiState.screen;
     changed active-screen => { root.screen-changed(); }
     callback navigate-sidebar(int);
+    out property <length> onboarding-x: onboarding.viewer-x;
+    out property <length> onboarding-y: onboarding.viewer-y;
+    out property <length> onboarding-width: onboarding.viewer-width;
+    out property <length> onboarding-height: onboarding.viewer-height;
+    callback update-onboarding-webview();
+    callback edit-webview(int);
+    changed onboarding-x => { root.update-onboarding-webview(); }
+    changed onboarding-y => { root.update-onboarding-webview(); }
+    changed onboarding-width => { root.update-onboarding-webview(); }
+    changed onboarding-height => { root.update-onboarding-webview(); }
     callback step-sidebar(int);
     out property <length> attachment-x: attachment.viewer-x;
     out property <length> attachment-y: attachment.viewer-y;
@@ -68,8 +83,48 @@ export component AppWindow inherits Window {
     changed document-height => { root.update-document-webview(); }
     changed document-visible => { root.update-document-webview(); }
 
+    private property <bool> has-dialog: AttachmentMenu.visible || UiState.screen == Screen.onboarding;
+
     MenuBar {
-        if !AttachmentMenu.visible: Menu {
+        if UiState.screen == Screen.onboarding && UiState.shortcut-modifier == "⌘": Menu {
+            title: "Edit";
+            MenuItem {
+                title: "Cut";
+                shortcut: @keys(Control + X);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(0); }
+                    else { root.edit-webview(0); }
+                }
+            }
+
+            MenuItem {
+                title: "Copy";
+                shortcut: @keys(Control + C);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(1); }
+                    else { root.edit-webview(1); }
+                }
+            }
+
+            MenuItem {
+                title: "Paste";
+                shortcut: @keys(Control + V);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(2); }
+                    else { root.edit-webview(2); }
+                }
+            }
+
+            MenuItem {
+                title: "Select All";
+                shortcut: @keys(Control + A);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(3); }
+                    else { root.edit-webview(3); }
+                }
+            }
+        }
+        if !has-dialog: Menu {
             title: "Tabs";
             MenuItem {
                 title: "Calendar";
@@ -142,7 +197,7 @@ export component AppWindow inherits Window {
             }
         }
 
-        if !AttachmentMenu.visible && UiState.screen == Screen.dashboard: Menu {
+        if !has-dialog && UiState.screen == Screen.dashboard: Menu {
             title: "Actions";
             for item[index] in DashboardMenu.items: MenuItem {
                 title: item.title;
@@ -151,7 +206,7 @@ export component AppWindow inherits Window {
                 activated => { DashboardMenu.activate(index); }
             }
         }
-        if !AttachmentMenu.visible && UiState.screen == Screen.notifs: Menu {
+        if !has-dialog && UiState.screen == Screen.notifs: Menu {
             title: "Actions";
             for item[index] in NotificationsMenu.items: MenuItem {
                 title: item.title;
@@ -160,7 +215,7 @@ export component AppWindow inherits Window {
                 activated => { NotificationsMenu.activate(index); }
             }
         }
-        if !AttachmentMenu.visible && UiState.screen == Screen.courses: Menu {
+        if !has-dialog && UiState.screen == Screen.courses: Menu {
             title: "Actions";
             for item[index] in CoursesMenu.items: MenuItem {
                 title: item.title;
@@ -169,7 +224,7 @@ export component AppWindow inherits Window {
                 activated => { CoursesMenu.activate(index); }
             }
         }
-        if !AttachmentMenu.visible && UiState.screen == Screen.materials: Menu {
+        if !has-dialog && UiState.screen == Screen.materials: Menu {
             title: "Actions";
             for item[index] in MaterialsMenu.items: MenuItem {
                 title: item.title;
@@ -178,7 +233,7 @@ export component AppWindow inherits Window {
                 activated => { MaterialsMenu.activate(index); }
             }
         }
-        if !AttachmentMenu.visible && (UiState.screen == Screen.assignment || UiState.screen == Screen.document): Menu {
+        if !has-dialog && (UiState.screen == Screen.assignment || UiState.screen == Screen.document): Menu {
             title: "Actions";
             for item[index] in AssignmentMenu.items: MenuItem {
                 title: item.title;
@@ -238,6 +293,14 @@ export component AppWindow inherits Window {
                 sidebar-width: navigation.width;
                 custom-titlebar: root.custom-titlebar;
             }
+            onboarding := SchoologyOnboarding {
+                visible: UiState.screen == Screen.onboarding;
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
             navigation := Sidebar {
                 focus-request: root.sidebar-focus-request;
                 x: 0rem;

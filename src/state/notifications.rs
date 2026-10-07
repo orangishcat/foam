@@ -49,6 +49,9 @@ impl NotificationState {
     }
 
     pub fn check_notifications(&mut self) {
+        if crate::account::active_account().is_err() {
+            return;
+        }
         if !self.is_checking_notifications
             && Local::now() - self.last_update >= self.refresh_duration()
         {

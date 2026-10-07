@@ -53,7 +53,7 @@ impl AppState {
             Screen::Assignment => self.assignment_view.sync_ui(ui),
             Screen::Document => self.document_view.sync_ui(ui),
             Screen::Settings => self.settings.sync_ui(ui),
-            Screen::Courses | Screen::Materials => Ok(()),
+            Screen::Courses | Screen::Materials | Screen::Onboarding => Ok(()),
         };
         if let Err(err) = result {
             log::warn!("active screen sync_ui failed: {err}");

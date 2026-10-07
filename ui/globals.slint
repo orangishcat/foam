@@ -16,6 +16,18 @@ export global UiState {
     out property <length> bottom-bar-height: font-size * 1.75;
 }
 
+export global OnboardingUi {
+    in-out property <int> step: 0;
+    in-out property <string> subdomain;
+    in-out property <string> api-key;
+    in-out property <string> api-secret;
+    in-out property <string> calendar-url;
+    in-out property <string> error;
+    in-out property <bool> busy: false;
+    callback previous();
+    callback next();
+}
+
 export global SettingsUi {
     in-out property <int> font-size: 16;
     in-out property <string> save-error;

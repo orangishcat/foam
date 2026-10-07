@@ -3,6 +3,30 @@
  * skipping shutdown, and this file will make it... not do that
  */
 
+/// Dispatch editing to the native first responder, including a focused WKWebView.
+pub fn edit_webview(action: i32) {
+    use objc2::sel;
+    use objc2_app_kit::NSApplication;
+    use objc2_foundation::MainThreadMarker;
+
+    let selector = match action {
+        0 => sel!(cut:),
+        1 => sel!(copy:),
+        2 => sel!(paste:),
+        3 => sel!(selectAll:),
+        _ => return,
+    };
+    let mtm = MainThreadMarker::new().expect("must run on the main thread");
+    unsafe {
+        let app = NSApplication::sharedApplication(mtm);
+        if let Some(responder) = app.keyWindow().and_then(|window| window.firstResponder()) {
+            // A nil target lets AppKit search menus as well as the responder chain.
+            // Keep webview editing directed at the focused native view.
+            app.sendAction_to_from(selector, Some(&responder), None);
+        }
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub mod macos_quit {
     use objc2::rc::Retained;
