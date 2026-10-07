@@ -262,11 +262,11 @@ impl SchoologyAccountConfig {
             missing.remove(&id);
         }
         if missing.is_empty() {
-            publish_progress(1.0);
+            publish_progress(0.0);
             return Ok(());
         }
         let total_missing = missing.len();
-        publish_progress(0.0);
+        publish_progress(1.0);
         let courses: Vec<String> =
             database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
                 row.get(0).map_err(io::Error::other)

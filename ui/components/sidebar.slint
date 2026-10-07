@@ -37,7 +37,7 @@ component NavigationItem inherits Rectangle {
                     color: UiState.theme.text-50;
                 }
 
-                Text {
+                if !root.shortcut.is-empty: Text {
                     font-size: 0.75rem;
                     text: UiState.shortcut-modifier + "+" + root.shortcut;
                     color: UiState.theme.text-200;
@@ -211,7 +211,6 @@ export component Sidebar inherits Rectangle {
             label: "Settings";
             item-index: CoursesUi.tabs.length + 3;
             focus-request: root.focus-request;
-            shortcut: "alt+space";
             icon: @image-url("../icons/settings.svg");
             change-to: settings;
         }

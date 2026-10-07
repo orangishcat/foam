@@ -21,6 +21,7 @@ impl SchoologyAccountConfig {
         let mut refreshed = HashSet::new();
         let total = notifications.iter().filter(|n| !n.is_processed).count();
         let mut attempted = 0;
+        progress(1.0);
         for i in 0..notifications.len() {
             if notifications[i].is_processed
                 || notifications[i].event == NotificationEvent::GradeUpdated
@@ -79,7 +80,7 @@ impl SchoologyAccountConfig {
                 }
                 Err(err) => log::warn!("Updating notification grades failed: {err}"),
             }
-            progress(1.0);
+            progress(0.0);
         }
         check_cancelled()?;
         Ok(())
