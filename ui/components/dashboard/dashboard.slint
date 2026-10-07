@@ -29,11 +29,13 @@ export global DashboardMenu {
             shortcut: @keys(Escape),
             enabled: !DashboardUi.selected-assignment.course-id.is-empty
         },
+        { title: "Refresh", shortcut: @keys(Control + R), enabled: true }
     ];
     public function activate(index: int) {
         if index == 0 { DashboardUi.open-selected(); }
         else if index == 1 { DashboardUi.toggle-selected-done(); }
         else if index == 2 { DashboardUi.unselect(); }
+        else if index == 3 { DashboardUi.refresh(); }
     }
 }
 

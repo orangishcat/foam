@@ -7,7 +7,12 @@ use chrono::{Datelike, Days, Local};
 use rusqlite::params;
 use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
-use crate::{AppWindow, AssignmentCol, database, types::assignment::Assignment};
+use crate::{
+    AppWindow, AssignmentCol,
+    account::{self, Account},
+    database, thread_manager,
+    types::assignment::Assignment,
+};
 
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
     (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
@@ -102,6 +107,28 @@ impl DashboardState {
             .inspect_err(|err| log::warn!("Error marking assignment {id} as done: {err}"))
             .ok();
         });
+        g.on_refresh(|| {
+            account::active_account()
+                .map(|acc| {
+                    thread_manager::spawn_thread("Manual refresh", move || {
+                        manual_refresh(acc)
+                            .inspect_err(|err| log::warn!("Manual refresh failed: {err}"))
+                            .ok();
+                    })
+                    .inspect_err(|err| log::warn!("Manual refresh thread spawning failed: {err}"))
+                    .ok();
+                })
+                .inspect_err(|err| log::warn!("Error manual refreshing: {err}"))
+                .ok();
+        });
         Ok(())
     }
+}
+
+fn manual_refresh(acc: Box<dyn Account>) -> io::Result<()> {
+    acc.fast_sync()?;
+    log::info!("Manually refreshed fast sync");
+    acc.slow_sync()?;
+    log::info!("Manually refreshed slow sync");
+    Ok(())
 }

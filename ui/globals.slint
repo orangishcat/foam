@@ -40,6 +40,7 @@ export global DashboardUi {
     in-out property <int> sel-row;
     in-out property <int> sel-col;
     callback view-item();
+    callback refresh();
     callback set-done(bool, string);
     public function open-selected() {
         AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
@@ -59,8 +60,8 @@ export global NotificationUi {
     out property <bool> can-open-selected: !selected-notification.course-id.is-empty
         && !selected-notification.resource-id.is-empty
         && (selected-notification.n-type == NotificationType.new-assignment
-            || selected-notification.n-type == NotificationType.new-grade
-            || selected-notification.n-type == NotificationType.new-document);
+        || selected-notification.n-type == NotificationType.new-grade
+        || selected-notification.n-type == NotificationType.new-document);
     public function open-selected() {
         if can-open-selected {
             if selected-notification.n-type == NotificationType.new-document {
