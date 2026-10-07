@@ -3,7 +3,9 @@
  * skipping shutdown, and this file will make it... not do that
  */
 
-/// Dispatch editing to the native first responder, including a focused WKWebView.
+// this function sends webview keystrokes to macos native handling
+// fixme: use less hacky workarounds
+#[cfg(target_os = "macos")]
 pub fn edit_webview(action: i32) {
     use objc2::sel;
     use objc2_app_kit::NSApplication;
