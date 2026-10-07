@@ -162,6 +162,11 @@ impl NotificationState {
         global.set_progress(0.0);
         global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
         global.set_notifications(ModelRc::new(VecModel::from(models)));
+        Ok(())
+    }
+
+    pub fn init_ui(&self, ui: &AppWindow) {
+        let global = ui.global::<crate::NotificationUi>();
         global.on_closed(ui::sync_ui);
         global.on_opened(|| {
             let mut app = state();
@@ -184,6 +189,17 @@ impl NotificationState {
             }
             ui::sync_ui();
         });
+    }
+
+    pub fn sync_sidebar(&self, ui: &AppWindow) -> io::Result<()> {
+        let notifications =
+            database::from_sql::<Notification>("SELECT * FROM notifications".into(), &[])?;
+        ui.global::<crate::NotificationUi>().set_unread_count(
+            notifications
+                .iter()
+                .filter(|n| n.is_unread(self.last_opened))
+                .count() as i32,
+        );
         Ok(())
     }
 

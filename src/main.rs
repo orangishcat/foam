@@ -54,24 +54,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .select()?;
     let ui = AppWindow::new()?;
     ui.set_custom_titlebar(cfg!(target_os = "macos"));
-    let font_size = config().font_size.clamp(12, 24);
-    ui.global::<UiState>().set_font_size(font_size as f32);
-    ui.global::<SettingsUi>().set_font_size(font_size);
-    let weak = ui.as_weak();
-    ui.global::<SettingsUi>().on_set_font_size(move |size| {
-        let Some(ui) = weak.upgrade() else { return };
-        let size = size.clamp(12, 24);
-        ui.global::<UiState>().set_font_size(size as f32);
-        ui.global::<SettingsUi>().set_font_size(size);
-        let mut config = config::config_write();
-        config.font_size = size;
-        let error = config
-            .save()
-            .err()
-            .map(|e| format!("Could not save font size: {e}"))
-            .unwrap_or_default();
-        ui.global::<SettingsUi>().set_save_error(error.into());
-    });
 
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 
@@ -97,6 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     plugin::init()?;
     state().init();
 
+    state().init_ui(&ui);
     state().sync_ui(&ui);
 
     match ui.run() {

@@ -42,6 +42,9 @@ export component AppWindow inherits Window {
         if self.notifications-visible { NotificationUi.opened(); }
         else { NotificationUi.closed(); }
     }
+    callback screen-changed();
+    private property <Screen> active-screen: UiState.screen;
+    changed active-screen => { root.screen-changed(); }
     callback navigate-sidebar(int);
     callback step-sidebar(int);
     out property <length> attachment-x: attachment.viewer-x;

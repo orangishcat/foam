@@ -154,76 +154,100 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
     }))
 }
 
-pub fn init(ui: &AppWindow) {
-    let weak = ui.as_weak();
-    ui.global::<AssignmentUi>()
-        .on_view_submissions(move |index| {
-            if let Some(ui) = weak.upgrade() {
-                crate::state::attachment_view::open_submissions(&ui, index);
-            }
-        });
-    let weak = ui.as_weak();
-    ui.global::<AssignmentUi>()
-        .on_view_attachments(move |index| {
-            if let Some(ui) = weak.upgrade() {
-                crate::state::attachment_view::open(&ui, index);
-            }
-        });
-    let weak = ui.as_weak();
-    ui.global::<AssignmentUi>().on_open_browser(move || {
-        if let Some(ui) = weak.upgrade() {
-            let assignment = ui.global::<AssignmentUi>().get_assignment();
-            if !assignment.id.is_empty() {
-                let account = match crate::account::active_account() {
-                    Ok(account) => account,
-                    Err(error) => {
-                        log::warn!("Getting active account failed: {error}");
-                        return;
-                    }
-                };
-                crate::state::attachment_view::open_browser(
-                    &account.assignment_url(&assignment.id),
-                );
-            }
-        }
-    });
-    let weak = ui.as_weak();
-    ui.global::<AssignmentUi>().on_open(move |course, id| {
-        let Some(ui) = weak.upgrade() else { return };
+#[derive(Clone, Default)]
+pub struct AssignmentViewState {}
+
+impl AssignmentViewState {
+    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let global = ui.global::<AssignmentUi>();
-        global.set_error("".into());
-        match load(&course, &id) {
-            Ok(Some(assignment)) => {
-                match crate::state::courses::show_assignment(&ui, &assignment.course_id, &id) {
-                    Ok(()) => {
-                        global.set_assignment(assignment);
-                        ui.global::<UiState>().set_screen(Screen::Assignment);
-                        refresh_file_view(&ui);
-                    }
-                    Err(err) => {
-                        log::warn!("Opening assignment {id} failed: {err}");
-                        global.set_error(format!("Could not open assignment: {err}").into());
-                    }
+        let current = global.get_assignment();
+        if !current.id.is_empty() {
+            if let Some(assignment) = load(&current.course_id, &current.id)? {
+                global.set_assignment(assignment);
+                global.set_error("".into());
+            } else {
+                global.set_error(format!("Assignment no longer exists: {}", current.id).into());
+            }
+            refresh_file_view(ui);
+        }
+        Ok(())
+    }
+
+    pub fn init_ui(&self, ui: &AppWindow) {
+        let weak = ui.as_weak();
+        ui.global::<AssignmentUi>()
+            .on_view_submissions(move |index| {
+                if let Some(ui) = weak.upgrade() {
+                    crate::state::attachment_view::open_submissions(&ui, index);
+                }
+            });
+        let weak = ui.as_weak();
+        ui.global::<AssignmentUi>()
+            .on_view_attachments(move |index| {
+                if let Some(ui) = weak.upgrade() {
+                    crate::state::attachment_view::open(&ui, index);
+                }
+            });
+        let weak = ui.as_weak();
+        ui.global::<AssignmentUi>().on_open_browser(move || {
+            if let Some(ui) = weak.upgrade() {
+                let assignment = ui.global::<AssignmentUi>().get_assignment();
+                if !assignment.id.is_empty() {
+                    let account = match crate::account::active_account() {
+                        Ok(account) => account,
+                        Err(error) => {
+                            log::warn!("Getting active account failed: {error}");
+                            return;
+                        }
+                    };
+                    crate::state::attachment_view::open_browser(
+                        &account.assignment_url(&assignment.id),
+                    );
                 }
             }
-            Ok(None) => {
-                global.set_assignment(AssignmentWithDetails {
-                    title: "Assignment".into(),
-                    ..Default::default()
-                });
-                global.set_error(
-                    format!("Assignment no longer exists: id={id} with course={course}").into(),
-                );
-                log::warn!("Assignment no longer exists:  id={id} with course={course}");
+        });
+        let weak = ui.as_weak();
+        ui.global::<AssignmentUi>().on_open(move |course, id| {
+            let Some(ui) = weak.upgrade() else { return };
+            let global = ui.global::<AssignmentUi>();
+            global.set_error("".into());
+            match load(&course, &id) {
+                Ok(Some(assignment)) => {
+                    match crate::state::courses::CourseState::show_assignment(
+                        &ui,
+                        &assignment.course_id,
+                        &id,
+                    ) {
+                        Ok(()) => {
+                            global.set_assignment(assignment);
+                            ui.global::<UiState>().set_screen(Screen::Assignment);
+                            refresh_file_view(&ui);
+                        }
+                        Err(err) => {
+                            log::warn!("Opening assignment {id} failed: {err}");
+                            global.set_error(format!("Could not open assignment: {err}").into());
+                        }
+                    }
+                }
+                Ok(None) => {
+                    global.set_assignment(AssignmentWithDetails {
+                        title: "Assignment".into(),
+                        ..Default::default()
+                    });
+                    global.set_error(
+                        format!("Assignment no longer exists: id={id} with course={course}").into(),
+                    );
+                    log::warn!("Assignment no longer exists:  id={id} with course={course}");
+                }
+                Err(err) => {
+                    log::warn!("Loading assignment {id} failed: {err}");
+                    global.set_assignment(AssignmentWithDetails {
+                        title: "Assignment".into(),
+                        ..Default::default()
+                    });
+                    global.set_error(format!("Could not load assignment: {err}").into());
+                }
             }
-            Err(err) => {
-                log::warn!("Loading assignment {id} failed: {err}");
-                global.set_assignment(AssignmentWithDetails {
-                    title: "Assignment".into(),
-                    ..Default::default()
-                });
-                global.set_error(format!("Could not load assignment: {err}").into());
-            }
-        }
-    });
+        });
+    }
 }

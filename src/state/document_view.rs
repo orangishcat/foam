@@ -6,10 +6,7 @@ use slint::{ComponentHandle, Model};
 
 use crate::{
     AppWindow, CoursesUi, DocumentUi, Screen, UiState, database, filesystem,
-    state::{
-        courses::{ensure_course_tab, root_folder},
-        top_bar::refresh_file_view,
-    },
+    state::{courses::CourseState, top_bar::refresh_file_view},
     types::material::Material,
 };
 
@@ -56,11 +53,11 @@ impl DocumentViewerState {
             return Err(io::Error::other("Document has no resource URL"));
         }
         let course_id = canon_course_id.as_str();
-        let index = ensure_course_tab(ui, course_id, None)?;
+        let index = CourseState::ensure_course_tab(ui, course_id, None)?;
         let courses = ui.global::<CoursesUi>();
         courses.set_active_tab(index as i32);
         courses.set_course_id(course_id.into());
-        courses.set_folder_id(if parent == root_folder(course_id)? {
+        courses.set_folder_id(if parent == CourseState::root_folder(course_id)? {
             "".into()
         } else {
             parent.into()
@@ -115,7 +112,7 @@ impl DocumentViewerState {
         Ok(())
     }
 
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    pub fn init_ui(&self, ui: &AppWindow) {
         wry::init(ui);
         let weak = ui.as_weak();
         ui.global::<DocumentUi>().on_open(move |course, id| {
@@ -128,6 +125,10 @@ impl DocumentViewerState {
                 }
             }
         });
+    }
+
+    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        wry::init(ui);
         Ok(())
     }
 }

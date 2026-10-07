@@ -2,7 +2,7 @@ use crate::{
     AppWindow, AssignmentUi, CoursesUi, MaterialItem,
     Screen::{self},
     UiState,
-    state::courses::{children, course_folders, course_title, folder_metadata, root_folder},
+    state::courses::CourseState,
 };
 use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
 use std::io;
@@ -25,33 +25,33 @@ pub fn get_path_data(
         return Ok((
             "Courses".to_owned(),
             "Courses".to_owned(),
-            course_folders(ui),
-            course_folders(ui),
+            CourseState::course_folders(ui),
+            CourseState::course_folders(ui),
         ));
     }
     let course_title = crate::types::course::course(&course)?
         .ok_or_else(|| io::Error::other("Course no longer exists"))?
         .course_title;
-    let root = root_folder(&course)?;
+    let root = CourseState::root_folder(&course)?;
     if folder.is_empty() {
         return Ok((
             course_title,
             "Courses".to_owned(),
-            children(&course, &root)?,
-            course_folders(ui),
+            CourseState::children(&course, &root)?,
+            CourseState::course_folders(ui),
         ));
     }
-    let (title, parent) = folder_metadata(&course, &folder)?;
+    let (title, parent) = CourseState::folder_metadata(&course, &folder)?;
     let parent_title = if parent == root {
         course_title
     } else {
-        folder_metadata(&course, &parent)?.0
+        CourseState::folder_metadata(&course, &parent)?.0
     };
     Ok((
         title,
         parent_title,
-        children(&course, &folder)?,
-        children(&course, &parent)?,
+        CourseState::children(&course, &folder)?,
+        CourseState::children(&course, &parent)?,
     ))
 }
 
@@ -100,7 +100,7 @@ pub fn refresh_file_view(ui: &AppWindow) {
         let tabs = courses_ui.get_tabs();
         if let Some(mut tab) = tabs.row_data(index) {
             tab.course_id = courses_ui.get_course_id();
-            tab.title = course_title(ui, &tab.course_id);
+            tab.title = CourseState::course_title(ui, &tab.course_id);
             tab.folder_id = courses_ui.get_folder_id();
             tab.folder_title = courses_ui.get_folder_title();
             tab.parent_title = courses_ui.get_parent_title();
@@ -134,7 +134,7 @@ pub fn breadcrumbs(
     doc_kind: &str,
     title: slint::SharedString,
 ) -> io::Result<Vec<MaterialItem>> {
-    let root = root_folder(course)?;
+    let root = CourseState::root_folder(course)?;
     let mut ancestors = Vec::new();
     let mut current = folder.to_owned();
     let mut visited = std::collections::HashSet::new();
@@ -150,7 +150,7 @@ pub fn breadcrumbs(
         if !visited.insert(current.clone()) {
             return Err(io::Error::other("Folder hierarchy contains a cycle"));
         }
-        let (folder_title, parent) = folder_metadata(course, &current)?;
+        let (folder_title, parent) = CourseState::folder_metadata(course, &current)?;
         ancestors.push(MaterialItem {
             course_id: course.into(),
             id: current.into(),
