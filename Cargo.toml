@@ -40,3 +40,7 @@ lto = true
 objc2 = "0.5"
 objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder", "NSMenu", "NSMenuItem"] }
 objc2-foundation = "0.2"
+
+[package.metadata.packager]
+formats = ["all"]
+before-packaging-command = "cargo build --release"
