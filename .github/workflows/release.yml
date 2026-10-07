@@ -83,4 +83,10 @@ jobs:
         with:
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            target/release/bundle/**/*
+            target/${{ matrix.target }}/release/*.app
+            target/${{ matrix.target }}/release/*.dmg
+            target/${{ matrix.target }}/release/*.exe
+            target/${{ matrix.target }}/release/*.msi
+            target/${{ matrix.target }}/release/*.deb
+            target/${{ matrix.target }}/release/*.AppImage
+            target/${{ matrix.target }}/release/*.pkg.tar.zst
