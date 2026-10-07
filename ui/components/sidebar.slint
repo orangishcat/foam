@@ -40,7 +40,7 @@ component NavigationItem inherits Rectangle {
 
                 if !root.shortcut.is-empty: Text {
                     font-size: 0.75rem;
-                    text: UiState.shortcut-modifier + "+" + root.shortcut;
+                    text: "Shift+" + root.shortcut;
                     color: UiState.theme.text-200;
                 }
             }
