@@ -43,4 +43,3 @@ objc2-foundation = "0.2"
 
 [package.metadata.packager]
 formats = ["all"]
-before-packaging-command = "cargo build --release"

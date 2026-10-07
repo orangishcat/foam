@@ -35,8 +35,15 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ${{ matrix.target }}
+
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package
         run: cargo packager --release --target ${{ matrix.target }}
