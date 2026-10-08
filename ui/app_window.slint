@@ -9,10 +9,12 @@ import { Screen } from "types/screen.slint";
 import { Courses, CoursesMenu } from "components/courses/courses.slint";
 import { Materials, MaterialsMenu } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
+import { WindowControls } from "components/window-controls.slint";
 import { Settings } from "components/settings/settings.slint";
 import { DocumentView } from "components/document/document-view.slint";
-import { UiState, CoursesUi, DashboardUi, NotificationUi } from "globals.slint";
+import { UiState, CoursesUi, DashboardUi, NotificationUi, WindowChrome } from "globals.slint";
 export {
+    WindowChrome,
     UiState,
     OnboardingUi,
     SettingsUi,
@@ -39,9 +41,12 @@ export component AppWindow inherits Window {
     default-font-size: UiState.font-size;
     preferred-width: 68.75rem;
     preferred-height: 43.75rem;
+    no-frame: WindowChrome.client-side;
+    resize-border-width: WindowChrome.client-side && !root.maximized && !root.full-screen ? 5px : 0px;
 
     background: UiState.theme.background-800;
     in property <bool> custom-titlebar: false;
+    in property <bool> window-active: true;
     in-out property <int> sidebar-focus-request: -1;
     private property <bool> notifications-visible: UiState.screen == Screen.notifs;
     changed notifications-visible => {
@@ -88,7 +93,7 @@ export component AppWindow inherits Window {
 
     // since slint forces the menu bar to be in the main app window, there might not be a
     // better way to do this
-    MenuBar {
+    if !WindowChrome.client-side || !has-dialog || AttachmentMenu.visible: MenuBar {
         if UiState.screen == Screen.onboarding && UiState.shortcut-modifier == "⌘": Menu {
             title: "Edit";
             MenuItem {
@@ -364,5 +369,27 @@ export component AppWindow inherits Window {
         visible: AttachmentMenu.visible;
         width: parent.width;
         height: parent.height;
+    }
+
+    if WindowChrome.client-side && AttachmentMenu.visible: WindowMoveArea {
+        x: 0px;
+        y: 0px;
+        height: UiState.top-bar-height;
+        TouchArea {
+            double-clicked => { WindowChrome.toggle-maximized(); }
+        }
+    }
+
+    // Native macOS controls also stay above the content and attachment overlay.
+    if WindowChrome.client-side: WindowControls {
+        x: parent.width - self.width;
+        y: 0px;
+        height: UiState.top-bar-height;
+        active: root.window-active;
+        maximized: root.maximized;
+        full-screen: root.full-screen;
+        close => { root.close(); }
+        minimize => { root.minimized = true; }
+        toggle-maximized => { WindowChrome.toggle-maximized(); }
     }
 }

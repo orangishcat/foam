@@ -1,4 +1,4 @@
-import { UiState } from "../globals.slint";
+import { UiState, WindowChrome } from "../globals.slint";
 
 export component TopBarFrame inherits Rectangle {
     in property <bool> custom-titlebar: false;
@@ -7,8 +7,19 @@ export component TopBarFrame inherits Rectangle {
         let c = UiState.theme.background-900.to-oklch();
         oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
     };
+
+    // Keep this behind the content so buttons and inputs retain their mouse handling.
+    WindowMoveArea {
+        enabled: root.custom-titlebar && WindowChrome.client-side;
+        TouchArea {
+            enabled: root.custom-titlebar && WindowChrome.client-side;
+            double-clicked => { WindowChrome.toggle-maximized(); }
+        }
+    }
+
     HorizontalLayout {
-        padding-left: root.custom-titlebar ? 4.375rem : 0rem;
+        padding-left: root.custom-titlebar && !WindowChrome.client-side ? 4.375rem : 0rem;
+        padding-right: root.custom-titlebar && WindowChrome.client-side ? 6.5rem : 0rem;
 
         @children
     }

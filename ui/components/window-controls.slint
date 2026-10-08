@@ -1,0 +1,110 @@
+import { UiState } from "../globals.slint";
+import { HoverableButton } from "hoverable-button.slint";
+
+component WindowControlButton inherits HoverableButton {
+    in property <bool> active;
+    in property <bool> maximized;
+    in property <int> kind;
+    width: 1.75rem;
+    accessible-role: button;
+    accessible-label: root.text;
+
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 1.5rem;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.enabled && (root.has-hover || root.pressed)
+            ? UiState.theme.text-200.with-alpha(root.pressed ? 0.2 : 0.1) : transparent;
+        border-width: root.has-focus ? 1px : 0px;
+        border-color: #66aaff;
+
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 0.625rem;
+            height: self.width;
+            opacity: root.enabled && root.active ? 1 : 0.5;
+
+            if root.kind == 0: Path {
+                width: parent.width;
+                height: parent.height;
+                viewbox-width: 10;
+                viewbox-height: 10;
+                fill: transparent;
+                stroke: UiState.theme.text-200;
+                stroke-width: 1.2px;
+                commands: "M 1 8 L 9 8";
+            }
+            if root.kind == 1 && !root.maximized: Path {
+                width: parent.width;
+                height: parent.height;
+                viewbox-width: 10;
+                viewbox-height: 10;
+                fill: transparent;
+                stroke: UiState.theme.text-200;
+                stroke-width: 1.2px;
+                commands: "M 1 1 L 9 1 L 9 9 L 1 9 Z";
+            }
+            if root.kind == 1 && root.maximized: Path {
+                width: parent.width;
+                height: parent.height;
+                viewbox-width: 10;
+                viewbox-height: 10;
+                fill: transparent;
+                stroke: UiState.theme.text-200;
+                stroke-width: 1.2px;
+                commands: "M 3 0 L 10 0 L 10 7 M 0 3 L 7 3 L 7 10 L 0 10 Z";
+            }
+            if root.kind == 2: Path {
+                width: parent.width;
+                height: parent.height;
+                viewbox-width: 10;
+                viewbox-height: 10;
+                fill: transparent;
+                stroke: UiState.theme.text-200;
+                stroke-width: 1.2px;
+                commands: "M 2 2 L 8 8 M 2 8 L 8 2";
+            }
+        }
+    }
+}
+
+export component WindowControls inherits Rectangle {
+    in property <bool> active: true;
+    in property <bool> maximized;
+    in property <bool> full-screen;
+    callback close();
+    callback minimize();
+    callback toggle-maximized();
+    width: 6.5rem;
+
+    HorizontalLayout {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+        spacing: 0.375rem;
+
+        WindowControlButton {
+            text: "Minimize window";
+            kind: 0;
+            active: root.active;
+            enabled: !root.full-screen;
+            clicked => { root.minimize(); }
+        }
+        WindowControlButton {
+            text: root.maximized ? "Restore window" : "Maximize window";
+            kind: 1;
+            active: root.active;
+            maximized: root.maximized;
+            enabled: !root.full-screen;
+            clicked => { root.toggle-maximized(); }
+        }
+        WindowControlButton {
+            text: "Close window";
+            kind: 2;
+            active: root.active;
+            clicked => { root.close(); }
+        }
+    }
+}

@@ -53,7 +53,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         .backend_name("winit".into())
         .select()?;
     let ui = AppWindow::new()?;
-    ui.set_custom_titlebar(cfg!(target_os = "macos"));
+    ui.set_custom_titlebar(cfg!(any(target_os = "macos", target_os = "linux")));
+    ui.global::<WindowChrome>()
+        .set_client_side(cfg!(target_os = "linux"));
+
+    #[cfg(target_os = "linux")]
+    {
+        let weak_ui = ui.as_weak();
+        ui.global::<WindowChrome>().on_toggle_maximized(move || {
+            if let Some(ui) = weak_ui.upgrade() {
+                let window = ui.window();
+                if !window.is_fullscreen() {
+                    window.set_maximized(!window.is_maximized());
+                }
+            }
+        });
+    }
 
     *WEAK_UI.lock().expect("ui lock is poisoned") = Some(ui.as_weak());
 
@@ -61,7 +76,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let quit_target = macos_quit::new_target();
 
     let mut sidebar = state::sidebar::Sidebar::new(&ui);
+    #[cfg(target_os = "linux")]
+    let titlebar_ui = ui.as_weak();
     ui.window().on_winit_window_event(move |_window, event| {
+        #[cfg(target_os = "linux")]
+        if let winit::event::WindowEvent::Focused(focus) = event
+            && let Some(ui) = titlebar_ui.upgrade()
+        {
+            ui.set_window_active(*focus);
+        }
         if sidebar.handle_event(event) == EventResult::PreventDefault {
             return EventResult::PreventDefault;
         }

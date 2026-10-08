@@ -5,6 +5,11 @@ import { Notification, NotificationType } from "types/notification-ui.slint";
 import { CourseItem, MaterialItem, CourseTab } from "types/course-ui.slint";
 import { AssignmentWithDetails } from "types/assignment-ui.slint";
 
+export global WindowChrome {
+    in-out property <bool> client-side: false;
+    callback toggle-maximized();
+}
+
 export global UiState {
     in-out property <length> font-size;
     in-out property <bool> shift-held: false;
