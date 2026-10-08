@@ -48,7 +48,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             })
             .select()?;
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
+    {
+        use winit::platform::x11::EventLoopBuilderExtX11;
+
+        // Wry child webviews require X11, including GTK's display connection.
+        // Wayland desktops run this window through XWayland.
+        gtk::gdk::set_allowed_backends("x11");
+        gtk::init()?;
+        let mut event_loop_builder = winit::event_loop::EventLoop::with_user_event();
+        event_loop_builder.with_x11();
+        crate::platform::linux::select(event_loop_builder)?;
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     slint::BackendSelector::new()
         .backend_name("winit".into())
         .select()?;
@@ -105,6 +117,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     state().init_ui(&ui);
     state().sync_ui(&ui);
     api::schoology::onboarding::init(&ui);
+
+    #[cfg(target_os = "linux")]
+    let _gtk_timer = {
+        let timer = slint::Timer::default();
+        timer.start(
+            slint::TimerMode::Repeated,
+            std::time::Duration::from_millis(10),
+            || {
+                while gtk::events_pending() {
+                    gtk::main_iteration_do(false);
+                }
+            },
+        );
+        timer
+    };
 
     match ui.run() {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),
