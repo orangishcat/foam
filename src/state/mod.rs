@@ -4,6 +4,7 @@ pub mod courses;
 pub mod dashboard;
 pub mod document_view;
 pub mod notifications;
+pub mod search;
 pub mod settings;
 pub mod sidebar;
 pub mod state;

@@ -85,15 +85,16 @@ fn navigate_sidebar(ui: &AppWindow, target: i32) {
     let courses = ui.global::<CoursesUi>();
     let state = ui.global::<UiState>();
     let count = courses.get_tabs().row_count() as i32;
-    if target < 0 || target >= count + 4 {
+    if target < 0 || target >= count + 5 {
         return;
     }
     match target {
         0 => state.set_screen(Screen::Dashboard),
         1 => state.set_screen(Screen::Notifs),
         2 => state.set_screen(Screen::Courses),
-        n if n == count + 3 => state.set_screen(Screen::Settings),
-        n => courses.invoke_select_tab(n - 3),
+        3 => state.set_screen(Screen::Search),
+        n if n == count + 4 => state.set_screen(Screen::Settings),
+        n => courses.invoke_select_tab(n - 4),
     }
     ui.set_sidebar_focus_request(-1);
     ui.set_sidebar_focus_request(target);

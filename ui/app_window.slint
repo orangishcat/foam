@@ -31,6 +31,7 @@ import {
     AssignmentView,
     AssignmentMenu,
 } from "components/assignment/assignment-view.slint";
+import { Search } from "components/search/search.slint";
 
 export component AppWindow inherits Window {
     title: "foam";
@@ -146,6 +147,12 @@ export component AppWindow inherits Window {
                 activated => { root.navigate-sidebar(2); }
             }
 
+            MenuItem {
+                title: "Search";
+                shortcut: @keys(Dollar);  // shift + 4
+                activated => { root.navigate-sidebar(3); }
+            }
+
             if CoursesUi.tabs.length > 0: MenuSeparator { }
 
             // i don't think there's a better way to do this either because the @keys must be hardcoded
@@ -153,55 +160,55 @@ export component AppWindow inherits Window {
                 title: "Tab 1";
                 shortcut: @keys(Control + Digit1);
                 enabled: CoursesUi.tabs.length > 0;
-                activated => { root.navigate-sidebar(3); }
+                activated => { root.navigate-sidebar(4); }
             }
             if CoursesUi.tabs.length > 1: MenuItem {
                 title: "Tab 2";
                 shortcut: @keys(Control + Digit2);
                 enabled: CoursesUi.tabs.length > 1;
-                activated => { root.navigate-sidebar(4); }
+                activated => { root.navigate-sidebar(5); }
             }
             if CoursesUi.tabs.length > 2: MenuItem {
                 title: "Tab 3";
                 shortcut: @keys(Control + Digit3);
                 enabled: CoursesUi.tabs.length > 2;
-                activated => { root.navigate-sidebar(5); }
+                activated => { root.navigate-sidebar(6); }
             }
             if CoursesUi.tabs.length > 3: MenuItem {
                 title: "Tab 4";
                 shortcut: @keys(Control + Digit4);
                 enabled: CoursesUi.tabs.length > 3;
-                activated => { root.navigate-sidebar(6); }
+                activated => { root.navigate-sidebar(7); }
             }
             if CoursesUi.tabs.length > 4: MenuItem {
                 title: "Tab 5";
                 shortcut: @keys(Control + Digit5);
                 enabled: CoursesUi.tabs.length > 4;
-                activated => { root.navigate-sidebar(7); }
+                activated => { root.navigate-sidebar(8); }
             }
             if CoursesUi.tabs.length > 5: MenuItem {
                 title: "Tab 6";
                 shortcut: @keys(Control + Digit6);
                 enabled: CoursesUi.tabs.length > 5;
-                activated => { root.navigate-sidebar(8); }
+                activated => { root.navigate-sidebar(9); }
             }
             if CoursesUi.tabs.length > 6: MenuItem {
                 title: "Tab 7";
                 shortcut: @keys(Control + Digit7);
                 enabled: CoursesUi.tabs.length > 6;
-                activated => { root.navigate-sidebar(8); }
+                activated => { root.navigate-sidebar(10); }
             }
             if CoursesUi.tabs.length > 7: MenuItem {
                 title: "Tab 8";
                 shortcut: @keys(Control + Digit8);
                 enabled: CoursesUi.tabs.length > 7;
-                activated => { root.navigate-sidebar(8); }
+                activated => { root.navigate-sidebar(11); }
             }
             if CoursesUi.tabs.length > 8: MenuItem {
                 title: "Tab 9";
                 shortcut: @keys(Control + Digit9);
                 enabled: CoursesUi.tabs.length > 8;
-                activated => { root.navigate-sidebar(8); }
+                activated => { root.navigate-sidebar(12); }
             }
             MenuSeparator { }
 
@@ -298,6 +305,12 @@ export component AppWindow inherits Window {
                 sidebar-width: navigation.width;
                 custom-titlebar: root.custom-titlebar;
             }
+            if UiState.screen == Screen.search: Search {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
             for tab[index] in CoursesUi.tabs: AssignmentView {
                 tab: tab;
                 visible: UiState.screen == Screen.assignment && CoursesUi.active-tab == index;
@@ -314,6 +327,13 @@ export component AppWindow inherits Window {
                 sidebar-width: navigation.width;
                 custom-titlebar: root.custom-titlebar;
             }
+            if UiState.screen == Screen.settings: Settings {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
             onboarding := SchoologyOnboarding {
                 visible: UiState.screen == Screen.onboarding;
                 width: parent.width;
@@ -327,13 +347,6 @@ export component AppWindow inherits Window {
                 x: 0rem;
                 y: UiState.top-bar-height;
                 height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;
-            }
-
-            if UiState.screen == Screen.settings: Settings {
-                width: parent.width;
-                height: parent.height;
-                sidebar-width: navigation.width;
-                custom-titlebar: root.custom-titlebar;
             }
 
             document := DocumentView {

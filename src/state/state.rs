@@ -6,7 +6,7 @@ use crate::{
     AppWindow, Screen, UiState,
     state::{
         assignment_view::AssignmentViewState, courses::CourseState, dashboard::DashboardState,
-        document_view::DocumentViewerState, notifications::NotificationState,
+        document_view::DocumentViewerState, notifications::NotificationState, search::SearchState,
         settings::SettingsState,
     },
 };
@@ -21,6 +21,7 @@ pub struct AppState {
     pub notif: NotificationState,
     pub document_view: DocumentViewerState,
     pub settings: SettingsState,
+    pub search: SearchState,
 }
 
 impl AppState {
@@ -53,6 +54,7 @@ impl AppState {
             Screen::Assignment => self.assignment_view.sync_ui(ui),
             Screen::Document => self.document_view.sync_ui(ui),
             Screen::Settings => self.settings.sync_ui(ui),
+            Screen::Search => self.search.sync_ui(ui),
             Screen::Courses | Screen::Materials | Screen::Onboarding => Ok(()),
         };
         if let Err(err) = result {

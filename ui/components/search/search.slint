@@ -1,0 +1,22 @@
+import { ScreenTopBar } from "../screen-top-bar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component Search inherits FocusScope {
+    in property <length> sidebar-width: 0rem;
+    in property <bool> custom-titlebar: false;
+    VerticalLayout {
+        spacing: 0rem;
+        vertical-stretch: 1;
+        ScreenTopBar {
+            custom-titlebar: root.custom-titlebar;
+            title: "Search";
+            icon: @image-url("../../icons/search.svg");
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+
+        BottomBarFrame { }
+    }
+}
