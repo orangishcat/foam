@@ -41,6 +41,11 @@ objc2 = "0.5"
 objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder", "NSMenu", "NSMenuItem"] }
 objc2-foundation = "0.2"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+i-slint-backend-winit = { version = "=1.18.1", default-features = false }
+i-slint-core = { version = "=1.18.1", default-features = false }
+
 [package.metadata.packager]
 icons = ["icon.icns", "icon.png"]
 formats = ["all"]
