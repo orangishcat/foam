@@ -1,9 +1,14 @@
 import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { ListView } from "std-widgets.slint";
+import { LineEdit } from "../line-edit.slint";
+import { UiState, SearchUi, AssignmentUi } from "../../globals.slint";
+import { HoverableButton } from "../hoverable-button.slint";
 
 export component Search inherits FocusScope {
     in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
+    init => { input.focus(); }
     VerticalLayout {
         spacing: 0rem;
         vertical-stretch: 1;
@@ -15,6 +20,73 @@ export component Search inherits FocusScope {
 
         Rectangle {
             vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                VerticalLayout {
+                    padding: 1.5rem;
+                    spacing: 1rem;
+                    input := LineEdit {
+                        text <=> SearchUi.query;
+                        placeholder-text: "Search";
+                        icon: @image-url("../../icons/search.svg");
+                        edited(text) => { SearchUi.search(text); }
+                        accepted => { SearchUi.search(self.text); }
+                    }
+
+                    Text {
+                        color: UiState.theme.text-400;
+                        text: !SearchUi.error.is-empty ? SearchUi.error : SearchUi.busy ? "Searching…"
+                            : SearchUi.query.is-empty ? ""
+                            : SearchUi.results.length == 0 ? "No assignments found."
+                            : SearchUi.results.length == 30 ? "30+ results (capped at 30)"
+                            : SearchUi.results.length + " results";
+                        wrap: word-wrap;
+                    }
+
+                    ListView {
+                        for result in SearchUi.results: VerticalLayout {
+                            padding-bottom: 0.5rem;
+                            Rectangle {
+                                border-radius: 0.3125rem;
+                                background: action.has-hover || action.has-focus ? UiState.theme.background-600 : UiState.theme.background-700;
+                                VerticalLayout {
+                                    padding: 0.75rem;
+                                    spacing: 0.25rem;
+                                    alignment: start;
+                                    Text {
+                                        text: result.title;
+                                        font-weight: 700;
+                                        font-size: 1rem;
+                                        overflow: elide;
+                                    }
+
+                                    Text {
+                                        text: result.course-title;
+                                        color: UiState.theme.text-400;
+                                        font-size: 0.8rem;
+                                        overflow: elide;
+                                    }
+
+                                    if !result.preview.is-empty: Text {
+                                        text: result.preview;
+                                        wrap: word-wrap;
+                                        overflow: elide;
+                                        font-size: 0.5rem;
+                                        vertical-stretch: 1;
+                                    }
+                                }
+
+                                action := HoverableButton {
+                                    text: result.title;
+                                    clicked => { AssignmentUi.open(result.course-id, result.item-id); }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         BottomBarFrame { }

@@ -10,6 +10,22 @@ export global WindowChrome {
     callback toggle-maximized();
 }
 
+export struct SearchResult {
+    item-id: string,
+    course-id: string,
+    title: string,
+    course-title: string,
+    preview: string,
+}
+
+export global SearchUi {
+    in-out property <string> query;
+    in-out property <[SearchResult]> results;
+    in-out property <bool> busy;
+    in-out property <string> error;
+    callback search(string);
+}
+
 export global UiState {
     in-out property <length> font-size;
     in-out property <bool> shift-held: false;

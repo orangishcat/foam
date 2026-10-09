@@ -42,5 +42,5 @@ objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder", "
 objc2-foundation = "0.2"
 
 [package.metadata.packager]
-icon = "icon.png"
+icons = ["icon.icns", "icon.png"]
 formats = ["all"]

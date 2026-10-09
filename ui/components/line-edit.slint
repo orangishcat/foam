@@ -1,0 +1,61 @@
+import { UiState } from "../globals.slint";
+
+export component LineEdit inherits Rectangle {
+    in-out property <string> text <=> input.text;
+    in property <string> placeholder-text;
+    in property <InputType> input-type <=> input.input-type;
+    in property <image> icon;
+    out property <bool> has-focus: input.has-focus;
+    callback edited(string);
+    callback accepted;
+    forward-focus: input;
+    min-height: 2rem;
+    min-width: 10rem;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 4px;
+    background: UiState.theme.background-700;
+    border-width: 1px;
+    border-color: UiState.theme.background-400;
+    public function cut() { input.cut(); }
+    public function copy() { input.copy(); }
+    public function paste() { input.paste(); }
+    public function select-all() { input.select-all(); }
+    HorizontalLayout {
+        padding: 0.5rem;
+        alignment: start;
+        HorizontalLayout {
+            alignment: start;
+            spacing: 0.5rem;
+            if icon.width > 0: VerticalLayout {
+                alignment: center;
+                Image {
+                    source: icon;
+                    colorize: UiState.theme.text-300;
+                    width: 1rem;
+                    height: 1rem;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            padding-left: icon.width > 0 ? 0.5rem : 0px;
+            input := TextInput {
+                single-line: true;
+                color: UiState.theme.text-100;
+                selection-background-color: UiState.theme.background-400;
+                selection-foreground-color: UiState.theme.text-100;
+                edited => { root.edited(self.text); }
+                accepted => { root.accepted(); }
+                Text {
+                    visible: input.text.is-empty;
+                    text: root.placeholder-text;
+                    color: UiState.theme.text-400;
+                    vertical-alignment: center;
+                    horizontal-alignment: left;
+                }
+            }
+        }
+    }
+}

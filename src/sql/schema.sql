@@ -75,3 +75,112 @@ BEGIN
     UPDATE materials SET title = NEW.title
     WHERE course_id = NEW.course_id AND type = 'assignment' AND material_id = NEW.id;
 END;
+
+CREATE TABLE IF NOT EXISTS search_mapping (
+    id INTEGER PRIMARY KEY,
+    item_type TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    course_id TEXT NOT NULL,
+    UNIQUE(course_id, item_type, item_id)
+);
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5 (
+    title,
+    content,
+    tokenize="porter unicode61"
+);
+CREATE TRIGGER IF NOT EXISTS assignment_add AFTER INSERT ON assignments BEGIN
+    INSERT OR IGNORE INTO search_mapping(item_type, item_id, course_id)
+    VALUES ('assignment', new.id, new.course_id);
+    INSERT OR REPLACE INTO search_index(rowid, title, content)
+    SELECT id, new.title, new.description FROM search_mapping
+    WHERE item_type = 'assignment' AND item_id = new.id AND course_id = new.course_id;
+END;
+CREATE TRIGGER IF NOT EXISTS assignment_update AFTER UPDATE OF title, description, course_id, id ON assignments BEGIN
+    DELETE FROM search_index WHERE rowid IN (
+        SELECT id FROM search_mapping
+        WHERE item_type = 'assignment' AND item_id = old.id AND course_id = old.course_id
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = 'assignment' AND item_id = old.id AND course_id = old.course_id;
+    INSERT INTO search_mapping(item_type, item_id, course_id)
+    VALUES ('assignment', new.id, new.course_id);
+    INSERT INTO search_index(rowid, title, content)
+    VALUES (last_insert_rowid(), new.title, new.description);
+END;
+CREATE TRIGGER IF NOT EXISTS assignment_delete AFTER DELETE ON assignments BEGIN
+    DELETE FROM search_index
+    WHERE rowid = (
+        SELECT id from search_mapping
+        WHERE item_type = 'assignment' AND item_id = old.id AND course_id = old.course_id
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = 'assignment' AND item_id = old.id AND course_id = old.course_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS material_add AFTER INSERT ON materials
+WHEN new.type != 'assignment' BEGIN
+    INSERT OR IGNORE INTO search_mapping(item_type, item_id, course_id)
+    VALUES (new.type, new.material_id, new.course_id);
+    INSERT OR REPLACE INTO search_index(rowid, title, content)
+    SELECT id, new.title, coalesce(json_extract(new.data, '$.material.description'),
+        json_extract(new.data, '$.material.body'), json_extract(new.data, '$.material.url'), '')
+    FROM search_mapping
+    WHERE item_type = new.type AND item_id = new.material_id AND course_id = new.course_id;
+END;
+CREATE TRIGGER IF NOT EXISTS material_update
+AFTER UPDATE OF title, data, course_id, material_id, type ON materials BEGIN
+    DELETE FROM search_index WHERE rowid IN (
+        SELECT id FROM search_mapping
+        WHERE item_type = old.type AND item_id = old.material_id AND course_id = old.course_id
+            AND old.type != 'assignment'
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = old.type AND item_id = old.material_id AND course_id = old.course_id
+        AND old.type != 'assignment';
+    INSERT OR IGNORE INTO search_mapping(item_type, item_id, course_id)
+    SELECT new.type, new.material_id, new.course_id WHERE new.type != 'assignment';
+    INSERT OR REPLACE INTO search_index(rowid, title, content)
+    SELECT id, new.title, coalesce(json_extract(new.data, '$.material.description'),
+        json_extract(new.data, '$.material.body'), json_extract(new.data, '$.material.url'), '')
+    FROM search_mapping
+    WHERE item_type = new.type AND item_id = new.material_id AND course_id = new.course_id
+        AND new.type != 'assignment';
+END;
+CREATE TRIGGER IF NOT EXISTS material_delete AFTER DELETE ON materials
+WHEN old.type != 'assignment' BEGIN
+    DELETE FROM search_index WHERE rowid IN (
+        SELECT id FROM search_mapping
+        WHERE item_type = old.type AND item_id = old.material_id AND course_id = old.course_id
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = old.type AND item_id = old.material_id AND course_id = old.course_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS course_add AFTER INSERT ON courses BEGIN
+    INSERT OR IGNORE INTO search_mapping(item_type, item_id, course_id)
+    VALUES ('course', new.course_id, new.course_id);
+    INSERT OR REPLACE INTO search_index(rowid, title, content)
+    SELECT id, new.course_title, new.description FROM search_mapping
+    WHERE item_type = 'course' AND item_id = new.course_id AND course_id = new.course_id;
+END;
+CREATE TRIGGER IF NOT EXISTS course_update
+AFTER UPDATE OF course_title, description, course_id ON courses BEGIN
+    DELETE FROM search_index WHERE rowid IN (
+        SELECT id FROM search_mapping
+        WHERE item_type = 'course' AND item_id = old.course_id AND course_id = old.course_id
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = 'course' AND item_id = old.course_id AND course_id = old.course_id;
+    INSERT INTO search_mapping(item_type, item_id, course_id)
+    VALUES ('course', new.course_id, new.course_id);
+    INSERT INTO search_index(rowid, title, content)
+    VALUES (last_insert_rowid(), new.course_title, new.description);
+END;
+CREATE TRIGGER IF NOT EXISTS course_delete AFTER DELETE ON courses BEGIN
+    DELETE FROM search_index WHERE rowid IN (
+        SELECT id FROM search_mapping
+        WHERE item_type = 'course' AND item_id = old.course_id AND course_id = old.course_id
+    );
+    DELETE FROM search_mapping
+    WHERE item_type = 'course' AND item_id = old.course_id AND course_id = old.course_id;
+END;

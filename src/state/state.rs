@@ -33,6 +33,7 @@ impl AppState {
         self.assignment_view.init_ui(ui);
         self.document_view.init_ui(ui);
         self.notif.init_ui(ui);
+        self.search.init_ui(ui);
         ui.global::<UiState>()
             .set_font_size(crate::config::config().font_size.clamp(12, 24) as f32);
         ui.on_screen_changed(crate::ui::sync_ui);
