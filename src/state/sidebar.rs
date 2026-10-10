@@ -72,8 +72,9 @@ fn current_sidebar_item(ui: &AppWindow) -> i32 {
         Screen::Dashboard => 0,
         Screen::Notifs => 1,
         Screen::Courses => 2,
-        Screen::Materials | Screen::Assignment => courses.get_active_tab() + 3,
-        Screen::Settings => count + 3,
+        Screen::Search => 3,
+        Screen::Materials | Screen::Assignment => courses.get_active_tab() + 4,
+        Screen::Settings => count + 4,
         _ => 0,
     }
 }
