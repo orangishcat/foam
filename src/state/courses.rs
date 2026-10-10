@@ -252,26 +252,21 @@ impl CourseState {
     }
 
     fn course_item_image(course_id: String, icon_url: String) {
-        (|| -> io::Result<Option<slint::Image>> {
-            filesystem::asset_as_slint_img(&icon_url, "", move |ui, result| match result {
-                Ok(img) => {
-                    let tabs = ui.global::<CoursesUi>().get_courses();
-                    if let Some(index) = (0..tabs.row_count())
-                        .find(|&index| tabs.row_data(index).is_some_and(|tab| tab.id == course_id))
-                        && let Some(mut tab) = tabs.row_data(index)
-                    {
-                        tab.icon = img;
-                        tabs.set_row_data(index, tab);
-                    } else {
-                        log::warn!("Failed to set row data: {}", tabs.row_count());
-                    }
+        filesystem::asset_as_slint_img(&icon_url, "", move |ui, result| match result {
+            Ok(img) => {
+                let tabs = ui.global::<CoursesUi>().get_courses();
+                if let Some(index) = (0..tabs.row_count())
+                    .find(|&index| tabs.row_data(index).is_some_and(|tab| tab.id == course_id))
+                    && let Some(mut tab) = tabs.row_data(index)
+                {
+                    tab.icon = img;
+                    tabs.set_row_data(index, tab);
+                } else {
+                    log::warn!("Failed to set row data: {}", tabs.row_count());
                 }
-                Err(err) => log::warn!("Failed to load course item image: {err}"),
-            });
-            Ok(None)
-        })()
-        .inspect_err(|err| log::warn!("Failed to spawn task: {err}"))
-        .ok();
+            }
+            Err(err) => log::warn!("Failed to load course item image: {err}"),
+        });
     }
 
     pub fn ensure_course_tab(

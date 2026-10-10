@@ -21,6 +21,11 @@ export component LineEdit inherits Rectangle {
     public function copy() { input.copy(); }
     public function paste() { input.paste(); }
     public function select-all() { input.select-all(); }
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => { input.focus(); }
+    }
+
     HorizontalLayout {
         padding: 0.5rem;
         alignment: start;

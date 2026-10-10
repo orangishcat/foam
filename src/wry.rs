@@ -116,13 +116,12 @@ fn update(ui: &AppWindow) {
                 }
             });
         }
-        if let Some(webview) = &viewer.webview {
-            if let Err(error) = webview
+        if let Some(webview) = &viewer.webview
+            && let Err(error) = webview
                 .set_visible(visible)
                 .and_then(|_| webview.set_bounds(bounds))
-            {
-                log::warn!("Updating document viewer failed: {error}");
-            }
+        {
+            log::warn!("Updating document viewer failed: {error}");
         }
     });
 }

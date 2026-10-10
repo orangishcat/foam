@@ -379,13 +379,11 @@ fn open_items(ui: &AppWindow, files: Vec<AssignmentFile>, index: i32, kind: &str
         .borrow()
         .window
         .on_update_attachment_webview(move || {
-            if let Some(preview) = weak.upgrade() {
-                // Geometry changes can occur while a source is being installed.
-                if let Ok(preview) = preview.try_borrow() {
-                    if let Some(webview) = &preview.webview {
-                        let _ = webview.set_bounds(bounds(&preview.window));
-                    }
-                }
+            if let Some(preview) = weak.upgrade()
+                && let Ok(preview) = preview.try_borrow()
+                && let Some(webview) = &preview.webview
+            {
+                webview.set_bounds(bounds(&preview.window)).ok();
             }
         });
     PREVIEW.with(|slot| *slot.borrow_mut() = Some(preview.clone()));

@@ -110,13 +110,13 @@ impl DocumentViewerState {
         wry::init(ui);
         let weak = ui.as_weak();
         ui.global::<DocumentUi>().on_open(move |course, id| {
-            if let Some(ui) = weak.upgrade() {
-                if let Err(error) = Self::open(&ui, &course, &id) {
-                    log::warn!("Opening document failed: {error}");
-                    wry::reset();
-                    ui.global::<DocumentUi>()
-                        .set_error(error.to_string().into());
-                }
+            if let Some(ui) = weak.upgrade()
+                && let Err(error) = Self::open(&ui, &course, &id)
+            {
+                log::warn!("Opening document failed: {error}");
+                wry::reset();
+                ui.global::<DocumentUi>()
+                    .set_error(error.to_string().into());
             }
         });
     }

@@ -50,11 +50,11 @@ pub fn init(ui: &AppWindow) {
     });
     let weak = ui.as_weak();
     ui.global::<OnboardingUi>().on_next(move || {
-        if let Some(ui) = weak.upgrade() {
-            if let Err(error) = next(&ui) {
-                ui.global::<OnboardingUi>()
-                    .set_error(error.to_string().into());
-            }
+        if let Some(ui) = weak.upgrade()
+            && let Err(error) = next(&ui)
+        {
+            ui.global::<OnboardingUi>()
+                .set_error(error.to_string().into());
         }
     });
 }
@@ -258,11 +258,9 @@ fn verify_api_user(
                     }
                     let weak = ui.as_weak();
                     slint::Timer::single_shot(Duration::from_millis(250), move || {
-                        if let Some(ui) = weak.upgrade() {
-                            if let Err(error) = read_api_user(&ui, account) {
+                        if let Some(ui) = weak.upgrade() && let Err(error) = read_api_user(&ui, account) {
                                 ui.global::<OnboardingUi>().set_busy(false);
                                 ui.global::<OnboardingUi>().set_error(error.to_string().into());
-                            }
                         }
                     });
                 });

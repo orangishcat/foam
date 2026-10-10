@@ -44,10 +44,9 @@ impl AppState {
         if matches!(
             screen,
             Screen::Courses | Screen::Materials | Screen::Assignment | Screen::Document
-        ) {
-            if let Err(err) = self.courses.sync_ui(ui) {
-                log::warn!("courses sync_ui failed: {err}");
-            }
+        ) && let Err(err) = self.courses.sync_ui(ui)
+        {
+            log::warn!("courses sync_ui failed: {err}");
         }
         let result = match screen {
             Screen::Dashboard => self.dashboard.sync_ui(ui),
@@ -61,10 +60,10 @@ impl AppState {
         if let Err(err) = result {
             log::warn!("active screen sync_ui failed: {err}");
         }
-        if ui.global::<UiState>().get_screen() != Screen::Notifs {
-            if let Err(err) = self.notif.sync_sidebar(ui) {
-                log::warn!("notification sidebar sync failed: {err}");
-            }
+        if ui.global::<UiState>().get_screen() != Screen::Notifs
+            && let Err(err) = self.notif.sync_sidebar(ui)
+        {
+            log::warn!("notification sidebar sync failed: {err}");
         }
     }
     pub fn on_focus(&mut self) {
