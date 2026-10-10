@@ -3,6 +3,7 @@ SELECT
     m.item_id,
     m.course_id,
     c.course_title,
+    c.logo_img_src,
     f.title,
     snippet(search_index, 1, '', '', '…', 20) AS preview,
     bm25(search_index, 5.0, 1.0) AS score

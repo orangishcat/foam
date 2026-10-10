@@ -8,7 +8,7 @@ use std::{
 use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
-use crate::{config::config, database, thread_manager};
+use crate::{AppWindow, config::config, database, thread_manager, ui};
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
@@ -49,7 +49,10 @@ pub fn asset_from_url(
             {
                 extension.to_ascii_lowercase()
             } else {
-                String::new()
+                // guess extension from url, e.g. /asdf/foo.txt?param=1 -> txt, falling back to empty string
+                let after_dot = url.rsplit_once('.').map_or("", |(_, r)| r);
+                let unchecked = after_dot.split_once('?').map_or(after_dot, |(l, _)| l).to_string();
+                unchecked.find("/").map_or(unchecked, |_| "".to_string())
             };
             log::debug!("Downloading asset from {url}");
             let request = crate::account::active_account()?
@@ -107,15 +110,25 @@ pub fn asset_from_url(
                 &[&url, &path.to_string_lossy().to_string()],
             )?;
             Ok(path)
-        })();
-        match &result {
-            Ok(path) => {
-                log::info!("Downloaded asset from {url} to {}", path.display());
-            }
-            Err(error) => log::warn!("Downloading asset from {url} failed: {error}"),
-        }
+        })().inspect_err(|err| log::warn!("Downloading asset from {url} failed: {err}"));
         on_complete(result);
     }).inspect_err(|err| log::warn!("thread spawning failed: {err}")).ok();
+}
+
+pub fn asset_as_slint_img(
+    url: &str,
+    extension: &str,
+    on_complete: impl FnOnce(&AppWindow, io::Result<slint::Image>) + Send + 'static,
+) {
+    asset_from_url(url, extension, move |result| {
+        ui::run_on_ui_thread(|ui| match result {
+            Ok(path) => on_complete(
+                &ui,
+                slint::Image::load_from_path(&path).map_err(io::Error::other),
+            ),
+            Err(err) => on_complete(&ui, Err(err)),
+        });
+    });
 }
 
 pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>

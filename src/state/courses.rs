@@ -7,42 +7,15 @@ use crate::{
     ui::{self},
 };
 use rusqlite::params;
-use slint::{ComponentHandle, Model, ModelRc, VecModel};
-use std::io;
+use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::{io, time::Duration};
 
 #[derive(Clone, Default)]
 pub struct CourseState {}
 
 impl CourseState {
-    fn show_course_icon(id: String, path: PathBuf) {
-        let bytes = match std::fs::read(&path) {
-            Ok(bytes) => bytes,
-            Err(error) => {
-                log::warn!("Reading course icon {} failed: {error}", path.display());
-                return;
-            }
-        };
-        ui::run_on_ui_thread(move |ui| {
-            let model = ui.global::<CoursesUi>().get_courses();
-            if let Some(index) = (0..model.row_count())
-                .find(|&index| model.row_data(index).is_some_and(|item| item.id == id))
-                && let Some(mut item) = model.row_data(index)
-            {
-                match slint::Image::load_from_data(&bytes, None) {
-                    Ok(image) => {
-                        item.icon = image;
-                        model.set_row_data(index, item);
-                    }
-                    Err(error) => {
-                        log::warn!("Loading course icon {} failed: {error}", path.display())
-                    }
-                }
-            }
-        });
-    }
-
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let courses = database::from_sql::<Course>(
         "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NOCASE, section_title COLLATE NOCASE"
@@ -50,27 +23,15 @@ impl CourseState {
         &[],
     )?;
         let items = courses
-            .into_iter()
-            .map(|course| {
-                let id = course.course_id.clone();
-                let icon_url = course.logo_img_src.clone();
-                if !icon_url.trim().is_empty() {
-                    filesystem::asset_from_url(&icon_url, "", move |result| match result {
-                        Ok(path) => {
-                            Self::show_course_icon(id, path);
-                        }
-                        Err(err) => log::warn!("Failed to load course icon: {err}"),
-                    });
-                }
-                CourseItem {
-                    id: course.course_id.into(),
-                    title: course.course_title.into(),
-                    section: course.section_title.into(),
-                    code: course.section_code.into(),
-                    period: course.period.unwrap_or("".to_string()).into(),
-                    hidden: course.hidden,
-                    icon: Default::default(),
-                }
+            .iter()
+            .map(|course| CourseItem {
+                id: (&course.course_id).into(),
+                title: (&course.course_title).into(),
+                section: (&course.section_title).into(),
+                code: (&course.section_code).into(),
+                period: (&course.period).clone().unwrap_or("".to_string()).into(),
+                hidden: course.hidden,
+                icon: Default::default(),
             })
             .collect::<Vec<_>>();
         let global = ui.global::<CoursesUi>();
@@ -84,6 +45,9 @@ impl CourseState {
         );
         global.set_courses(ModelRc::new(VecModel::from(items)));
         refresh_file_view(ui);
+        for course in courses.into_iter() {
+            Self::course_item_image(course.course_id, course.logo_img_src);
+        }
         Ok(())
     }
 
@@ -252,8 +216,8 @@ impl CourseState {
             })
     }
 
-    fn course_tab_image(course: &str) -> slint::Image {
-        let result = (|| -> io::Result<Option<slint::Image>> {
+    fn course_tab_image(course: String) {
+        (|| -> io::Result<Option<slint::Image>> {
             let Some(url) = database::from_sql_map(
                 "SELECT logo_img_src FROM courses WHERE course_id = ?".into(),
                 params![course],
@@ -265,43 +229,49 @@ impl CourseState {
                 return Ok(None);
             };
             let course_id = course.to_owned();
-            filesystem::asset_from_url(&url, "", move |result| {
-                let Ok(path) = result else {
-                    return;
-                };
-                let bytes = match std::fs::read(&path) {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        log::warn!("Reading course tab image failed: {error}");
-                        return;
-                    }
-                };
-                ui::run_on_ui_thread(move |ui| {
+            filesystem::asset_as_slint_img(&url, "", move |ui, result| match result {
+                Ok(img) => {
                     let tabs = ui.global::<CoursesUi>().get_tabs();
                     if let Some(index) = (0..tabs.row_count()).find(|&index| {
                         tabs.row_data(index)
                             .is_some_and(|tab| tab.course_id == course_id)
                     }) && let Some(mut tab) = tabs.row_data(index)
                     {
-                        match slint::Image::load_from_data(&bytes, None) {
-                            Ok(image) => {
-                                tab.image = image;
-                                tabs.set_row_data(index, tab);
-                            }
-                            Err(error) => log::warn!("Loading course tab image failed: {error}"),
-                        }
+                        tab.image = img;
+                        tabs.set_row_data(index, tab);
+                    } else {
+                        log::warn!("Failed to set row data: {}", tabs.row_count());
                     }
-                });
+                }
+                Err(err) => log::warn!("Failed to load course tab image: {err}"),
             });
             Ok(None)
-        })();
-        match result {
-            Ok(image) => image.unwrap_or_default(),
-            Err(error) => {
-                log::warn!("Loading image for course {course} failed: {error}");
-                slint::Image::default()
-            }
-        }
+        })()
+        .inspect_err(|err| log::warn!("Failed to spawn task: {err}"))
+        .ok();
+    }
+
+    fn course_item_image(course_id: String, icon_url: String) {
+        (|| -> io::Result<Option<slint::Image>> {
+            filesystem::asset_as_slint_img(&icon_url, "", move |ui, result| match result {
+                Ok(img) => {
+                    let tabs = ui.global::<CoursesUi>().get_courses();
+                    if let Some(index) = (0..tabs.row_count())
+                        .find(|&index| tabs.row_data(index).is_some_and(|tab| tab.id == course_id))
+                        && let Some(mut tab) = tabs.row_data(index)
+                    {
+                        tab.icon = img;
+                        tabs.set_row_data(index, tab);
+                    } else {
+                        log::warn!("Failed to set row data: {}", tabs.row_count());
+                    }
+                }
+                Err(err) => log::warn!("Failed to load course item image: {err}"),
+            });
+            Ok(None)
+        })()
+        .inspect_err(|err| log::warn!("Failed to spawn task: {err}"))
+        .ok();
     }
 
     pub fn ensure_course_tab(
@@ -325,7 +295,10 @@ impl CourseState {
         model.push(CourseTab {
             course_id: course.into(),
             title: Self::course_title(ui, course),
-            image: icon.unwrap_or_else(|| Self::course_tab_image(course)),
+            image: icon.unwrap_or_else(|| {
+                Self::course_tab_image(course.to_string());
+                Default::default()
+            }),
             ..Default::default()
         });
 
