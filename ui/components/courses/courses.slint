@@ -70,7 +70,7 @@ export component Courses inherits FocusScope {
 
                                 course-action := HoverableButton {
                                     text: course.title;
-                                    clicked => { CoursesUi.navigate-course-with-image(course.id, course.icon); }
+                                    clicked => { CoursesUi.open-with-image(course.id, course.icon); }
                                     HorizontalLayout {
                                         spacing: 0.5rem;
                                         Rectangle {

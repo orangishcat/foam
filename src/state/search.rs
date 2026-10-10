@@ -18,6 +18,7 @@ struct ResultRow {
     course_id: String,
     title: String,
     course_title: String,
+    item_type: String,
     logo_img_src: String,
     preview: String,
 }
@@ -76,10 +77,6 @@ impl SearchState {
                         global.set_busy(false);
                         match result {
                             Ok(rows) => {
-                                for row in rows.iter() {
-                                    download_and_set_icon(&row.logo_img_src, row.item_id.clone());
-                                }
-
                                 global.set_error("".into());
                                 global.set_results(ModelRc::new(VecModel::from(
                                     rows.into_iter()
@@ -89,10 +86,14 @@ impl SearchState {
                                             title: row.title.into(),
                                             course_title: row.course_title.into(),
                                             preview: row.preview.to_shared_string(),
+                                            item_type: row.item_type.to_shared_string(),
                                             icon: Default::default(),
                                         })
                                         .collect::<Vec<_>>(),
                                 )));
+                                for row in rows.iter() {
+                                    download_and_set_icon(&row.logo_img_src, row.item_id.clone());
+                                }
                             }
                             Err(error) => {
                                 log::warn!("Search failed: {error}");

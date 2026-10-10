@@ -14,6 +14,7 @@ export struct SearchResult {
     item-id: string,
     course-id: string,
     title: string,
+    item_type: string,
     course-title: string,
     preview: string,
     icon: image
@@ -121,10 +122,9 @@ export global CoursesUi {
     in-out property <string> browser-error;
     in-out property <[MaterialItem]> materials;
     in-out property <[MaterialItem]> parent-materials;
-    callback navigate-course(string);
-    callback navigate-course-with-image(string, image);
-    callback navigate-folder(string, string);
-    callback navigate-assignment(string, string);
+    callback open(string);
+    callback open-with-image(string, image);
+    callback open-folder(string, string);
     in-out property <[CourseItem]> courses;
     in-out property <int> period-character-count: 1;
     callback reorder(int, int);

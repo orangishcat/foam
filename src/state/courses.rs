@@ -73,7 +73,7 @@ impl CourseState {
             }
         });
         let weak = ui.as_weak();
-        global.on_navigate_course(move |course| {
+        global.on_open(move |course| {
             let Some(ui) = weak.upgrade() else { return };
             match Self::ensure_course_tab(&ui, &course, None) {
                 Ok(index) => Self::select_tab(&ui, index as i32),
@@ -81,7 +81,7 @@ impl CourseState {
             }
         });
         let weak = ui.as_weak();
-        global.on_navigate_course_with_image(move |course, icon| {
+        global.on_open_with_image(move |course, icon| {
             let Some(ui) = weak.upgrade() else { return };
             match Self::ensure_course_tab(&ui, &course, Some(icon)) {
                 Ok(index) => Self::select_tab(&ui, index as i32),
@@ -89,7 +89,7 @@ impl CourseState {
             }
         });
         let weak = ui.as_weak();
-        global.on_navigate_folder(move |course, folder| {
+        global.on_open_folder(move |course, folder| {
             let Some(ui) = weak.upgrade() else { return };
             let global = ui.global::<CoursesUi>();
             global.set_course_id(course);
@@ -104,12 +104,6 @@ impl CourseState {
             }
             ui.global::<UiState>().set_screen(Screen::Materials);
             refresh_file_view(&ui);
-        });
-        let weak = ui.as_weak();
-        global.on_navigate_assignment(move |course, assignment| {
-            let Some(ui) = weak.upgrade() else { return };
-            ui.global::<crate::AssignmentUi>()
-                .invoke_open(course, assignment);
         });
         global.on_drag_data(|index| {
             slint::SharedString::from(format!("foam-course-index:{index}")).into()

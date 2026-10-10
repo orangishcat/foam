@@ -21,6 +21,7 @@ export component LineEdit inherits Rectangle {
     public function copy() { input.copy(); }
     public function paste() { input.paste(); }
     public function select-all() { input.select-all(); }
+    public function focus-input() { input.focus() }
     TouchArea {
         mouse-cursor: MouseCursor.text;
         clicked => { input.focus(); }

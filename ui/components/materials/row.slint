@@ -1,4 +1,9 @@
-import { CoursesUi, UiState, DocumentUi } from "../../globals.slint";
+import {
+    CoursesUi,
+    UiState,
+    DocumentUi,
+    AssignmentUi,
+} from "../../globals.slint";
 import { MaterialItem, CourseTab } from "../../types/course-ui.slint";
 import { Icon } from "icon.slint";
 import { HoverableButton } from "../hoverable-button.slint";
@@ -47,10 +52,10 @@ export component Row inherits Rectangle {
         text: item.title;
         clicked => {
             if root.navigable {
-                CoursesUi.navigate-folder(item.course-id, item.id);
+                CoursesUi.open-folder(item.course-id, item.id);
             }
             if item.kind == "assignment" {
-                CoursesUi.navigate-assignment(item.course-id, item.id);
+                AssignmentUi.open(item.course-id, item.id);
             }
             if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
         }

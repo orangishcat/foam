@@ -2,7 +2,13 @@ import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { ListView } from "std-widgets.slint";
 import { LineEdit } from "../line-edit.slint";
-import { UiState, SearchUi, AssignmentUi } from "../../globals.slint";
+import {
+    UiState,
+    SearchUi,
+    AssignmentUi,
+    DocumentUi,
+    CoursesUi,
+} from "../../globals.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
 export component Search inherits FocusScope {
@@ -80,7 +86,11 @@ export component Search inherits FocusScope {
 
                                 action := HoverableButton {
                                     text: result.title;
-                                    clicked => { AssignmentUi.open(result.course-id, result.item-id); }
+                                    clicked => {
+                                        result.item_type == "assignment" ? AssignmentUi.open(result.course-id, result.item-id)
+                                            : result.item_type == "document" ? DocumentUi.open(result.course-id, result.item-id)
+                                            : CoursesUi.open(result.course-id);
+                                    }
                                 }
                             }
                         }
