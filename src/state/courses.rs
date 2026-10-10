@@ -3,7 +3,6 @@ use crate::{
     Screen::{self},
     UiState, database, filesystem,
     state::top_bar::refresh_file_view,
-    thread_manager,
     types::course::Course,
     ui::{self},
 };
@@ -56,30 +55,12 @@ impl CourseState {
                 let id = course.course_id.clone();
                 let icon_url = course.logo_img_src.clone();
                 if !icon_url.trim().is_empty() {
-                    thread_manager::spawn_thread("download icon", move || {
-                        match crate::account::active_account()
-                            .map_err(|error| -> crate::api::schoology::RequestError {
-                                error.into()
-                            })
-                            .and_then(|account| account.get_resource(&icon_url))
-                        {
-                            Ok(request) => {
-                                let downloaded_id = id.clone();
-                                if let Some(path) =
-                                    filesystem::asset_from_url(request, &icon_url, move |path| {
-                                        Self::show_course_icon(downloaded_id, path)
-                                    })
-                                {
-                                    Self::show_course_icon(id, path);
-                                }
-                            }
-                            Err(error) => {
-                                log::warn!("Preparing course icon download failed: {error}")
-                            }
+                    filesystem::asset_from_url(&icon_url, "", move |result| match result {
+                        Ok(path) => {
+                            Self::show_course_icon(id, path);
                         }
-                    })
-                    .inspect_err(|err| log::warn!("Spawning download thread failed: {err}"))
-                    .ok();
+                        Err(err) => log::warn!("Failed to load course icon: {err}"),
+                    });
                 }
                 CourseItem {
                     id: course.course_id.into(),
@@ -283,11 +264,11 @@ impl CourseState {
             .filter(|url| !url.trim().is_empty()) else {
                 return Ok(None);
             };
-            let request = crate::account::active_account()?
-                .get_resource(&url)
-                .map_err(io::Error::other)?;
             let course_id = course.to_owned();
-            let path = filesystem::asset_from_url(request, &url, move |path| {
+            filesystem::asset_from_url(&url, "", move |result| {
+                let Ok(path) = result else {
+                    return;
+                };
                 let bytes = match std::fs::read(&path) {
                     Ok(bytes) => bytes,
                     Err(error) => {
@@ -312,11 +293,7 @@ impl CourseState {
                     }
                 });
             });
-            path.map(|path| {
-                let bytes = std::fs::read(path)?;
-                slint::Image::load_from_data(&bytes, None).map_err(io::Error::other)
-            })
-            .transpose()
+            Ok(None)
         })();
         match result {
             Ok(image) => image.unwrap_or_default(),

@@ -1,4 +1,3 @@
-use crate::account::RequestError;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use slint::{ComponentHandle, Model, winit_030::WinitWindowAccessor};
@@ -308,24 +307,10 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
         (file, preview.generation)
     };
     let url = file.url.to_string();
-    let request = match crate::account::active_account()
-        .map_err(|error| -> RequestError { error.into() })
-        .and_then(|account| account.get_resource(&url))
-    {
-        Ok(request) => request,
-        Err(error) => {
-            preview
-                .borrow()
-                .window
-                .global::<AttachmentMenu>()
-                .set_error(error.to_string().into());
-            return;
-        }
-    };
     let weak_window = preview.borrow().window.as_weak();
     let remote = url.clone();
     let extension = file.extension.to_string();
-    let cached = filesystem::asset_from_url_result(request, &url, &extension, move |result| {
+    filesystem::asset_from_url(&url, &extension, move |result| {
         let source = match result {
             Ok(path) => Source::Local(path),
             Err(_) => Source::Remote(remote),
@@ -338,9 +323,6 @@ fn load(preview: &Rc<RefCell<Preview>>, index: usize) {
             });
         });
     });
-    if let Some(path) = cached {
-        ready(preview, generation, Source::Local(path));
-    }
 }
 
 pub fn open(ui: &AppWindow, index: i32) {

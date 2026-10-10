@@ -5,7 +5,6 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use reqwest::blocking::RequestBuilder;
 use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
@@ -14,57 +13,48 @@ use crate::{config::config, database, thread_manager};
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
 pub fn asset_from_url(
-    request: RequestBuilder,
-    url: &str,
-    on_download_complete: impl FnOnce(PathBuf) + Send + 'static,
-) -> Option<PathBuf> {
-    asset_from_url_result(request, url, "", move |result| {
-        if let Ok(path) = result {
-            on_download_complete(path);
-        }
-    })
-}
-
-pub fn asset_from_url_result(
-    request: RequestBuilder,
     url: &str,
     extension: &str,
     on_complete: impl FnOnce(io::Result<PathBuf>) + Send + 'static,
-) -> Option<PathBuf> {
-    if url.trim().is_empty() {
-        log::debug!("Skipping empty asset URL");
-        return None;
-    }
-    match database::from_sql_map(
-        "SELECT file_path FROM attachments WHERE url = ?".into(),
-        &[&url],
-        |row| row.get::<_, String>(0).map_err(Error::other),
-    ) {
-        Ok(paths) => {
-            if let Some(path) = paths.into_iter().next().map(PathBuf::from) {
-                if path.is_file() {
-                    log::debug!("Asset cache hit for {url}: {}", path.display());
-                    return Some(path);
-                }
-                log::info!("Cached asset missing for {url}: {}", path.display());
-            }
-        }
-        Err(error) => log::warn!("Asset cache lookup failed for {url}: {error}"),
-    }
-
-    let extension = extension.trim_start_matches('.');
-    let extension = if !extension.is_empty()
-        && extension.len() <= 16
-        && extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
-        extension.to_ascii_lowercase()
-    } else {
-        String::new()
-    };
+) {
     let url = url.to_owned();
+    let extension = extension.to_owned();
     thread_manager::spawn_thread("download asset", move || {
-        log::debug!("Downloading asset from {url}");
         let result = (|| -> io::Result<PathBuf> {
+            if url.trim().is_empty() {
+                log::debug!("Skipping empty asset URL");
+                return Err(Error::new(io::ErrorKind::InvalidInput, "empty asset URL"));
+            }
+            match database::from_sql_map(
+                "SELECT file_path FROM attachments WHERE url = ?".into(),
+                &[&url],
+                |row| row.get::<_, String>(0).map_err(Error::other),
+            ) {
+                Ok(paths) => {
+                    if let Some(path) = paths.into_iter().next().map(PathBuf::from) {
+                        if path.is_file() {
+                            log::debug!("Asset cache hit for {url}: {}", path.display());
+                            return Ok(path);
+                        }
+                        log::info!("Cached asset missing for {url}: {}", path.display());
+                    }
+                }
+                Err(error) => log::warn!("Asset cache lookup failed for {url}: {error}"),
+            }
+
+            let extension = extension.trim_start_matches('.');
+            let extension = if !extension.is_empty()
+                && extension.len() <= 16
+                && extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
+            {
+                extension.to_ascii_lowercase()
+            } else {
+                String::new()
+            };
+            log::debug!("Downloading asset from {url}");
+            let request = crate::account::active_account()?
+                .get_resource(&url)
+                .map_err(Error::other)?;
             let mut response = request
                 .send()
                 .map_err(Error::other)?
@@ -126,7 +116,6 @@ pub fn asset_from_url_result(
         }
         on_complete(result);
     }).inspect_err(|err| log::warn!("thread spawning failed: {err}")).ok();
-    None
 }
 
 pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>

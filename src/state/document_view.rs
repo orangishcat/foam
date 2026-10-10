@@ -81,9 +81,6 @@ impl DocumentViewerState {
             ready(ui, generation, Source::Remote(url));
             return Ok(());
         }
-        let request = crate::account::active_account()?
-            .get_resource(&url)
-            .map_err(|error| io::Error::other(error.to_string()))?;
         let remote = url.clone();
         let extension = attachment
             .map(|file| {
@@ -99,16 +96,13 @@ impl DocumentViewerState {
             })
             .unwrap_or_default();
         let weak = ui.as_weak();
-        let cached = filesystem::asset_from_url_result(request, &url, &extension, move |result| {
+        filesystem::asset_from_url(&url, &extension, move |result| {
             let source = match result {
                 Ok(path) => Source::Local(path),
                 Err(_) => Source::Remote(remote),
             };
             let _ = weak.upgrade_in_event_loop(move |ui| ready(&ui, generation, source));
         });
-        if let Some(path) = cached {
-            ready(ui, generation, Source::Local(path));
-        }
         Ok(())
     }
 
