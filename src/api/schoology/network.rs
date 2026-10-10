@@ -47,7 +47,7 @@ impl SchoologyAccountConfig {
 
     pub(crate) fn new_client() -> RequestResult<Client> {
         Client::builder()
-            .user_agent(USER_AGENT_HEADER)
+            .user_agent(USER_AGENT)
             .timeout(Duration::from_secs(30))
             .build()
             .map_err(Into::into)
@@ -57,7 +57,7 @@ impl SchoologyAccountConfig {
         let jar = self.session_cookies()?;
 
         Client::builder()
-            .user_agent(USER_AGENT_HEADER)
+            .user_agent(USER_AGENT)
             .timeout(Duration::from_secs(30))
             .cookie_provider(jar)
             .build()
@@ -102,22 +102,6 @@ impl SchoologyAccountConfig {
     pub fn internal_get<T: DeserializeOwned>(&self, route: &str) -> RequestResult<T> {
         let url = self.internal_url(route)?;
         self.internal_get_request(&url)?
-            .send()?
-            .error_for_status()?
-            .json()
-            .map_err(Into::into)
-    }
-
-    pub fn internal_post<B: Serialize + ?Sized, T: DeserializeOwned>(
-        &self,
-        route: &str,
-        body: &B,
-    ) -> RequestResult<T> {
-        let url = self.internal_url(route)?;
-        self.internal_client()?
-            .post(url)
-            .header(ACCEPT, "application/json")
-            .json(body)
             .send()?
             .error_for_status()?
             .json()
