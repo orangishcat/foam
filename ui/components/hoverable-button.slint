@@ -8,6 +8,7 @@ export component HoverableButton inherits Rectangle {
     out property <bool> has-focus: button.has-focus;
     out property <bool> pressed: hover.pressed || button.pressed;
     callback clicked();
+    callback double-clicked();
     forward-focus: button;
 
     button := Button {
@@ -23,7 +24,8 @@ export component HoverableButton inherits Rectangle {
     hover := TouchArea {
         enabled: root.enabled;
         mouse-cursor: root.enabled ? pointer : default;
-        clicked => { button.clicked(); }
+        clicked => { root.clicked(); }
+        double-clicked => { root.double-clicked() }
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 button.focus();
