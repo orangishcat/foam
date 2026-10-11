@@ -7,10 +7,9 @@ use crate::{
     ui::{self},
 };
 use rusqlite::params;
-use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
-use std::path::PathBuf;
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::rc::Rc;
-use std::{io, time::Duration};
+use std::io;
 
 #[derive(Clone, Default)]
 pub struct CourseState {}
@@ -29,7 +28,7 @@ impl CourseState {
                 title: (&course.course_title).into(),
                 section: (&course.section_title).into(),
                 code: (&course.section_code).into(),
-                period: (&course.period).clone().unwrap_or("".to_string()).into(),
+                period: course.period.clone().unwrap_or("".to_string()).into(),
                 hidden: course.hidden,
                 icon: Default::default(),
             })

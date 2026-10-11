@@ -1,9 +1,8 @@
 // imaginary plugin api before i turn it into an actual plugin api using wasm or something
 
-use std::{io, sync::Mutex};
 
 use crate::{
-    account::{self, Account},
+    account::{self},
     api::schoology::{self},
 };
 

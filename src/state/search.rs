@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{AppWindow, CoursesUi, SearchResult, SearchUi, database, filesystem};
+use crate::{AppWindow, SearchResult, SearchUi, database, filesystem};
 
 #[derive(Deserialize)]
 struct ResultRow {
@@ -85,8 +85,8 @@ impl SearchState {
                                             course_id: (&row.course_id).into(),
                                             title: (&row.title).into(),
                                             course_title: (&row.course_title).into(),
-                                            preview: (&row.preview).to_shared_string(),
-                                            item_type: (&row.item_type).to_shared_string(),
+                                            preview: row.preview.to_shared_string(),
+                                            item_type: row.item_type.to_shared_string(),
                                             icon: Default::default(),
                                         })
                                         .collect::<Vec<_>>(),
