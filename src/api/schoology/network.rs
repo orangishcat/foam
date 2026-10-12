@@ -101,11 +101,16 @@ impl SchoologyAccountConfig {
 
     pub fn internal_get<T: DeserializeOwned>(&self, route: &str) -> RequestResult<T> {
         let url = self.internal_url(route)?;
-        self.internal_get_request(&url)?
-            .send()?
-            .error_for_status()?
-            .json()
-            .map_err(Into::into)
+        let jar = self.session_cookies()?;
+        let before = jar.cookies(&url.parse()?);
+        let mut response = self.internal_get_request(&url)?.send()?;
+        if route == "/iapi2/site-navigation/notifications"
+            && response.status() == reqwest::StatusCode::FORBIDDEN
+        {
+            super::session::recover(self, &jar, before)?;
+            response = self.internal_get_request(&url)?.send()?;
+        }
+        response.error_for_status()?.json().map_err(Into::into)
     }
 
     pub fn api_get<T: DeserializeOwned>(&self, url: &str) -> RequestResult<T> {

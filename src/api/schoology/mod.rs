@@ -6,6 +6,7 @@ pub mod main;
 pub mod network;
 pub mod notification;
 pub mod onboarding;
+pub mod session;
 pub mod types;
 
 pub use crate::account::{RequestError, RequestResult};

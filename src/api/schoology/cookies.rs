@@ -18,6 +18,17 @@ pub(super) struct SessionCookies {
 }
 
 impl SessionCookies {
+    pub(super) fn replace_session(&self, value: &str) -> std::io::Result<()> {
+        let jar = self
+            .jar
+            .lock()
+            .expect("session cookie jar lock is poisoned");
+        let mut config = self.acc.lock().expect("account cookie lock is poisoned");
+        install_session(&jar, &self.url, &self.key, value);
+        config.cookie_value = value.to_owned();
+        config.save()
+    }
+
     pub(super) fn new(url: Url, account: &SchoologyAccountConfig) -> Self {
         let key = account.cookie_key.clone();
         let value = &account.cookie_value;
@@ -33,6 +44,48 @@ impl SessionCookies {
             key,
             acc: Mutex::new(acc),
         }
+    }
+}
+
+fn install_session(jar: &Jar, url: &Url, key: &str, value: &str) {
+    // Normalize the browser's domain cookie to the host-only cookie seeded at
+    // startup. Remove a previous domain-scoped copy without losing other cookies.
+    jar.add_cookie_str(
+        &format!(
+            "{key}=; Domain={}; Path=/; Max-Age=0; Secure",
+            url.host_str().unwrap()
+        ),
+        url,
+    );
+    jar.add_cookie_str(&format!("{key}={value}; Path=/; Secure; HttpOnly"), url);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_session_replaces_stale_cookie_and_preserves_other_cookies() {
+        let url = Url::parse("https://school.schoology.com/").unwrap();
+        let jar = Jar::default();
+        jar.add_cookie_str("SESSexample=old; Path=/; Secure", &url);
+        jar.add_cookie_str(
+            "SESSexample=domain-old; Domain=.school.schoology.com; Path=/; Secure",
+            &url,
+        );
+        jar.add_cookie_str("other=retained; Path=/; Secure", &url);
+        install_session(&jar, &url, "SESSexample", "fresh");
+        let header = jar.cookies(&url).unwrap();
+        let cookies: Vec<_> = header.to_str().unwrap().split(';').map(str::trim).collect();
+        assert_eq!(
+            cookies
+                .iter()
+                .filter(|cookie| cookie.starts_with("SESSexample="))
+                .count(),
+            1
+        );
+        assert!(cookies.contains(&"SESSexample=fresh"));
+        assert!(cookies.contains(&"other=retained"));
     }
 }
 
