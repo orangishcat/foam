@@ -3,6 +3,7 @@ import {
     UiState,
     DocumentUi,
     AssignmentUi,
+    MaterialUi,
 } from "../../globals.slint";
 import { MaterialItem, CourseTab } from "../../types/course-ui.slint";
 import { Icon } from "icon.slint";
@@ -10,13 +11,14 @@ import { HoverableButton } from "../hoverable-button.slint";
 
 export component Row inherits Rectangle {
     in property <MaterialItem> item;
+    in-out property <int> selected-index;
+    in property <int> row-index: -999;
     in property <bool> selected;
-    in property <float> tint;
 
     private property <bool> navigable: item.kind == "folder" || item.kind == "course";
     height: 2.5rem;
     border-radius: 0.3125rem;
-    background: (selected ? UiState.theme.background-600
+    background: (selected || selected-index == row-index ? UiState.theme.background-600
         : action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent);
     HorizontalLayout {
         padding-left: 0.75rem;
@@ -51,13 +53,10 @@ export component Row inherits Rectangle {
     action := HoverableButton {
         text: item.title;
         clicked => {
-            if root.navigable {
-                CoursesUi.open-folder(item.course-id, item.id);
-            }
-            if item.kind == "assignment" {
-                AssignmentUi.open(item.course-id, item.id);
-            }
-            if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
+            selected-index = row-index;
+        }
+        double-clicked => {
+            MaterialUi.open(item);
         }
     }
 }

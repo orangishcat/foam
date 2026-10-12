@@ -1,0 +1,34 @@
+import { CourseTab } from "../../types/course-ui.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { MaterialUi } from "../../globals.slint";
+export component MaterialsBottomBar inherits BottomBarFrame {
+    in-out property <CourseTab> tab;
+    in-out property <int> selected-index;
+
+    if selected-index >= 0: Rectangle {
+        HorizontalLayout {
+            alignment: center;
+            view-item := SelectedItemAction {
+                hotkey-name: "V";
+                hotkey: @keys(V);
+                action-name: "View item";
+                action => { MaterialUi.open(tab.materials[selected-index]); }
+            }
+
+            mark-done := SelectedItemAction {
+                hotkey-name: "O";
+                hotkey: @keys(O);
+                action-name: "Open in browser";
+                action => { MaterialUi.open-in-browser(tab.materials[selected-index]); }
+            }
+
+            unselect := SelectedItemAction {
+                hotkey-name: "Esc";
+                hotkey: @keys(Escape);
+                action-name: "Unselect item";
+                action => { selected-index = -1; }
+            }
+        }
+    }
+}

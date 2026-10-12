@@ -189,10 +189,9 @@ impl AssignmentViewState {
                 }
             });
         let weak = ui.as_weak();
-        ui.global::<AssignmentUi>().on_open_browser(move || {
-            if let Some(ui) = weak.upgrade() {
-                let assignment = ui.global::<AssignmentUi>().get_assignment();
-                if !assignment.id.is_empty() {
+        ui.global::<AssignmentUi>()
+            .on_open_browser(move |assignment_id| {
+                if let Some(ui) = weak.upgrade() {
                     let account = match crate::account::active_account() {
                         Ok(account) => account,
                         Err(error) => {
@@ -201,11 +200,10 @@ impl AssignmentViewState {
                         }
                     };
                     crate::state::attachment_view::open_browser(
-                        &account.assignment_url(&assignment.id),
+                        &account.assignment_url(&assignment_id),
                     );
                 }
-            }
-        });
+            });
         let weak = ui.as_weak();
         ui.global::<AssignmentUi>().on_open(move |course, id| {
             let Some(ui) = weak.upgrade() else { return };

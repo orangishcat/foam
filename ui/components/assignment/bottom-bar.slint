@@ -9,7 +9,7 @@ export component AssignmentBottomBar inherits BottomBarFrame {
             hotkey-name: "O";
             hotkey: @keys(O);
             action-name: "Open in browser";
-            action => { AssignmentUi.open-browser(); }
+            action => { AssignmentUi.open-selected-in-browser(); }
         }
         if AssignmentUi.assignment.attachments.length > 0: SelectedItemAction {
             hotkey-name: "A";

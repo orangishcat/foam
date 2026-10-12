@@ -140,7 +140,11 @@ export global AssignmentUi {
     callback open(string, string);
     callback view-attachments(int);
     callback view-submissions(int);
-    callback open-browser();
+    callback open-browser(string);
+
+    public function open-selected-in-browser() {
+        open-browser(assignment.id);
+    }
 }
 
 export global DocumentUi {
@@ -148,4 +152,25 @@ export global DocumentUi {
     in-out property <string> title;
     in-out property <string> error;
     callback open(string, string);
+}
+
+export global MaterialUi {
+    public function open(item: MaterialItem) {
+        if item.kind == "folder" {
+            CoursesUi.open-folder(item.course-id, item.id);
+        }
+        if item.kind == "assignment" {
+            AssignmentUi.open(item.course-id, item.id);
+        }
+        if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
+    }
+    public function open-in-browser(item: MaterialItem) {
+        if item.kind == "folder" {
+            CoursesUi.open-folder(item.course-id, item.id);
+        }
+        if item.kind == "assignment" {
+            AssignmentUi.open-browser(item.id);
+        }
+        if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
+    }
 }

@@ -21,6 +21,7 @@ struct Onboarding {
 thread_local! { static FLOW: RefCell<Onboarding> = RefCell::default(); }
 
 pub fn init(ui: &AppWindow) {
+    super::session::init(ui);
     ui.on_edit_webview(|action| {
         #[cfg(target_os = "macos")]
         crate::platform::macos::edit_webview(action);
@@ -84,12 +85,12 @@ fn update(ui: &AppWindow) {
             if flow.webview.is_none() {
                 ui.window()
                     .with_winit_window(|window| {
-                        flow.webview = Some(
-                            WebViewBuilder::new()
+                        flow.webview = Some(super::session::with_context(|context| {
+                            WebViewBuilder::new_with_web_context(context)
                                 .with_bounds(bounds)
                                 .with_url(&url)
-                                .build_as_child(window)?,
-                        );
+                                .build_as_child(window)
+                        })?);
                         Ok::<_, wry::Error>(())
                     })
                     .transpose()?;

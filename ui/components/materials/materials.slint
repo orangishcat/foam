@@ -12,6 +12,7 @@ import { TopBar } from "top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
 import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+import { MaterialsBottomBar } from "bottom-bar.slint";
 
 export global MaterialsMenu {
     out property <[ScreenMenuItem]> items: [
@@ -30,6 +31,8 @@ export component Materials inherits Rectangle {
     in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     in property <CourseTab> tab;
+    private property <int> selected-index: -1;
+
     VerticalLayout {
         spacing: 0rem;
         TopBar {
@@ -60,6 +63,8 @@ export component Materials inherits Rectangle {
                                     Row {
                                         width: list.visible-width;
                                         item: item;
+                                        selected-index <=> selected-index;
+                                        row-index: i;
                                     }
 
                                     if i < root.tab.materials.length - 1: Rectangle {
@@ -75,6 +80,6 @@ export component Materials inherits Rectangle {
             }
         }
 
-        BottomBarFrame { }
+        MaterialsBottomBar { }
     }
 }
