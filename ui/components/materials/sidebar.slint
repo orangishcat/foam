@@ -28,6 +28,7 @@ export component Sidebar inherits Rectangle {
                 Row {
                     width: sidebar.visible-width;
                     item: item;
+                    double-click: false;
                     selected: item.course-id == root.tab.course-id
                         && (item.kind == "course" || item.id == root.selected-id);
                 }

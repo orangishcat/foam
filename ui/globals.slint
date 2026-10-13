@@ -156,6 +156,9 @@ export global DocumentUi {
 
 export global MaterialUi {
     public function open(item: MaterialItem) {
+        if item.kind == "course" {
+            CoursesUi.open-folder(item.course-id, "");
+        }
         if item.kind == "folder" {
             CoursesUi.open-folder(item.course-id, item.id);
         }
