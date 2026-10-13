@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use slint::winit_030::{EventResult, winit};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::rc::Rc;
@@ -8,7 +9,102 @@ use crate::{AppWindow, CourseTab, CoursesUi, Screen, UiState};
 #[derive(Clone, Default)]
 pub struct SidebarState {}
 
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+struct SavedSidebar {
+    selected_tab: Option<usize>,
+    tabs: Vec<SavedTab>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+struct SavedTab {
+    course_id: String,
+    folder_id: String,
+    assignment_id: String,
+    document_id: String,
+}
+
 impl SidebarState {
+    pub fn restore_ui(&self, ui: &AppWindow) {
+        let result = (|| -> std::io::Result<()> {
+            let saved = crate::database::from_sql_map(
+                "SELECT data FROM sync_state WHERE key = 'sidebar'".into(),
+                &[],
+                |row| {
+                    let data: String = row.get(0).map_err(std::io::Error::other)?;
+                    serde_json::from_str::<SavedSidebar>(&data).map_err(std::io::Error::other)
+                },
+            )?
+            .into_iter()
+            .next()
+            .unwrap_or_default();
+            let global = ui.global::<CoursesUi>();
+            let tabs = saved
+                .tabs
+                .into_iter()
+                .map(|tab| CourseTab {
+                    title: CourseState::course_title(ui, &tab.course_id),
+                    course_id: tab.course_id.into(),
+                    folder_id: tab.folder_id.into(),
+                    assignment_id: tab.assignment_id.into(),
+                    document_id: tab.document_id.into(),
+                    ..Default::default()
+                })
+                .collect::<Vec<_>>();
+            let selected = saved
+                .selected_tab
+                .filter(|&index| index < tabs.len())
+                .or_else(|| (!tabs.is_empty()).then_some(0));
+            global.set_tabs(ModelRc::new(VecModel::from(tabs)));
+            for index in 0..global.get_tabs().row_count() {
+                let tab = global.get_tabs().row_data(index).unwrap();
+                global.set_active_tab(index as i32);
+                global.set_course_id(tab.course_id.clone());
+                global.set_folder_id(tab.folder_id);
+                crate::state::top_bar::restore_file_view(ui);
+                CourseState::course_tab_image(tab.course_id.to_string());
+            }
+            global.set_active_tab(selected.map(|index| index as i32).unwrap_or(-1));
+            if let Some(tab) = selected.and_then(|index| global.get_tabs().row_data(index)) {
+                global.set_course_id(tab.course_id);
+                global.set_folder_id(tab.folder_id);
+            }
+            crate::state::top_bar::restore_file_view(ui);
+            Ok(())
+        })();
+        if let Err(err) = result {
+            log::warn!("Restoring sidebar state failed: {err}");
+        }
+    }
+
+    pub fn save_ui(ui: &AppWindow) {
+        let global = ui.global::<CoursesUi>();
+        let tabs = global.get_tabs();
+        let saved = SavedSidebar {
+            selected_tab: usize::try_from(global.get_active_tab())
+                .ok()
+                .filter(|&index| index < tabs.row_count()),
+            tabs: tabs
+                .iter()
+                .map(|tab| SavedTab {
+                    course_id: tab.course_id.to_string(),
+                    folder_id: tab.folder_id.to_string(),
+                    assignment_id: tab.assignment_id.to_string(),
+                    document_id: tab.document_id.to_string(),
+                })
+                .collect(),
+        };
+        let result = serde_json::to_string(&saved).map_err(std::io::Error::other)
+            .and_then(|data| crate::database::execute(
+                "INSERT INTO sync_state (key, data) VALUES ('sidebar', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data WHERE sync_state.data != excluded.data".into(),
+                rusqlite::params![data],
+            ).map(|_| ()));
+        if let Err(err) = result {
+            log::warn!("Saving sidebar state failed: {err}");
+        }
+    }
+
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<CoursesUi>();
         if global

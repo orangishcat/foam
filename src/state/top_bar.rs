@@ -56,6 +56,11 @@ pub fn get_path_data(
 }
 
 pub fn refresh_file_view(ui: &AppWindow) {
+    restore_file_view(ui);
+    crate::state::sidebar::SidebarState::save_ui(ui);
+}
+
+pub(crate) fn restore_file_view(ui: &AppWindow) {
     let courses_ui = ui.global::<CoursesUi>();
     let (doc_id, doc_name, doc_kind) = {
         let screen = ui.global::<UiState>().get_screen();
