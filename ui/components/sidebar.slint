@@ -15,6 +15,7 @@ component NavigationItem inherits Rectangle {
 
     in property <Screen> change-to;
     in property <float> progress: 0;
+    in property <color> progress-color: #78aaff;
     in property <int> unread-count: 0;
 
     height: 2.75rem;
@@ -49,6 +50,7 @@ component NavigationItem inherits Rectangle {
 
     if progress > 0: ProgressRing {
         progress: root.progress;
+        progress-color: root.progress-color;
     }
 
     Image {
@@ -107,6 +109,7 @@ export component Sidebar inherits Rectangle {
             shortcut: "2";
             icon: @image-url("../icons/bell.svg");
             progress: NotificationUi.progress;
+            progress-color: NotificationUi.progress-color;
             unread-count: NotificationUi.unread-count;
             change-to: notifs;
         }

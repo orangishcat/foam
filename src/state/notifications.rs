@@ -165,7 +165,6 @@ impl NotificationState {
                 .unwrap_or_default(),
         );
         global.set_unread_count(models.iter().filter(|n| n.unread).count() as i32);
-        global.set_progress(0.0);
         global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
         global.set_notifications(ModelRc::new(VecModel::from(models)));
         Ok(())
@@ -199,12 +198,6 @@ impl NotificationState {
         ui.global::<crate::NotificationUi>()
             .set_unread_count(notifications.iter().filter(|n| n.is_unread).count() as i32);
         Ok(())
-    }
-
-    pub(crate) fn publish_progress(progress: f32) {
-        ui::run_on_ui_thread(move |ui| {
-            ui.global::<crate::NotificationUi>().set_progress(progress);
-        });
     }
 
     pub fn save_state(&self) -> Result<()> {

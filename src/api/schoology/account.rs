@@ -11,10 +11,19 @@ use crate::{
     api::schoology::cookies,
     config::config,
     database, filesystem,
-    state::{notifications::NotificationState, state::state},
+    state::state::state,
     thread_manager::check_cancelled,
     types::{assignment::Assignment, notification, submission},
+    ui,
 };
+
+pub(super) struct ResetProgress(pub(super) u8, pub(super) slint::Color);
+
+impl Drop for ResetProgress {
+    fn drop(&mut self) {
+        ui::publish_progress(0.0, self.0, &self.1);
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SchoologyAccountConfig {
@@ -96,8 +105,7 @@ impl Account for SchoologyAccountConfig {
             .cloned()
             .collect();
         check_cancelled()?;
-        let update_result =
-            self.update_notifications(&mut pending, &mut NotificationState::publish_progress);
+        let update_result = self.update_notifications(&mut pending);
         for updated in pending {
             if let Some(n) = notifications
                 .iter_mut()
@@ -106,9 +114,10 @@ impl Account for SchoologyAccountConfig {
                 *n = updated;
             }
         }
-        match self.fetch_calendar().and_then(|(ids, assignments)| {
-            Ok(self.apply_calendar(&ids, &assignments, &mut NotificationState::publish_progress)?)
-        }) {
+        match self
+            .fetch_calendar()
+            .and_then(|(ids, assignments)| Ok(self.apply_calendar(&ids, &assignments)?))
+        {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }

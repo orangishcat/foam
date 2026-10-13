@@ -1,4 +1,8 @@
-use crate::api::schoology::account::SchoologyAccountConfig;
+use crate::api::schoology::account::{ResetProgress, SchoologyAccountConfig};
+use crate::ui;
+
+const NOTIFICATION_PROGRESS_PRIORITY: u8 = 1;
+const NOTIFICATION_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(0x78, 0xaa, 0xff);
 use crate::{
     api::schoology::RequestResult,
     database,
@@ -13,16 +17,17 @@ use std::{collections::HashSet, io};
 
 impl SchoologyAccountConfig {
     /// Process each course hierarchy once. Failed items remain pending.
-    pub fn update_notifications(
-        &self,
-        notifications: &mut [Notification],
-        mut progress: impl FnMut(f32),
-    ) -> RequestResult<()> {
+    pub fn update_notifications(&self, notifications: &mut [Notification]) -> RequestResult<()> {
+        let _reset = ResetProgress(NOTIFICATION_PROGRESS_PRIORITY, NOTIFICATION_PROGRESS_COLOR);
         let mut refreshed = HashSet::new();
         let total = notifications.len();
         let mut failure = None;
         let mut attempted = 0;
-        progress(1.0);
+        ui::publish_progress(
+            1.0,
+            NOTIFICATION_PROGRESS_PRIORITY,
+            &NOTIFICATION_PROGRESS_COLOR,
+        );
         for i in 0..notifications.len() {
             if notifications[i].event == NotificationEvent::GradeUpdated {
                 continue;
@@ -46,7 +51,11 @@ impl SchoologyAccountConfig {
                 failure = Some(err);
             }
             attempted += 1;
-            progress(attempted as f32 / total as f32);
+            ui::publish_progress(
+                attempted as f32 / total as f32,
+                NOTIFICATION_PROGRESS_PRIORITY,
+                &NOTIFICATION_PROGRESS_COLOR,
+            );
         }
         if notifications
             .iter()
@@ -81,7 +90,11 @@ impl SchoologyAccountConfig {
                     failure = Some(err);
                 }
             }
-            progress(0.0);
+            ui::publish_progress(
+                0.0,
+                NOTIFICATION_PROGRESS_PRIORITY,
+                &NOTIFICATION_PROGRESS_COLOR,
+            );
         }
         check_cancelled()?;
         match failure {
