@@ -11,10 +11,7 @@ use crate::{
     api::schoology::cookies,
     config::config,
     database, filesystem,
-    state::{
-        notifications::{NotificationState, save_sync_state},
-        state::state,
-    },
+    state::{notifications::NotificationState, state::state},
     thread_manager::check_cancelled,
     types::{assignment::Assignment, notification, submission},
 };
@@ -115,8 +112,7 @@ impl Account for SchoologyAccountConfig {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
-        let mut app = state();
-        let mut next = app.notif.clone();
+        let next = &mut state().notif;
         if update_result.is_ok() {
             next.last_sync = check_started;
         }
@@ -126,14 +122,12 @@ impl Account for SchoologyAccountConfig {
             next.scrape_attempts = 0;
         }
         notification::save_notifications(&notifications, &next)?;
-        app.notif = next;
         update_result.map_err(io::Error::other)
     }
 
     fn slow_sync(&self) -> io::Result<()> {
         let check_started = chrono::Local::now();
         (|| -> RequestResult<()> {
-            // Wait for the fast sync to populate the initial course cache.
             let loaded = database::from_sql_map(
                 "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
                 &[],
@@ -153,10 +147,8 @@ impl Account for SchoologyAccountConfig {
             check_cancelled()?;
             submission::update_submissions(&assignments)?;
             let mut app = state();
-            let mut next = app.notif.clone();
-            next.last_submission_sync = check_started;
-            save_sync_state(&next)?;
-            app.notif = next;
+            app.notif.last_submission_sync = check_started;
+            app.notif.save_state()?;
             Ok(())
         })()
         .map_err(io::Error::other)

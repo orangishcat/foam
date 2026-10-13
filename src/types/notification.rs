@@ -1,4 +1,4 @@
-use crate::{database, state::notifications::save_sync_state_on};
+use crate::{database, state::notifications::NotificationState};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::io::{Error, Result};
@@ -40,15 +40,18 @@ pub fn notifications() -> Result<Vec<Notification>> {
     )
 }
 
-pub fn save_notifications(notifications: &[Notification], state: &impl Serialize) -> Result<()> {
+pub fn save_notifications(
+    notifications: &[Notification],
+    notif_state: &NotificationState,
+) -> Result<()> {
     let mut connection = database::connection()?;
-    save_notifications_on(&mut connection, notifications, state)
+    save_notifications_on(&mut connection, notifications, notif_state)
 }
 
 pub(crate) fn save_notifications_on(
     connection: &mut rusqlite::Connection,
     notifications: &[Notification],
-    state: &impl Serialize,
+    notif_state: &NotificationState,
 ) -> Result<()> {
     let transaction = connection.transaction().map_err(Error::other)?;
     for notification in notifications {
@@ -61,6 +64,6 @@ pub(crate) fn save_notifications_on(
             ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title
             WHERE julianday(excluded.created) >= julianday(notifications.created)", values.as_slice()).map_err(Error::other)?;
     }
-    save_sync_state_on(&transaction, state)?;
+    notif_state.save_state_on(&transaction)?;
     transaction.commit().map_err(Error::other)
 }

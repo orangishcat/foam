@@ -4,6 +4,7 @@ use std::{
 };
 
 use chrono::{DateTime, Local, TimeDelta};
+use objc2::encode::EncodingBox::Sel;
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use slint::{ComponentHandle, ModelRc, VecModel};
@@ -26,10 +27,8 @@ pub struct NotificationState {
     pub last_update: DateTime<Local>,
     pub last_sync: DateTime<Local>,
     pub last_submission_sync: DateTime<Local>,
-    #[serde(skip)]
-    pub(crate) last_update_success: bool,
-    #[serde(skip)]
-    pub(crate) scrape_attempts: u32,
+    pub last_update_success: bool,
+    pub scrape_attempts: u32,
     #[serde(skip)]
     is_checking_notifications: bool,
     #[serde(skip)]
@@ -38,8 +37,16 @@ pub struct NotificationState {
 
 impl NotificationState {
     pub fn init(&mut self) {
-        match load_sync_state() {
-            Ok(saved) => *self = saved,
+        match Self::load() {
+            Ok(saved) => {
+                *self = saved;
+                log::debug!(
+                    "Last synced load: {} update: {} success: {}",
+                    self.last_sync,
+                    self.last_update,
+                    self.last_update_success
+                );
+            }
             Err(err) => log::warn!("Loading notification sync state failed: {err}"),
         }
     }
@@ -53,15 +60,16 @@ impl NotificationState {
         {
             self.is_checking_notifications = true;
             self.scrape_attempts += 1;
+            log::debug!("Calling fast sync");
             if let Err(err) = thread_manager::spawn_thread("sync notifications", Self::fast_sync) {
                 self.is_checking_notifications = false;
                 log::warn!("Starting notification sync failed: {err}");
             }
         }
-        // Submission sync can run alongside notifications: each updates only its own SQL columns.
         if !self.is_slow_syncing
             && Local::now() - self.last_submission_sync >= config().submission_refresh_duration
         {
+            log::info!("Calling slow sync");
             self.is_slow_syncing = true;
             if let Err(err) = thread_manager::spawn_thread("sync submissions", Self::slow_sync) {
                 self.is_slow_syncing = false;
@@ -84,15 +92,19 @@ impl NotificationState {
     fn fast_sync() {
         let result = crate::account::active_account().and_then(|account| account.fast_sync());
         {
-            let mut app = state();
-            app.notif.is_checking_notifications = false;
-            if let Err(err) = result {
-                app.notif.last_update_success = false;
-                app.notif.last_update = Local::now();
-                if let Err(save_err) = save_sync_state(&app.notif) {
-                    log::warn!("Saving notification sync state failed: {save_err}");
+            let notif = &mut state().notif;
+            notif.is_checking_notifications = false;
+            notif.last_update_success = matches!(result, Ok(_));
+            notif.last_update = Local::now();
+            match notif.save_state() {
+                Ok(_) => log::debug!("Saved notification sync state"),
+                Err(save_err) => {
+                    log::warn!("Saving notification sync state failed: {save_err}")
                 }
-                log::warn!("Notification sync failed: {err}");
+            }
+            match result {
+                Ok(_) => log::debug!("Notification sync success"),
+                Err(err) => log::warn!("Notification sync failed: {err}"),
             }
         }
         ui::sync_ui();
@@ -194,27 +206,27 @@ impl NotificationState {
             ui.global::<crate::NotificationUi>().set_progress(progress);
         });
     }
-}
 
-pub fn load_sync_state<T: DeserializeOwned + Default>() -> Result<T> {
-    let values = database::from_sql_map(
-        "SELECT data FROM sync_state WHERE key = 'notifications'".to_owned(),
-        &[],
-        |row| {
-            let data: String = row.get(0).map_err(Error::other)?;
-            serde_json::from_str(&data).map_err(Error::other)
-        },
-    )?;
-    Ok(values.into_iter().next().unwrap_or_default())
-}
+    pub fn save_state(&self) -> Result<()> {
+        let connection = database::connection()?;
+        self.save_state_on(&connection)
+    }
 
-pub fn save_sync_state(state: &impl Serialize) -> Result<()> {
-    let connection = database::connection()?;
-    save_sync_state_on(&connection, state)
-}
+    pub(crate) fn save_state_on(&self, connection: &Connection) -> Result<()> {
+        connection.execute("INSERT INTO sync_state (key, data) VALUES ('notifications', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data",
+            params![serde_json::to_string(self).map_err(Error::other)?]).map_err(Error::other)?;
+        Ok(())
+    }
 
-pub(crate) fn save_sync_state_on(connection: &Connection, state: &impl Serialize) -> Result<()> {
-    connection.execute("INSERT INTO sync_state (key, data) VALUES ('notifications', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data",
-        params![serde_json::to_string(state).map_err(Error::other)?]).map_err(Error::other)?;
-    Ok(())
+    pub fn load() -> Result<Self> {
+        let values = database::from_sql_map(
+            "SELECT data FROM sync_state WHERE key = 'notifications'".to_owned(),
+            &[],
+            |row| {
+                let data: String = row.get(0).map_err(Error::other)?;
+                serde_json::from_str(&data).map_err(Error::other)
+            },
+        )?;
+        Ok(values.into_iter().next().unwrap_or_default())
+    }
 }
