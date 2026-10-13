@@ -19,21 +19,19 @@ impl SchoologyAccountConfig {
         mut progress: impl FnMut(f32),
     ) -> RequestResult<()> {
         let mut refreshed = HashSet::new();
-        let total = notifications.iter().filter(|n| !n.is_processed).count();
+        let total = notifications.len();
+        let mut failure = None;
         let mut attempted = 0;
         progress(1.0);
         for i in 0..notifications.len() {
-            if notifications[i].is_processed
-                || notifications[i].event == NotificationEvent::GradeUpdated
-            {
+            if notifications[i].event == NotificationEvent::GradeUpdated {
                 continue;
             }
             check_cancelled()?;
             let posted = notifications
                 .iter()
                 .filter(|n| {
-                    !n.is_processed
-                        && n.event == NotificationEvent::MaterialPosted
+                    n.event == NotificationEvent::MaterialPosted
                         && n.course_id == notifications[i].course_id
                 })
                 .map(|n| n.resource_id.clone())
@@ -45,13 +43,14 @@ impl SchoologyAccountConfig {
                     "Updating notification {} failed: {err}",
                     notifications[i].resource_id
                 );
+                failure = Some(err);
             }
             attempted += 1;
             progress(attempted as f32 / total as f32);
         }
         if notifications
             .iter()
-            .any(|n| !n.is_processed && n.event == NotificationEvent::GradeUpdated)
+            .any(|n| n.event == NotificationEvent::GradeUpdated)
         {
             check_cancelled()?;
             // One unfiltered request for this entire notification batch, including on failure.
@@ -62,7 +61,7 @@ impl SchoologyAccountConfig {
                 Ok(()) => {
                     for n in notifications
                         .iter_mut()
-                        .filter(|n| !n.is_processed && n.event == NotificationEvent::GradeUpdated)
+                        .filter(|n| n.event == NotificationEvent::GradeUpdated)
                     {
                         if let Some(course) = crate::types::course::course(&n.course_id)? {
                             n.course_id = course.course_id;
@@ -75,15 +74,20 @@ impl SchoologyAccountConfig {
                                 n.course_id = assignments[0].course_id.clone();
                             }
                         }
-                        n.is_processed = true;
                     }
                 }
-                Err(err) => log::warn!("Updating notification grades failed: {err}"),
+                Err(err) => {
+                    log::warn!("Updating notification grades failed: {err}");
+                    failure = Some(err);
+                }
             }
             progress(0.0);
         }
         check_cancelled()?;
-        Ok(())
+        match failure {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
     }
 
     fn resolve_notification_course(&self, n: &Notification) -> RequestResult<Course> {
@@ -110,7 +114,6 @@ impl SchoologyAccountConfig {
         if n.resource_id.is_empty() {
             return Err(io::Error::other("notification resource ID is empty").into());
         }
-        n.is_processed = true;
 
         match n.event {
             NotificationEvent::GradeUpdated => unreachable!("grades are processed as a batch"),

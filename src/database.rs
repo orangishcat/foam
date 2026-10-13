@@ -25,7 +25,6 @@ fn create_schema() -> Result<()> {
     connection()?
         .execute_batch(include_str!("sql/schema.sql"))
         .map_err(Error::other)?;
-    add_column_if_missing("notifications", "manual_mark", "INTEGER")?;
     Ok(())
 }
 

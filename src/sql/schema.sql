@@ -49,13 +49,11 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT NOT NULL,
-    manual_mark INTEGER,
+    is_unread INTEGER NOT NULL DEFAULT 1,
     event TEXT NOT NULL,
     title TEXT NOT NULL,
-    viewed INTEGER NOT NULL,
-    is_processed INTEGER NOT NULL,
     created TEXT NOT NULL,
-    resource_id TEXT NOT NULL,
+    resource_id TEXT NOT NULL UNIQUE,
     material_type TEXT,
     course_id TEXT NOT NULL,
     course_title TEXT,

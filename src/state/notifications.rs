@@ -23,10 +23,6 @@ use crate::{
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NotificationState {
-    #[serde(default)]
-    pub last_opened: DateTime<Local>,
-    #[serde(skip)]
-    visit_cutoff: Option<DateTime<Local>>,
     pub last_update: DateTime<Local>,
     pub last_sync: DateTime<Local>,
     pub last_submission_sync: DateTime<Local>,
@@ -112,11 +108,6 @@ impl NotificationState {
     }
 
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        let cutoff = if ui.global::<UiState>().get_screen() == crate::Screen::Notifs {
-            self.visit_cutoff.unwrap_or(self.last_opened)
-        } else {
-            self.last_opened
-        };
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
@@ -129,7 +120,7 @@ impl NotificationState {
             .map(|(n, course)| {
                 Ok(crate::Notification {
                     id: n.id()?.into(),
-                    unread: n.is_unread(cutoff),
+                    unread: n.is_unread,
                     title: n.title.into(),
                     course: course.into(),
                     course_id: n.course_id.into(),
@@ -172,21 +163,17 @@ impl NotificationState {
         let global = ui.global::<crate::NotificationUi>();
         global.on_closed(ui::sync_ui);
         global.on_opened(|| {
-            let mut app = state();
-            let mut next = app.notif.clone();
-            next.visit_cutoff = Some(next.last_opened);
-            next.last_opened = Local::now();
-            match save_sync_state(&next) {
-                Ok(()) => app.notif = next,
-                Err(err) => log::warn!("Saving notification opened time failed: {err}"),
+            if let Err(err) =
+                database::execute("UPDATE notifications SET is_unread = 0".to_owned(), &[])
+            {
+                log::warn!("Marking notifications viewed failed: {err}");
             }
-            drop(app);
             ui::sync_ui();
         });
         global.on_set_read(|id, read| {
             if let Err(err) = database::execute(
-                "UPDATE notifications SET manual_mark = ? WHERE id = ?".to_owned(),
-                &[&read, &id.as_str()],
+                "UPDATE notifications SET is_unread = ? WHERE id = ?".to_owned(),
+                &[&!read, &id.as_str()],
             ) {
                 log::warn!("Marking notification failed: {err}");
             }
@@ -197,12 +184,8 @@ impl NotificationState {
     pub fn sync_sidebar(&self, ui: &AppWindow) -> io::Result<()> {
         let notifications =
             database::from_sql::<Notification>("SELECT * FROM notifications".into(), &[])?;
-        ui.global::<crate::NotificationUi>().set_unread_count(
-            notifications
-                .iter()
-                .filter(|n| n.is_unread(self.last_opened))
-                .count() as i32,
-        );
+        ui.global::<crate::NotificationUi>()
+            .set_unread_count(notifications.iter().filter(|n| n.is_unread).count() as i32);
         Ok(())
     }
 

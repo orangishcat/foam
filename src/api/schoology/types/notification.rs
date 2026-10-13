@@ -12,7 +12,6 @@ pub(crate) struct NotificationsResponse {
 pub(crate) struct SchoologyNotification {
     #[serde(rename = "type", default)]
     pub kind: String,
-    pub viewed: bool,
     pub created: String,
     pub args: Vec<NotificationArgument>,
 }

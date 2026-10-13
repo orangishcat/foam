@@ -87,19 +87,28 @@ impl Account for SchoologyAccountConfig {
         let mut notifications = self.scrape_notifications().map_err(io::Error::other)?;
         let previous = notification::notifications()?;
         let last_sync = state().notif.last_sync;
-        for n in &mut notifications {
-            n.is_processed = previous
-                .iter()
-                .find(|old| {
-                    old.event == n.event
-                        && old.resource_id == n.resource_id
-                        && old.created == n.created
-                })
-                .map_or(n.created < last_sync, |old| old.is_processed);
-        }
+        notifications.sort_by_key(|n| std::cmp::Reverse(n.created));
+        let mut seen = std::collections::HashSet::new();
+        notifications.retain(|n| seen.insert(n.resource_id.clone()));
+        let mut pending: Vec<_> = notifications
+            .iter()
+            .filter(|n| {
+                n.created >= last_sync
+                    || !previous.iter().any(|old| old.resource_id == n.resource_id)
+            })
+            .cloned()
+            .collect();
         check_cancelled()?;
         let update_result =
-            self.update_notifications(&mut notifications, &mut NotificationState::publish_progress);
+            self.update_notifications(&mut pending, &mut NotificationState::publish_progress);
+        for updated in pending {
+            if let Some(n) = notifications
+                .iter_mut()
+                .find(|n| n.resource_id == updated.resource_id)
+            {
+                *n = updated;
+            }
+        }
         match self.fetch_calendar().and_then(|(ids, assignments)| {
             Ok(self.apply_calendar(&ids, &assignments, &mut NotificationState::publish_progress)?)
         }) {
@@ -112,8 +121,7 @@ impl Account for SchoologyAccountConfig {
             next.last_sync = check_started;
         }
         next.last_update = chrono::Local::now();
-        next.last_update_success =
-            update_result.is_ok() && notifications.iter().all(|n| n.is_processed);
+        next.last_update_success = update_result.is_ok();
         if next.last_update_success {
             next.scrape_attempts = 0;
         }

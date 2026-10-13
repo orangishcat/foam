@@ -42,10 +42,9 @@ impl SchoologyNotification {
                 continue;
             }
             result.push(Notification {
-                manual_mark: None,
+                is_unread: true,
                 event,
                 title: decode_title(&arg.title),
-                viewed: self.viewed,
                 created,
                 resource_id: arg.id.0.clone(),
                 material_type: match (arg.kind.as_str(), arg.document_type.as_str()) {
@@ -56,7 +55,6 @@ impl SchoologyNotification {
                 },
                 course_id: course_id.clone(),
                 course_title: course_title.clone(),
-                is_processed: false,
             });
         }
         result
