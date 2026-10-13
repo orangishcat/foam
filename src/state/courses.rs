@@ -8,7 +8,6 @@ use crate::{
 };
 use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
-use std::rc::Rc;
 use std::io;
 
 #[derive(Clone, Default)]
@@ -52,58 +51,6 @@ impl CourseState {
 
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<CoursesUi>();
-        if global
-            .get_tabs()
-            .as_any()
-            .downcast_ref::<VecModel<CourseTab>>()
-            .is_none()
-        {
-            global.set_tabs(ModelRc::from(Rc::new(VecModel::<CourseTab>::default())));
-        }
-        let weak = ui.as_weak();
-        global.on_select_tab(move |index| {
-            let Some(ui) = weak.upgrade() else { return };
-            Self::select_tab(&ui, index);
-        });
-        let weak = ui.as_weak();
-        global.on_close_tab(move |index| {
-            if let Some(ui) = weak.upgrade() {
-                Self::close_tab(&ui, index);
-            }
-        });
-        let weak = ui.as_weak();
-        global.on_open(move |course| {
-            let Some(ui) = weak.upgrade() else { return };
-            match Self::ensure_course_tab(&ui, &course, None) {
-                Ok(index) => Self::select_tab(&ui, index as i32),
-                Err(err) => log::warn!("Opening course failed: {err}"),
-            }
-        });
-        let weak = ui.as_weak();
-        global.on_open_with_image(move |course, icon| {
-            let Some(ui) = weak.upgrade() else { return };
-            match Self::ensure_course_tab(&ui, &course, Some(icon)) {
-                Ok(index) => Self::select_tab(&ui, index as i32),
-                Err(err) => log::warn!("Opening course failed: {err}"),
-            }
-        });
-        let weak = ui.as_weak();
-        global.on_open_folder(move |course, folder| {
-            let Some(ui) = weak.upgrade() else { return };
-            let global = ui.global::<CoursesUi>();
-            global.set_course_id(course);
-            global.set_folder_id(folder);
-            if let Ok(index) = usize::try_from(global.get_active_tab()) {
-                let tabs = global.get_tabs();
-                if let Some(mut tab) = tabs.row_data(index) {
-                    tab.assignment_id = "".into();
-                    tab.document_id = "".into();
-                    tabs.set_row_data(index, tab);
-                }
-            }
-            ui.global::<UiState>().set_screen(Screen::Materials);
-            refresh_file_view(&ui);
-        });
         global.on_drag_data(|index| {
             slint::SharedString::from(format!("foam-course-index:{index}")).into()
         });

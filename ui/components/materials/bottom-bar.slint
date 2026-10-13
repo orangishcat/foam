@@ -6,7 +6,7 @@ export component MaterialsBottomBar inherits BottomBarFrame {
     in-out property <CourseTab> tab;
     in-out property <int> selected-index;
 
-    if selected-index >= 0: Rectangle {
+    if selected-index >= 0 && selected-index < tab.materials.length: Rectangle {
         HorizontalLayout {
             alignment: center;
             view-item := SelectedItemAction {
@@ -16,7 +16,7 @@ export component MaterialsBottomBar inherits BottomBarFrame {
                 action => { MaterialUi.open(tab.materials[selected-index]); }
             }
 
-            mark-done := SelectedItemAction {
+            open-browser := SelectedItemAction {
                 hotkey-name: "O";
                 hotkey: @keys(O);
                 action-name: "Open in browser";

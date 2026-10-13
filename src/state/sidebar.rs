@@ -1,7 +1,53 @@
 use slint::winit_030::{EventResult, winit};
-use slint::{ComponentHandle, Model};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use std::rc::Rc;
 
-use crate::{AppWindow, CoursesUi, Screen, UiState};
+use crate::state::courses::CourseState;
+use crate::{AppWindow, CourseTab, CoursesUi, Screen, UiState};
+
+#[derive(Clone, Default)]
+pub struct SidebarState {}
+
+impl SidebarState {
+    pub fn init_ui(&self, ui: &AppWindow) {
+        let global = ui.global::<CoursesUi>();
+        if global
+            .get_tabs()
+            .as_any()
+            .downcast_ref::<VecModel<CourseTab>>()
+            .is_none()
+        {
+            global.set_tabs(ModelRc::from(Rc::new(VecModel::<CourseTab>::default())));
+        }
+        let weak = ui.as_weak();
+        global.on_select_tab(move |index| {
+            let Some(ui) = weak.upgrade() else { return };
+            CourseState::select_tab(&ui, index);
+        });
+        let weak = ui.as_weak();
+        global.on_close_tab(move |index| {
+            if let Some(ui) = weak.upgrade() {
+                CourseState::close_tab(&ui, index);
+            }
+        });
+        let weak = ui.as_weak();
+        global.on_open(move |course| {
+            let Some(ui) = weak.upgrade() else { return };
+            match CourseState::ensure_course_tab(&ui, &course, None) {
+                Ok(index) => CourseState::select_tab(&ui, index as i32),
+                Err(err) => log::warn!("Opening course failed: {err}"),
+            }
+        });
+        let weak = ui.as_weak();
+        global.on_open_with_image(move |course, icon| {
+            let Some(ui) = weak.upgrade() else { return };
+            match CourseState::ensure_course_tab(&ui, &course, Some(icon)) {
+                Ok(index) => CourseState::select_tab(&ui, index as i32),
+                Err(err) => log::warn!("Opening course failed: {err}"),
+            }
+        });
+    }
+}
 
 pub struct Sidebar {
     ui: slint::Weak<AppWindow>,

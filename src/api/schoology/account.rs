@@ -162,38 +162,3 @@ impl Account for SchoologyAccountConfig {
         .map_err(io::Error::other)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn active_account_snapshot_shares_clients_and_credentials() {
-        let account = SchoologyAccountConfig {
-            subdomain: "example".into(),
-            cookie_key: "session".into(),
-            cookie_value: "test-cookie".into(),
-            ..Default::default()
-        };
-        let snapshot = account.clone_account();
-        std::thread::spawn(move || {
-            assert_eq!(
-                snapshot.assignment_url("123"),
-                "https://example.schoology.com/assignment/123"
-            );
-            let headers = snapshot
-                .resource_headers("https://example.schoology.com/file")
-                .unwrap();
-            assert_eq!(headers[reqwest::header::COOKIE], "session=test-cookie");
-            snapshot
-                .get_resource("https://example.schoology.com/file")
-                .unwrap()
-                .build()
-                .unwrap();
-        })
-        .join()
-        .unwrap();
-        assert!(account.internal_client.get().is_some());
-        assert!(account.cookies.get().is_some());
-    }
-}

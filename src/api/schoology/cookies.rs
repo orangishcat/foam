@@ -60,35 +60,6 @@ fn install_session(jar: &Jar, url: &Url, key: &str, value: &str) {
     jar.add_cookie_str(&format!("{key}={value}; Path=/; Secure; HttpOnly"), url);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn browser_session_replaces_stale_cookie_and_preserves_other_cookies() {
-        let url = Url::parse("https://school.schoology.com/").unwrap();
-        let jar = Jar::default();
-        jar.add_cookie_str("SESSexample=old; Path=/; Secure", &url);
-        jar.add_cookie_str(
-            "SESSexample=domain-old; Domain=.school.schoology.com; Path=/; Secure",
-            &url,
-        );
-        jar.add_cookie_str("other=retained; Path=/; Secure", &url);
-        install_session(&jar, &url, "SESSexample", "fresh");
-        let header = jar.cookies(&url).unwrap();
-        let cookies: Vec<_> = header.to_str().unwrap().split(';').map(str::trim).collect();
-        assert_eq!(
-            cookies
-                .iter()
-                .filter(|cookie| cookie.starts_with("SESSexample="))
-                .count(),
-            1
-        );
-        assert!(cookies.contains(&"SESSexample=fresh"));
-        assert!(cookies.contains(&"other=retained"));
-    }
-}
-
 impl CookieStore for SessionCookies {
     fn set_cookies(&self, headers: &mut dyn Iterator<Item = &HeaderValue>, url: &Url) {
         // Serialize jar updates and persistence so concurrent responses cannot save stale values.

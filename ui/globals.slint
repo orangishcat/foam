@@ -155,6 +155,7 @@ export global DocumentUi {
 }
 
 export global MaterialUi {
+    callback open-browser(MaterialItem);
     public function open(item: MaterialItem) {
         if item.kind == "course" {
             CoursesUi.open-folder(item.course-id, "");
@@ -168,12 +169,6 @@ export global MaterialUi {
         if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
     }
     public function open-in-browser(item: MaterialItem) {
-        if item.kind == "folder" {
-            CoursesUi.open-folder(item.course-id, item.id);
-        }
-        if item.kind == "assignment" {
-            AssignmentUi.open-browser(item.id);
-        }
-        if item.kind == "document" { DocumentUi.open(item.course-id, item.id); }
+        open-browser(item);
     }
 }

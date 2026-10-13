@@ -6,8 +6,9 @@ use crate::{
     AppWindow, Screen, UiState,
     state::{
         assignment_view::AssignmentViewState, courses::CourseState, dashboard::DashboardState,
-        document_view::DocumentViewerState, notifications::NotificationState, search::SearchState,
-        settings::SettingsState,
+        document_view::DocumentViewerState, materials::MaterialsState,
+        notifications::NotificationState, search::SearchState, settings::SettingsState,
+        sidebar::SidebarState,
     },
 };
 
@@ -16,6 +17,8 @@ use slint::ComponentHandle;
 #[derive(Clone, Default)]
 pub struct AppState {
     pub courses: CourseState,
+    pub sidebar: SidebarState,
+    pub materials: MaterialsState,
     pub assignment_view: AssignmentViewState,
     pub dashboard: DashboardState,
     pub notif: NotificationState,
@@ -29,6 +32,8 @@ impl AppState {
         self.notif.init();
     }
     pub fn init_ui(&self, ui: &AppWindow) {
+        self.sidebar.init_ui(ui);
+        self.materials.init_ui(ui);
         self.courses.init_ui(ui);
         self.assignment_view.init_ui(ui);
         self.document_view.init_ui(ui);

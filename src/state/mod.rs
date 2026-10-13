@@ -3,6 +3,7 @@ pub mod attachment_view;
 pub mod courses;
 pub mod dashboard;
 pub mod document_view;
+pub mod materials;
 pub mod notifications;
 pub mod search;
 pub mod settings;

@@ -6,7 +6,7 @@ import {
     Breadcrumb,
 } from "breadcrumb.slint";
 import { Sidebar } from "sidebar.slint";
-import { UiState, CoursesUi } from "../../globals.slint";
+import { UiState, CoursesUi, MaterialUi } from "../../globals.slint";
 import { Theme } from "../../palette.slint";
 import { TopBar } from "top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
@@ -15,15 +15,29 @@ import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 import { MaterialsBottomBar } from "bottom-bar.slint";
 
 export global MaterialsMenu {
+    in-out property <int> selected-index: -1;
+    private property <CourseTab> tab: CoursesUi.tabs[CoursesUi.active-tab];
+    changed tab => { selected-index = -1; }
+    private property <bool> has-selection: CoursesUi.active-tab >= 0
+        && CoursesUi.active-tab < CoursesUi.tabs.length
+        && selected-index >= 0 && selected-index < tab.materials.length;
     out property <[ScreenMenuItem]> items: [
         {
             title: "Close tab",
             shortcut: @keys(Control + W),
             enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length
         },
+        { title: "View item", shortcut: @keys(V), enabled: has-selection },
+        { title: "Open in browser", shortcut: @keys(O), enabled: has-selection },
+        { title: "Unselect item", shortcut: @keys(Escape), enabled: has-selection },
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
+        else if has-selection {
+            if index == 1 { MaterialUi.open(tab.materials[selected-index]); }
+            else if index == 2 { MaterialUi.open-in-browser(tab.materials[selected-index]); }
+            else if index == 3 { selected-index = -1; }
+        }
     }
 }
 
@@ -31,7 +45,6 @@ export component Materials inherits Rectangle {
     in property <length> sidebar-width: 0rem;
     in property <bool> custom-titlebar: false;
     in property <CourseTab> tab;
-    private property <int> selected-index: -1;
 
     VerticalLayout {
         spacing: 0rem;
@@ -63,7 +76,7 @@ export component Materials inherits Rectangle {
                                     Row {
                                         width: list.visible-width;
                                         item: item;
-                                        selected-index <=> selected-index;
+                                        selected-index <=> MaterialsMenu.selected-index;
                                         row-index: i;
                                     }
 
@@ -80,6 +93,9 @@ export component Materials inherits Rectangle {
             }
         }
 
-        MaterialsBottomBar { }
+        MaterialsBottomBar {
+            tab: root.tab;
+            selected-index <=> MaterialsMenu.selected-index;
+        }
     }
 }
