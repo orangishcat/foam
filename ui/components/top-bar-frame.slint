@@ -19,7 +19,8 @@ export component TopBarFrame inherits Rectangle {
 
     HorizontalLayout {
         padding-left: root.custom-titlebar && !WindowChrome.client-side ? 4.375rem : 0rem;
-        padding-right: root.custom-titlebar && WindowChrome.client-side ? 6.5rem : 0rem;
+        padding-right: (root.custom-titlebar && WindowChrome.client-side ? 6.5rem : 0rem)
+            + (UiState.shortcut-modifier != "⌘" ? 2rem : 0rem);
 
         @children
     }

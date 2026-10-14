@@ -12,7 +12,13 @@ import { Sidebar } from "components/sidebar.slint";
 import { WindowControls } from "components/window-controls.slint";
 import { Settings } from "components/settings/settings.slint";
 import { DocumentView } from "components/document/document-view.slint";
-import { UiState, CoursesUi, DashboardUi, NotificationUi, WindowChrome } from "globals.slint";
+import {
+    UiState,
+    CoursesUi,
+    DashboardUi,
+    NotificationUi,
+    WindowChrome,
+} from "globals.slint";
 export {
     WindowChrome,
     UiState,
@@ -37,6 +43,8 @@ import {
     AssignmentMenu,
 } from "components/assignment/assignment-view.slint";
 import { Search } from "components/search/search.slint";
+import { HoverableButton } from "components/hoverable-button.slint";
+import { ScreenMenuItem } from "types/screen-menu-item.slint";
 
 export component AppWindow inherits Window {
     title: "foam";
@@ -93,10 +101,28 @@ export component AppWindow inherits Window {
     changed document-visible => { root.update-document-webview(); }
 
     private property <bool> has-dialog: AttachmentMenu.visible || UiState.screen == Screen.onboarding;
+    private property <bool> compact-menu: UiState.shortcut-modifier != "⌘";
+    private property <[ScreenMenuItem]> action-items:
+        AttachmentMenu.visible ? AttachmentMenu.items :
+        UiState.screen == Screen.dashboard ? DashboardMenu.items :
+        UiState.screen == Screen.notifs ? NotificationsMenu.items :
+        UiState.screen == Screen.courses ? CoursesMenu.items :
+        UiState.screen == Screen.materials ? MaterialsMenu.items :
+        UiState.screen == Screen.assignment || UiState.screen == Screen.document ? AssignmentMenu.items : [];
+    callback activate-action(int);
+    activate-action(index) => {
+        if AttachmentMenu.visible { AttachmentMenu.activate(index); }
+        else if UiState.screen == Screen.dashboard { DashboardMenu.activate(index); }
+        else if UiState.screen == Screen.notifs { NotificationsMenu.activate(index); }
+        else if UiState.screen == Screen.courses { CoursesMenu.activate(index); }
+        else if UiState.screen == Screen.materials { MaterialsMenu.activate(index); }
+        else if UiState.screen == Screen.assignment || UiState.screen == Screen.document { AssignmentMenu.activate(index); }
+    }
 
     // since slint forces the menu bar to be in the main app window, there might not be a
     // better way to do this
     if !WindowChrome.client-side || !has-dialog || AttachmentMenu.visible: MenuBar {
+        visible: !root.compact-menu;
         if UiState.screen == Screen.onboarding && UiState.shortcut-modifier == "⌘": Menu {
             title: "Edit";
             MenuItem {
@@ -356,6 +382,67 @@ export component AppWindow inherits Window {
         height: UiState.top-bar-height;
         TouchArea {
             double-clicked => { WindowChrome.toggle-maximized(); }
+        }
+    }
+
+    if root.compact-menu && (!root.has-dialog || AttachmentMenu.visible): HoverableButton {
+        x: parent.width - self.width - (WindowChrome.client-side ? 6.5rem : 0rem);
+        y: 0px;
+        width: 2rem;
+        height: UiState.top-bar-height;
+        text: "Menu";
+        accessible-role: button;
+        accessible-label: "Menu";
+        clicked => { app-menu.show({ x: 0px, y: self.height }); }
+
+        Rectangle {
+            background: parent.has-hover || parent.pressed ? UiState.theme.text-200.with-alpha(0.1) : transparent;
+            border-width: parent.has-focus ? 1px : 0px;
+            border-color: #66aaff;
+            Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 1rem;
+                height: 1rem;
+                source: @image-url("icons/menu.svg");
+                colorize: UiState.theme.text-200;
+            }
+        }
+
+        app-menu := ContextMenuArea {
+            Menu {
+                if !root.has-dialog: Menu {
+                    title: "Tabs";
+                    for title[index] in ["Calendar", "Notifications", "Courses", "Search"]: MenuItem {
+                        title: title;
+                        activated => { root.navigate-sidebar(index); }
+                    }
+                    if CoursesUi.tabs.length > 0: MenuSeparator { }
+                    for index in min(5, CoursesUi.tabs.length): MenuItem {
+                        title: "Tab " + (index + 1);
+                        activated => { root.navigate-sidebar(index + 4); }
+                    }
+                    MenuSeparator { }
+
+                    MenuItem {
+                        title: "Previous sidebar item";
+                        activated => { root.step-sidebar(-1); }
+                    }
+
+                    MenuItem {
+                        title: "Next sidebar item";
+                        activated => { root.step-sidebar(1); }
+                    }
+                }
+                if root.action-items.length > 0: Menu {
+                    title: "Actions";
+                    for item[index] in root.action-items: MenuItem {
+                        title: item.title;
+                        enabled: item.enabled;
+                        activated => { root.activate-action(index); }
+                    }
+                }
+            }
         }
     }
 
