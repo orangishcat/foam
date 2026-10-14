@@ -58,6 +58,26 @@ pub fn init(ui: &AppWindow) {
                 .set_error(error.to_string().into());
         }
     });
+    let weak = ui.as_weak();
+    ui.global::<OnboardingUi>().on_skip_api(move || {
+        if let Some(ui) = weak.upgrade() {
+            let fields = ui.global::<OnboardingUi>();
+            if fields.get_busy() || fields.get_step() != 3 {
+                return;
+            }
+            FLOW.with(|flow| {
+                let mut flow = flow.borrow_mut();
+                flow.account.api_key = None;
+                flow.account.api_secret = None;
+                flow.account.api_client = Default::default();
+            });
+            fields.set_api_key("".into());
+            fields.set_api_secret("".into());
+            fields.set_error("".into());
+            fields.set_step(4);
+            update(&ui);
+        }
+    });
 }
 
 fn update(ui: &AppWindow) {

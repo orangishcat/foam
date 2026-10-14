@@ -158,6 +158,13 @@ impl SchoologyAccountConfig {
     }
 
     fn api_client(&self) -> RequestResult<&Client> {
+        if self
+            .api_key
+            .as_deref()
+            .is_none_or(|key| key.trim().is_empty())
+        {
+            return Err(io::Error::other("Schoology API key is not configured").into());
+        }
         self.api_client
             .get_or_init(Self::new_client)
             .as_ref()

@@ -29,8 +29,9 @@ export component LineEdit inherits Rectangle {
 
     HorizontalLayout {
         padding: 0.5rem;
-        alignment: start;
+        alignment: stretch;
         HorizontalLayout {
+            horizontal-stretch: 0;
             alignment: start;
             spacing: 0.5rem;
             if icon.width > 0: VerticalLayout {
@@ -46,15 +47,35 @@ export component LineEdit inherits Rectangle {
         }
 
         HorizontalLayout {
+            horizontal-stretch: 1;
             padding-left: icon.width > 0 ? 0.5rem : 0px;
-            input := TextInput {
-                single-line: true;
-                color: UiState.theme.text-100;
-                selection-background-color: UiState.theme.background-400;
-                selection-foreground-color: UiState.theme.text-100;
-                edited => { root.edited(self.text); }
-                accepted => { root.accepted(); }
+            Rectangle {
+                clip: true;
+                min-width: 1px;
+                horizontal-stretch: 1;
+                input := TextInput {
+                    property <length> scroll-x;
+                    x: min(0px, max(parent.width - self.width - self.text-cursor-width, self.scroll-x));
+                    width: max(parent.width - self.text-cursor-width, self.preferred-width);
+                    height: parent.height;
+                    single-line: true;
+                    vertical-alignment: center;
+                    color: UiState.theme.text-100;
+                    selection-background-color: UiState.theme.background-400;
+                    selection-foreground-color: UiState.theme.text-100;
+                    cursor-position-changed(position) => {
+                        if position.x + self.scroll-x < 0px {
+                            self.scroll-x = -position.x;
+                        } else if position.x + self.scroll-x > parent.width - self.text-cursor-width {
+                            self.scroll-x = parent.width - position.x - self.text-cursor-width;
+                        }
+                    }
+                    edited => { root.edited(self.text); }
+                    accepted => { root.accepted(); }
+                }
                 Text {
+                    width: parent.width;
+                    height: parent.height;
                     visible: input.text.is-empty;
                     text: root.placeholder-text;
                     color: UiState.theme.text-400;

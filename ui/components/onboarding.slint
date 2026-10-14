@@ -120,7 +120,7 @@ export component SchoologyOnboarding inherits Rectangle {
                     text: OnboardingUi.step == 1 ? "Enter your Schoology subdomain."
                         : OnboardingUi.step == 2 ? "Log in to Schoology in the panel on the right. Click Next when you are signed in."
                         : OnboardingUi.step == 3 ? "Copy your API key and secret from this page and paste them below."
-                        : "Click \"Export\", \"Share Calendar\", then paste your calendar feed link below.";
+                        : "Click \"Export\" at the bottom of your screen, then \"Share Calendar\" in the popup, then paste your calendar feed link below.";
                     wrap: word-wrap;
                     line-height-factor: 1.25;
                     color: UiState.theme.text-200;
@@ -164,6 +164,41 @@ export component SchoologyOnboarding inherits Rectangle {
                         text <=> OnboardingUi.api-secret;
                         placeholder-text: "API secret";
                         input-type: password;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 0.25rem;
+                        Text {
+                            text: "No API key?";
+                            color: UiState.theme.text-200;
+                            vertical-alignment: center;
+                            horizontal-stretch: 0;
+                        }
+
+                        skip-api := HoverableButton {
+                            text: "Proceed with limited functionality";
+                            min-width: 0px;
+                            preferred-width: 0px;
+                            horizontal-stretch: 1;
+                            enabled: !OnboardingUi.busy;
+                            clicked => { OnboardingUi.skip-api(); }
+                            min-height: skip-label.preferred-height + 2px;
+                            skip-label := Text {
+                                width: skip-api.width;
+                                height: self.preferred-height;
+                                text: skip-api.text;
+                                wrap: word-wrap;
+                                color: skip-api.has-hover || skip-api.has-focus
+                                    ? UiState.theme.accent-200 : UiState.theme.accent-400;
+                            }
+
+                            Rectangle {
+                                y: parent.height - 1px;
+                                width: skip-label.width;
+                                height: 1px;
+                                background: skip-label.color;
+                            }
+                        }
                     }
                 }
                 if OnboardingUi.step == 4: calendar-url-input := OnboardingLineEdit {
