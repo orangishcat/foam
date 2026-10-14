@@ -45,7 +45,7 @@ export component Search inherits FocusScope {
                         color: UiState.theme.text-400;
                         text: !SearchUi.error.is-empty ? SearchUi.error : SearchUi.busy ? "Searching…"
                             : SearchUi.query.is-empty ? ""
-                            : SearchUi.results.length == 0 ? "No assignments found."
+                            : SearchUi.results.length == 0 ? "Nothing found :("
                             : SearchUi.results.length == 30 ? "30+ results (capped at 30)"
                             : SearchUi.results.length + " results";
                         wrap: word-wrap;
