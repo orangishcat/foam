@@ -57,7 +57,6 @@ pub fn get_path_data(
 
 pub fn refresh_file_view(ui: &AppWindow) {
     restore_file_view(ui);
-    crate::state::sidebar::SidebarState::save_ui(ui);
 }
 
 pub(crate) fn restore_file_view(ui: &AppWindow) {

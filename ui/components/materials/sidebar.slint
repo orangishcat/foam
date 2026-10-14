@@ -16,7 +16,7 @@ export component Sidebar inherits Rectangle {
     sidebar := ScrollView {
         horizontal-scrollbar-policy: always-off;
         VerticalLayout {
-            spacing: 0.1245rem;
+            spacing: 0.125rem;
 
             padding-top: 1rem;
             padding-bottom: 1rem;
@@ -24,7 +24,7 @@ export component Sidebar inherits Rectangle {
             padding-right: 0.5rem;
 
             for item[i] in root.items: VerticalLayout {
-                padding-bottom: 0.1245rem;
+                padding-bottom: 0.125rem;
                 Row {
                     width: sidebar.visible-width;
                     item: item;

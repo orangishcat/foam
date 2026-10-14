@@ -72,6 +72,9 @@ impl AppState {
             log::warn!("notification sidebar sync failed: {err}");
         }
     }
+    pub fn save(&mut self, ui: &AppWindow) {
+        self.sidebar.save_ui(ui);
+    }
     pub fn on_focus(&mut self) {
         self.notif.check_notifications();
     }

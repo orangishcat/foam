@@ -25,8 +25,9 @@ mod wry;
 
 slint::include_modules!();
 
-fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
+fn shutdown(ui: &AppWindow) -> Result<(), Box<dyn std::error::Error>> {
     thread_manager::join_all_threads();
+    state().save(ui);
     config().save()?;
     Ok(())
 }
@@ -137,7 +138,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Err(e) => log::warn!("Error in UI thread occured: {e}"),
         _ => log::info!("UI exited successfully"),
     }
-    shutdown()?;
+    shutdown(&ui)?;
 
     log::info!("Shutdown successful");
 

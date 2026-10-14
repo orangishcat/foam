@@ -12,7 +12,7 @@ pub struct SidebarState {}
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 struct SavedSidebar {
-    selected_tab: Option<usize>,
+    selected_tab: i32,
     tabs: Vec<SavedTab>,
 }
 
@@ -52,24 +52,8 @@ impl SidebarState {
                     ..Default::default()
                 })
                 .collect::<Vec<_>>();
-            let selected = saved
-                .selected_tab
-                .filter(|&index| index < tabs.len())
-                .or_else(|| (!tabs.is_empty()).then_some(0));
             global.set_tabs(ModelRc::new(VecModel::from(tabs)));
-            for index in 0..global.get_tabs().row_count() {
-                let tab = global.get_tabs().row_data(index).unwrap();
-                global.set_active_tab(index as i32);
-                global.set_course_id(tab.course_id.clone());
-                global.set_folder_id(tab.folder_id);
-                crate::state::top_bar::restore_file_view(ui);
-                CourseState::course_tab_image(tab.course_id.to_string());
-            }
-            global.set_active_tab(selected.map(|index| index as i32).unwrap_or(-1));
-            if let Some(tab) = selected.and_then(|index| global.get_tabs().row_data(index)) {
-                global.set_course_id(tab.course_id);
-                global.set_folder_id(tab.folder_id);
-            }
+            navigate_sidebar(ui, saved.selected_tab);
             crate::state::top_bar::restore_file_view(ui);
             Ok(())
         })();
@@ -78,13 +62,13 @@ impl SidebarState {
         }
     }
 
-    pub fn save_ui(ui: &AppWindow) {
+    pub fn save_ui(&self, ui: &AppWindow) {
         let global = ui.global::<CoursesUi>();
         let tabs = global.get_tabs();
+        let c_sidebar_item = current_sidebar_item(ui);
+        log::debug!("current sidebar item: {}", c_sidebar_item);
         let saved = SavedSidebar {
-            selected_tab: usize::try_from(global.get_active_tab())
-                .ok()
-                .filter(|&index| index < tabs.row_count()),
+            selected_tab: c_sidebar_item,
             tabs: tabs
                 .iter()
                 .map(|tab| SavedTab {

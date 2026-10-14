@@ -64,6 +64,8 @@ pub fn spawn_thread(
 }
 
 pub fn join_all_threads() {
+    CANCELLED.store(true, Ordering::Relaxed);
+
     let handles = {
         let mut registry = THREADS.lock().unwrap_or_else(|e| e.into_inner());
         registry.shutting_down = true;

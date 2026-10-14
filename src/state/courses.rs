@@ -271,7 +271,7 @@ impl CourseState {
             tab.document_id = "".into();
             tabs.set_row_data(index, tab);
         }
-        crate::state::sidebar::SidebarState::save_ui(ui);
+
         Ok(())
     }
 
@@ -311,7 +311,6 @@ impl CourseState {
         } else if active > index {
             global.set_active_tab(active - 1);
         }
-        crate::state::sidebar::SidebarState::save_ui(ui);
     }
 
     pub fn select_tab(ui: &AppWindow, index: i32) {
@@ -339,7 +338,6 @@ impl CourseState {
             ui.global::<crate::AssignmentUi>()
                 .invoke_open(tab.course_id, tab.assignment_id);
         }
-        crate::state::sidebar::SidebarState::save_ui(ui);
     }
 
     pub fn course_folders(ui: &AppWindow) -> Vec<MaterialItem> {

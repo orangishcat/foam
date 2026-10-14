@@ -3,7 +3,7 @@ use crate::api::schoology::account::{ResetProgress, SchoologyAccountConfig};
 use crate::ui;
 
 const CALENDAR_PROGRESS_PRIORITY: u8 = 1;
-const CALENDAR_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(0x78, 0xaa, 0xff);
+const CALENDAR_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(177, 134, 103);
 use std::{
     collections::{HashMap, HashSet},
     io,
