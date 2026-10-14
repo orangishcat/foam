@@ -6,7 +6,7 @@ SELECT
     c.logo_img_src,
     f.title,
     snippet(search_index, 1, '', '', '…', 20) AS preview,
-    bm25(search_index, 5.0, 1.0) AS score
+    bm25(search_index, 5.0, 1.0, 0.0, 0.1) AS score
 FROM search_index f
 JOIN search_mapping m ON m.id = f.rowid
 JOIN courses c ON c.course_id = m.course_id
