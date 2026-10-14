@@ -41,7 +41,7 @@ component NavigationItem inherits Rectangle {
 
                 if !root.shortcut.is-empty: Text {
                     font-size: 0.75rem;
-                    text: "Shift+" + root.shortcut;
+                    text: UiState.shortcut-modifier + "+" + root.shortcut;
                     color: UiState.theme.text-200;
                 }
             }
@@ -209,9 +209,9 @@ export component Sidebar inherits Rectangle {
                                     color: UiState.theme.text-50;
                                 }
 
-                                Text {
+                                if index < 5: Text {
                                     font-size: 0.75rem;
-                                    text: UiState.shortcut-modifier + "+" + (index + 4);
+                                    text: UiState.shortcut-modifier + "+" + (index + 5);
                                     color: UiState.theme.text-400;
                                 }
                             }
@@ -225,7 +225,6 @@ export component Sidebar inherits Rectangle {
             label: "Settings";
             item-index: CoursesUi.tabs.length + 4;
             focus-request: root.focus-request;
-            shortcut: "5";
             icon: @image-url("../icons/settings.svg");
             change-to: settings;
         }
