@@ -1,3 +1,4 @@
+use objc2::encode::EncodingBox::Sel;
 use serde::{Deserialize, Serialize};
 use slint::winit_030::{EventResult, winit};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
@@ -43,13 +44,16 @@ impl SidebarState {
             let tabs = saved
                 .tabs
                 .into_iter()
-                .map(|tab| CourseTab {
-                    title: CourseState::course_title(ui, &tab.course_id),
-                    course_id: tab.course_id.into(),
-                    folder_id: tab.folder_id.into(),
-                    assignment_id: tab.assignment_id.into(),
-                    document_id: tab.document_id.into(),
-                    ..Default::default()
+                .map(|tab| {
+                    CourseState::course_tab_image((&tab.course_id).clone());
+                    CourseTab {
+                        title: CourseState::course_title(ui, &tab.course_id),
+                        course_id: tab.course_id.into(),
+                        folder_id: tab.folder_id.into(),
+                        assignment_id: tab.assignment_id.into(),
+                        document_id: tab.document_id.into(),
+                        ..Default::default()
+                    }
                 })
                 .collect::<Vec<_>>();
             global.set_tabs(ModelRc::new(VecModel::from(tabs)));
