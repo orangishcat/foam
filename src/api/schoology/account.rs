@@ -130,7 +130,7 @@ impl Account for SchoologyAccountConfig {
         if next.last_update_success {
             next.scrape_attempts = 0;
         }
-        notification::save_notifications(&notifications, &next)?;
+        notification::save_notifications(&notifications, next)?;
         update_result.map_err(io::Error::other)
     }
 

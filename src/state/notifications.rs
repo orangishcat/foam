@@ -4,9 +4,8 @@ use std::{
 };
 
 use chrono::{DateTime, Local, TimeDelta};
-use objc2::encode::EncodingBox::Sel;
 use rusqlite::{Connection, params};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
@@ -94,7 +93,7 @@ impl NotificationState {
         {
             let notif = &mut state().notif;
             notif.is_checking_notifications = false;
-            notif.last_update_success = matches!(result, Ok(_));
+            notif.last_update_success = result.is_ok();
             notif.last_update = Local::now();
             match notif.save_state() {
                 Ok(_) => log::debug!("Saved notification sync state"),

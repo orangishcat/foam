@@ -1,4 +1,3 @@
-use objc2::encode::EncodingBox::Sel;
 use serde::{Deserialize, Serialize};
 use slint::winit_030::{EventResult, winit};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
@@ -45,7 +44,7 @@ impl SidebarState {
                 .tabs
                 .into_iter()
                 .map(|tab| {
-                    CourseState::course_tab_image((&tab.course_id).clone());
+                    CourseState::course_tab_image(tab.course_id.clone());
                     CourseTab {
                         title: CourseState::course_title(ui, &tab.course_id),
                         course_id: tab.course_id.into(),

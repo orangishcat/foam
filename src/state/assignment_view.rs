@@ -191,7 +191,7 @@ impl AssignmentViewState {
         let weak = ui.as_weak();
         ui.global::<AssignmentUi>()
             .on_open_browser(move |assignment_id| {
-                if let Some(ui) = weak.upgrade() {
+                if let Some(_ui) = weak.upgrade() {
                     let account = match crate::account::active_account() {
                         Ok(account) => account,
                         Err(error) => {
