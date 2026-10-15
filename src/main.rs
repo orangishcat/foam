@@ -15,6 +15,7 @@ mod api;
 mod config;
 mod database;
 mod filesystem;
+mod logging;
 mod platform;
 mod plugin;
 mod state;
@@ -33,7 +34,7 @@ fn shutdown(ui: &AppWindow) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let _logger = logging::init(&config::default_data_dir())?;
 
     #[cfg(target_os = "macos")]
     {

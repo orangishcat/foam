@@ -15,6 +15,12 @@ const CONFIG_FILE_NAME: &str = "config.json";
 
 static CONFIG: LazyLock<RwLock<AppConfig>> = LazyLock::new(|| RwLock::new(AppConfig::load(None)));
 
+pub fn default_data_dir() -> PathBuf {
+    dirs::data_dir()
+        .expect("failed to locate the platform application data directory")
+        .join(APP_NAME)
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Derivative)]
 #[derivative(Default)]
 #[serde(default)]
@@ -35,11 +41,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn load(data_path: Option<PathBuf>) -> Self {
-        let data_dir = data_path.unwrap_or_else(|| {
-            dirs::data_dir()
-                .expect("failed to locate the platform application data directory")
-                .join(APP_NAME)
-        });
+        let data_dir = data_path.unwrap_or_else(default_data_dir);
         Self::create_data_layout(&data_dir);
 
         let mut config: Self = filesystem::read_json(&data_dir.join(CONFIG_FILE_NAME))
