@@ -386,7 +386,7 @@ export component AppWindow inherits Window {
     }
 
     if root.compact-menu && (!root.has-dialog || AttachmentMenu.visible): HoverableButton {
-        x: parent.width - self.width - (WindowChrome.client-side ? 6.5rem : 0rem);
+        x: 0.5rem;
         y: 0px;
         width: 2rem;
         height: UiState.top-bar-height;

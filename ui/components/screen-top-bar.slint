@@ -1,12 +1,13 @@
 import { UiState } from "../globals.slint";
 import { TopBarFrame } from "top-bar-frame.slint";
+import { WindowChrome } from "../globals.slint";
 
 export component ScreenTopBar inherits TopBarFrame {
     in property <string> title;
     in property <image> icon;
 
     HorizontalLayout {
-        padding-left: 0.75rem;
+        padding-left: 0.75rem + (WindowChrome.client-side ? 2.5rem : 0px);
         padding-right: 0.75rem;
         spacing: 0.375rem;
         alignment: start;
