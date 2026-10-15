@@ -88,6 +88,15 @@ pub(super) fn recover(
                         })
                         .with_url(url.as_str())
                         .build_as_child(window)
+                        .and_then(|webview| {
+                            // Wry 0.57 hides the widget before recording its X11
+                            // container during construction. Hide again now so
+                            // the recovery browser's native window is unmapped
+                            // too, rather than covering Foam with an empty surface.
+                            #[cfg(target_os = "linux")]
+                            webview.set_visible(false)?;
+                            Ok(webview)
+                        })
                 })
                 .ok_or_else(|| io::Error::other("Schoology recovery window unavailable"))?
                 .map_err(io::Error::other)
