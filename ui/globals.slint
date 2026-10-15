@@ -6,6 +6,7 @@ import { CourseItem, MaterialItem, CourseTab } from "types/course-ui.slint";
 import { AssignmentWithDetails } from "types/assignment-ui.slint";
 
 export global WindowChrome {
+    // whether the traffic lights are slint rendered (macos false, windows and linux true)
     in-out property <bool> client-side: false;
     callback toggle-maximized();
 }
