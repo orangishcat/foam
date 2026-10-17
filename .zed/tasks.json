@@ -15,4 +15,8 @@
     "label": "convert-svg",
     "command": "sh scripts/convert-svg.sh",
   },
+  {
+    "label": "release",
+    "command": "cargo build --release && cargo-packager --release",
+  },
 ]
