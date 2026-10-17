@@ -30,14 +30,14 @@ export global SearchUi {
 }
 
 export global UiState {
-    in-out property <length> font-size;
+    in-out property <int> font-size;
     in-out property <bool> shift-held: false;
     in-out property <string> shortcut-modifier: "Ctrl";
     in-out property <int> focused-sidebar-item: -1;
     in-out property <Screen> screen: Screen.dashboard;
     in-out property <ColorPalette> theme: Theme.dark;
-    out property <length> top-bar-height: font-size * 2;
-    out property <length> bottom-bar-height: font-size * 1.75;
+    out property <length> top-bar-height: font-size * 2px;
+    out property <length> bottom-bar-height: font-size * 1.75px;
 }
 
 export global OnboardingUi {

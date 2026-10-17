@@ -49,7 +49,7 @@ import { ScreenMenuItem } from "types/screen-menu-item.slint";
 export component AppWindow inherits Window {
     title: "foam";
     default-font-family: "Mozilla Text";
-    default-font-size: UiState.font-size;
+    default-font-size: UiState.font-size * 1px;
     preferred-width: 68.75rem;
     preferred-height: 43.75rem;
     no-frame: WindowChrome.client-side;

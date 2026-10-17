@@ -4,6 +4,7 @@ static STATE: LazyLock<Mutex<AppState>> = LazyLock::new(|| Mutex::new(AppState::
 
 use crate::{
     AppWindow, Screen, UiState,
+    config::config,
     state::{
         assignment_view::AssignmentViewState, courses::CourseState, dashboard::DashboardState,
         document_view::DocumentViewerState, materials::MaterialsState,
@@ -41,7 +42,7 @@ impl AppState {
         self.search.init_ui(ui);
         self.sidebar.restore_ui(ui);
         ui.global::<UiState>()
-            .set_font_size(crate::config::config().font_size.clamp(12, 24) as f32);
+            .set_font_size(config().font_size.clamp(8, 24));
         ui.on_screen_changed(crate::ui::sync_ui);
     }
 

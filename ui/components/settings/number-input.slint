@@ -1,0 +1,85 @@
+import { UiState } from "../../globals.slint";
+import { LineEdit } from "../line-edit.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+export component IntInput inherits Rectangle {
+    in-out property <int> value;
+    callback edited(int);
+
+    border-width: 1px;
+    border-color: UiState.theme.background-600;
+    background: UiState.theme.background-750;
+    border-radius: 0.25rem;
+    clip: true;
+
+    HorizontalLayout {
+        HoverableButton {
+            background: self.has-hover ? UiState.theme.background-600 : transparent;
+            clicked => {
+                value -= 1;
+                edited(value);
+            }
+            VerticalLayout {
+                alignment: center;
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+                Image {
+                    height: 1rem;
+                    source: @image-url("../../icons/minus.svg");
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            horizontal-stretch: 0;
+            background: UiState.theme.background-600;
+        }
+
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 4rem;
+                HorizontalLayout {
+                    padding-top: 0.25rem;
+                    padding-bottom: 0.25rem;
+                    padding-left: 0.75rem;
+                    padding-right: 0.75rem;
+                    alignment: center;
+                    TextInput {
+                        text: value;
+                        accepted => {
+                            root.value = self.text.to-float();
+                            self.text = root.value;
+                            root.edited(root.value);
+                        }
+                    }
+
+                    @children
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            horizontal-stretch: 0;
+            background: UiState.theme.background-600;
+        }
+
+        HoverableButton {
+            background: self.has-hover ? UiState.theme.background-600 : transparent;
+            clicked => {
+                value += 1;
+                edited(value);
+            }
+            VerticalLayout {
+                alignment: center;
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+                Image {
+                    height: 1rem;
+                    source: @image-url("../../icons/plus.svg");
+                }
+            }
+        }
+    }
+}
