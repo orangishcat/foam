@@ -1,5 +1,6 @@
 //! Browser SSO recovery. WebKit objects stay on the UI thread; sync workers wait
 //! for the result without blocking the event loop.
+use crate::embedded_webview::EmbeddedWebView;
 use std::{
     cell::RefCell,
     io,
@@ -14,7 +15,7 @@ use std::{
 use reqwest::{cookie::CookieStore, header::HeaderValue};
 use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 use wry::{
-    Rect, WebContext, WebView, WebViewBuilder,
+    Rect, WebContext, WebViewBuilder,
     dpi::{LogicalPosition, LogicalSize},
 };
 
@@ -27,7 +28,7 @@ thread_local! {
     static CONTEXT: RefCell<WebContext> = RefCell::new(WebContext::new(Some(
         crate::config::config().data_dir().join("schoology-webview")
     )));
-    static BROWSER: RefCell<Option<WebView>> = const { RefCell::new(None) };
+    static BROWSER: RefCell<Option<EmbeddedWebView>> = const { RefCell::new(None) };
 }
 
 pub(super) fn with_context<T>(f: impl FnOnce(&mut WebContext) -> T) -> T {
@@ -67,8 +68,16 @@ pub(super) fn recover(
             ui.window()
                 .with_winit_window(|window| {
                     let size = ui.window().size();
-                    WebViewBuilder::new_with_web_context(context)
-                        .with_visible(false)
+                    let bounds = Rect {
+                        position: LogicalPosition::new(24., 64.).into(),
+                        size: LogicalSize::new(
+                            (size.width as f64 / ui.window().scale_factor() as f64 - 48.).max(100.),
+                            (size.height as f64 / ui.window().scale_factor() as f64 - 100.)
+                                .max(100.),
+                        )
+                        .into(),
+                    };
+                    let builder = WebViewBuilder::new_with_web_context(context)
                         .with_on_page_load_handler(move |event, url| {
                             page_loaded.store(
                                 matches!(event, wry::PageLoadEvent::Finished)
@@ -76,27 +85,8 @@ pub(super) fn recover(
                                 Ordering::Relaxed,
                             );
                         })
-                        .with_bounds(Rect {
-                            position: LogicalPosition::new(24., 64.).into(),
-                            size: LogicalSize::new(
-                                (size.width as f64 / ui.window().scale_factor() as f64 - 48.)
-                                    .max(100.),
-                                (size.height as f64 / ui.window().scale_factor() as f64 - 100.)
-                                    .max(100.),
-                            )
-                            .into(),
-                        })
-                        .with_url(url.as_str())
-                        .build_as_child(window)
-                        .and_then(|webview| {
-                            // Wry 0.57 hides the widget before recording its X11
-                            // container during construction. Hide again now so
-                            // the recovery browser's native window is unmapped
-                            // too, rather than covering Foam with an empty surface.
-                            #[cfg(target_os = "linux")]
-                            webview.set_visible(false)?;
-                            Ok(webview)
-                        })
+                        .with_url(url.as_str());
+                    EmbeddedWebView::build(builder, window, bounds, false)
                 })
                 .ok_or_else(|| io::Error::other("Schoology recovery window unavailable"))?
                 .map_err(io::Error::other)

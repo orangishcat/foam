@@ -5,12 +5,22 @@ use slint::{
     platform::{Clipboard, EventLoopProxy, Platform, WindowAdapter},
 };
 
+// Explicit paths also allow the standalone probe to reuse this backend.
+#[path = "linux/webview_diagnostics.rs"]
+pub mod webview_diagnostics;
+#[path = "linux/webview_focus.rs"]
+pub(crate) mod webview_focus;
+#[path = "linux/x11_interop.rs"]
+pub(crate) mod x11_interop;
+
 /// Share GTK's clipboard with the embedded WebKit views. Arboard's synchronous
 /// X11 reads otherwise block the thread GTK needs to answer the selection request.
 struct GtkClipboardBackend(i_slint_backend_winit::Backend);
 
 pub fn select(event_loop: i_slint_backend_winit::EventLoopBuilder) -> Result<(), PlatformError> {
-    let mut builder = i_slint_backend_winit::Backend::builder().with_event_loop_builder(event_loop);
+    let mut builder = i_slint_backend_winit::Backend::builder()
+        .with_event_loop_builder(event_loop)
+        .with_custom_application_handler(Box::new(webview_focus::ApplicationHandler));
     if let Ok(backend) = std::env::var("SLINT_BACKEND")
         && let Some(renderer) = backend.strip_prefix("winit-")
     {

@@ -1,3 +1,4 @@
+use crate::embedded_webview::EmbeddedWebView;
 use std::{
     cell::RefCell,
     io,
@@ -5,7 +6,7 @@ use std::{
 };
 
 use ::wry::{
-    Rect, WebView, WebViewBuilder,
+    Rect, WebViewBuilder,
     dpi::{LogicalPosition, LogicalSize},
 };
 use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
@@ -21,7 +22,7 @@ pub enum Source {
 struct Viewer {
     generation: u64,
     pending: Option<Source>,
-    webview: Option<WebView>,
+    webview: Option<EmbeddedWebView>,
 }
 
 thread_local! {
@@ -108,7 +109,7 @@ fn update(ui: &AppWindow) {
                         }
                     },
                 };
-                match builder.build_as_child(window) {
+                match EmbeddedWebView::build(builder, window, bounds, true) {
                     Ok(webview) => viewer.webview = Some(webview),
                     Err(error) => ui
                         .global::<DocumentUi>()

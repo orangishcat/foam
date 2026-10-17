@@ -1,8 +1,9 @@
+use crate::embedded_webview::EmbeddedWebView;
 use std::{cell::RefCell, io, time::Duration};
 
 use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 use wry::{
-    Rect, WebView, WebViewBuilder,
+    Rect, WebViewBuilder,
     dpi::{LogicalPosition, LogicalSize},
 };
 
@@ -13,7 +14,7 @@ use crate::{
 
 #[derive(Default)]
 struct Onboarding {
-    webview: Option<WebView>,
+    webview: Option<EmbeddedWebView>,
     account: SchoologyAccountConfig,
     url: String,
 }
@@ -95,6 +96,10 @@ fn update(ui: &AppWindow) {
     };
     let result = FLOW.with(|flow| -> wry::Result<()> {
         let mut flow = flow.borrow_mut();
+        #[cfg(target_os = "linux")]
+        if crate::platform::linux::webview_diagnostics::enabled() {
+            log::info!(target: "foam::webview", "onboarding update: step={step} visible={visible} bounds={bounds:?} exists={}", flow.webview.is_some());
+        }
         if visible {
             let url = match step {
                 2 => format!("https://{}.schoology.com", flow.account.subdomain),
@@ -106,16 +111,39 @@ fn update(ui: &AppWindow) {
                 ui.window()
                     .with_winit_window(|window| {
                         flow.webview = Some(super::session::with_context(|context| {
-                            WebViewBuilder::new_with_web_context(context)
-                                .with_bounds(bounds)
-                                .with_url(&url)
-                                .build_as_child(window)
+                            let builder = WebViewBuilder::new_with_web_context(context)
+                                .with_bounds(bounds);
+                            #[cfg(target_os = "linux")]
+                            let builder = crate::platform::linux::webview_diagnostics::instrument(builder);
+                            #[cfg(target_os = "linux")]
+                            let builder = if crate::platform::linux::webview_diagnostics::test_page() {
+                                builder.with_html(crate::platform::linux::webview_diagnostics::TEST_HTML)
+                            } else {
+                                builder.with_url(&url)
+                            };
+                            #[cfg(not(target_os = "linux"))]
+                            let builder = builder.with_url(&url);
+                            EmbeddedWebView::build(builder, window, bounds, true)
                         })?);
+                        #[cfg(target_os = "linux")]
+                        crate::platform::linux::webview_diagnostics::attach(flow.webview.as_ref().unwrap());
                         Ok::<_, wry::Error>(())
                     })
                     .transpose()?;
             } else if flow.url != url {
-                flow.webview.as_ref().unwrap().load_url(&url)?;
+                #[cfg(target_os = "linux")]
+                if crate::platform::linux::webview_diagnostics::enabled() {
+                    log::info!(target: "foam::webview", "onboarding navigation: step={step}");
+                }
+                let webview = flow.webview.as_ref().unwrap();
+                #[cfg(target_os = "linux")]
+                if crate::platform::linux::webview_diagnostics::test_page() {
+                    webview.load_html(crate::platform::linux::webview_diagnostics::TEST_HTML)?;
+                } else {
+                    webview.load_url(&url)?;
+                }
+                #[cfg(not(target_os = "linux"))]
+                webview.load_url(&url)?;
             }
             flow.url = url;
         }
