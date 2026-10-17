@@ -18,7 +18,7 @@ component WindowControlButton inherits HoverableButton {
         background: root.enabled && (root.has-hover || root.pressed)
             ? UiState.theme.text-200.with-alpha(root.pressed ? 0.2 : 0.1) : transparent;
         border-width: root.has-focus ? 1px : 0px;
-        border-color: #66aaff;
+        border-color: UiState.theme.secondary-200;
 
         Rectangle {
             x: (parent.width - self.width) / 2;

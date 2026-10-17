@@ -38,7 +38,7 @@ export global AttachmentMenu {
 }
 
 export component AttachmentDialog inherits Rectangle {
-    background: #000a;
+    background: UiState.theme.secondary-950.with-alpha(0.667);
     out property <length> viewer-x: panel.x;
     out property <length> viewer-y: panel.y + UiState.top-bar-height;
     out property <length> viewer-width: panel.width;
@@ -146,14 +146,14 @@ export component AttachmentDialog inherits Rectangle {
                             link-text := Text {
                                 font-size: 0.75rem;
                                 text: "LibreOffice";
-                                color: #66aaff;
+                                color: UiState.theme.secondary-200;
                                 horizontal-alignment: center;
                             }
 
                             Rectangle {
                                 y: parent.height - 0.0625rem;
                                 height: 0.0625rem;
-                                background: #66aaff;
+                                background: UiState.theme.secondary-200;
                             }
                         }
                     }

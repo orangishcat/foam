@@ -1,8 +1,10 @@
+import { UiState } from "../globals.slint";
+
 export component SelectableText inherits TextInput {
     font-size: 0.75rem;
     read-only: true;
     single-line: false;
-    selection-background-color: #527ab8;
-    selection-foreground-color: white;
+    selection-background-color: UiState.theme.secondary-500;
+    selection-foreground-color: UiState.theme.text-50;
     wrap: word-wrap;
 }
