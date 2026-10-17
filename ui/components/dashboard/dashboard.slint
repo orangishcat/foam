@@ -99,7 +99,7 @@ export component Dashboard inherits FocusScope {
                                         background: {
                                             let c = (assignment.done ? oklch(0.55447, 0.08888, 153.33561, 1.0) :
                                                 (assignment.overdue ? oklch(0.50323, 0.06856, 57.29578, 1.0) :
-                                                oklch(0.46882, 0.06986, 263.55386, 1.0))).to-oklch();
+                                                oklch(0.5, 0.1, 263.55386, 1.0))).to-oklch();
                                             let selected = DashboardUi.selected-assignment.id == assignment.id;
 
                                             oklch(
