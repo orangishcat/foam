@@ -12,6 +12,7 @@ use crate::{
     account::{self, Account},
     database, thread_manager,
     types::assignment::Assignment,
+    ui,
 };
 
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
@@ -114,6 +115,7 @@ impl DashboardState {
                         manual_refresh(acc)
                             .inspect_err(|err| log::warn!("Manual refresh failed: {err}"))
                             .ok();
+                        ui::sync_ui();
                     })
                     .inspect_err(|err| log::warn!("Manual refresh thread spawning failed: {err}"))
                     .ok();
