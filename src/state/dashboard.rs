@@ -27,7 +27,7 @@ pub(crate) fn dashboard_query() -> String {
     format!(
         "SELECT a.*, COALESCE(c.course_title, 'Unknown') AS course_title FROM assignments a
              LEFT JOIN courses c ON a.course_id = c.course_id
-             WHERE NOT ({}) OR julianday(due) > julianday('now')",
+             WHERE NOT ({}) OR date(due, 'localtime') >= date('now', 'localtime')",
         include_str!("../sql/assignment/completed.sql")
     )
 }
