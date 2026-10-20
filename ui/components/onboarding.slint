@@ -33,6 +33,10 @@ export component SchoologyOnboarding inherits Rectangle {
         OnboardingUi.step == 1 ? subdomain-focused
         : OnboardingUi.step == 3 ? api-key-focused || api-secret-focused
         : OnboardingUi.step == 4 ? calendar-url-focused : false;
+    callback input-focused();
+    changed input-has-focus => {
+        if root.input-has-focus { root.input-focused(); }
+    }
     public function edit-input(action: int) {
         root.edit-action = action;
         root.edit-request += 1;

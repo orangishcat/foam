@@ -74,6 +74,7 @@ export component AppWindow inherits Window {
     out property <length> onboarding-height: onboarding.viewer-height;
     callback update-onboarding-webview();
     callback edit-webview(int);
+    callback focus-onboarding-input();
     changed onboarding-x => { root.update-onboarding-webview(); }
     changed onboarding-y => { root.update-onboarding-webview(); }
     changed onboarding-width => { root.update-onboarding-webview(); }
@@ -345,6 +346,7 @@ export component AppWindow inherits Window {
             }
 
             onboarding := SchoologyOnboarding {
+                input-focused => { root.focus-onboarding-input(); }
                 visible: UiState.screen == Screen.onboarding;
                 width: parent.width;
                 height: parent.height;
@@ -385,7 +387,8 @@ export component AppWindow inherits Window {
         }
     }
 
-    if root.compact-menu && (!root.has-dialog || AttachmentMenu.visible): HoverableButton {
+    // Share the Linux/Windows menu button, including during onboarding.
+    if root.compact-menu: HoverableButton {
         x: 0.5rem;
         y: 0px;
         width: 2rem;
@@ -411,26 +414,30 @@ export component AppWindow inherits Window {
 
         app-menu := ContextMenuArea {
             Menu {
-                if !root.has-dialog: Menu {
+                if !AttachmentMenu.visible: Menu {
                     title: "Tabs";
                     for title[index] in ["Calendar", "Notifications", "Courses", "Search"]: MenuItem {
                         title: title;
+                        enabled: UiState.screen != Screen.onboarding;
                         activated => { root.navigate-sidebar(index); }
                     }
                     if CoursesUi.tabs.length > 0: MenuSeparator { }
                     for index in min(5, CoursesUi.tabs.length): MenuItem {
                         title: "Tab " + (index + 1);
+                        enabled: UiState.screen != Screen.onboarding;
                         activated => { root.navigate-sidebar(index + 4); }
                     }
                     MenuSeparator { }
 
                     MenuItem {
                         title: "Previous sidebar item";
+                        enabled: UiState.screen != Screen.onboarding;
                         activated => { root.step-sidebar(-1); }
                     }
 
                     MenuItem {
                         title: "Next sidebar item";
+                        enabled: UiState.screen != Screen.onboarding;
                         activated => { root.step-sidebar(1); }
                     }
                 }

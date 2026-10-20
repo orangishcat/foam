@@ -22,6 +22,8 @@ thread_local! { static FLOW: RefCell<Onboarding> = RefCell::default(); }
 
 pub fn init(ui: &AppWindow) {
     super::session::init(ui);
+    #[cfg(target_os = "windows")]
+    ui.on_focus_onboarding_input(focus_input);
     ui.on_edit_webview(|action| {
         #[cfg(target_os = "macos")]
         crate::platform::macos::edit_webview(action);
@@ -76,6 +78,19 @@ pub fn init(ui: &AppWindow) {
             fields.set_error("".into());
             fields.set_step(4);
             update(&ui);
+        }
+    });
+}
+
+#[cfg(target_os = "windows")]
+pub fn focus_input() {
+    FLOW.with(|flow| {
+        // SetFocus may synchronously deliver events while the flow is updating.
+        if let Ok(flow) = flow.try_borrow()
+            && let Some(webview) = &flow.webview
+            && let Err(error) = webview.focus_parent()
+        {
+            log::warn!("Could not return keyboard focus to onboarding input: {error}");
         }
     });
 }
