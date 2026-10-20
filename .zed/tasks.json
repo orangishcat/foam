@@ -15,4 +15,14 @@
     "label": "convert-svg",
     "command": "sh scripts/convert-svg.sh",
   },
+  {
+    "label": "release",
+    "command": "cargo build --release && cargo-packager --release",
+  },
+  {
+    "label": "checkout $ZED_GIT_REF",
+    "command": "git",
+    "args": ["checkout", "$ZED_GIT_REF"],
+    "tags": ["git-command"],
+  },
 ]

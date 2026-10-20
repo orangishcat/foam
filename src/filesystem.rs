@@ -8,7 +8,7 @@ use std::{
 use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
-use crate::{AppWindow, config::config, database, filesystem, thread_manager, ui};
+use crate::{AppWindow, config::config, database, thread_manager, ui};
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
@@ -130,7 +130,7 @@ pub fn asset_as_slint_img(
 
 fn load_slint_image(path: &PathBuf) -> Result<slint::Image, Error> {
     let bytes = std::fs::read(path).map_err(io::Error::other)?;
-    Ok(slint::Image::load_from_data(&bytes, None).map_err(io::Error::other)?)
+    slint::Image::load_from_data(&bytes, None).map_err(io::Error::other)
 }
 
 pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>

@@ -147,7 +147,7 @@ impl NotificationState {
                     },
                     icon_color: match n.material_type {
                         Some(MaterialType::Assignment | MaterialType::Assessment) => {
-                            ui.global::<UiState>().get_theme().accent_400
+                            ui.global::<UiState>().get_theme().progress_900
                         }
                         _ => ui.global::<UiState>().get_theme().text_400,
                     },

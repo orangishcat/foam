@@ -1,8 +1,9 @@
+use crate::embedded_webview::EmbeddedWebView;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use slint::{ComponentHandle, Model, winit_030::WinitWindowAccessor};
 use wry::{
-    Rect, WebView, WebViewBuilder,
+    Rect, WebViewBuilder,
     dpi::{LogicalPosition, LogicalSize},
 };
 
@@ -16,7 +17,7 @@ struct Preview {
     files: Vec<AssignmentFile>,
     index: usize,
     generation: u64,
-    webview: Option<WebView>,
+    webview: Option<EmbeddedWebView>,
     local_path: Option<std::path::PathBuf>,
 }
 
@@ -243,7 +244,7 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
         }
         return;
     }
-    let result = (|| -> Result<WebView, Box<dyn std::error::Error + Send + Sync>> {
+    let result = (|| -> Result<EmbeddedWebView, Box<dyn std::error::Error + Send + Sync>> {
         let builder = WebViewBuilder::new().with_bounds(bounds(&preview.window));
         let builder = match source {
             Source::Local(path) => builder.with_url(file_url(&path)?.as_str()),
@@ -255,7 +256,9 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
         preview
             .window
             .window()
-            .with_winit_window(|window| builder.build_as_child(window))
+            .with_winit_window(|window| {
+                EmbeddedWebView::build(builder, window, bounds(&preview.window), true)
+            })
             .ok_or("Preview window is unavailable")?
             .map_err(Into::into)
     })();

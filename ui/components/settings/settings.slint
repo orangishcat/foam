@@ -2,6 +2,7 @@ import { Button, Slider, ScrollView } from "std-widgets.slint";
 import { UiState, SettingsUi } from "../../globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { IntInput } from "number-input.slint";
 
 export component Settings inherits Rectangle {
     in property <length> sidebar-width;
@@ -14,21 +15,50 @@ export component Settings inherits Rectangle {
             custom-titlebar: root.custom-titlebar;
         }
 
-        Rectangle {
+        HorizontalLayout {
+            alignment: center;
             vertical-stretch: 1;
             ScrollView {
-                x: root.sidebar-width;
-                width: parent.width - root.sidebar-width;
-                height: parent.height;
                 horizontal-scrollbar-policy: always-off;
+                width: min(40rem, parent.width);
                 VerticalLayout {
                     padding: 1.5rem;
                     spacing: 1rem;
                     alignment: start;
-                    Text {
-                        text: "currently empty...";
-                        font-size: 1.25rem;
-                        color: UiState.theme.text-400;
+                    VerticalLayout {
+                        spacing: 0.25rem;
+                        Text {
+                            text: "Appearance";
+                            font-size: 1rem;
+                            color: UiState.theme.text-400;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: UiState.theme.background-700;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "UI Scaling";
+                            font-size: 1.25rem;
+                            color: UiState.theme.text-200;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        IntInput {
+                            value <=> UiState.font-size;
+                            edited(value) => {
+                                SettingsUi.set-font-size(round(value));
+                            }
+                            Text {
+                                text: "px";
+                            }
+                        }
                     }
                 }
             }

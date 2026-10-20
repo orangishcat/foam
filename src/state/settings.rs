@@ -13,13 +13,13 @@ pub struct SettingsState {}
 impl SettingsState {
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let font_size = config().font_size.clamp(12, 24);
-        ui.global::<UiState>().set_font_size(font_size as f32);
+        ui.global::<UiState>().set_font_size(font_size);
         ui.global::<SettingsUi>().set_font_size(font_size);
         let weak = ui.as_weak();
         ui.global::<SettingsUi>().on_set_font_size(move |size| {
             let Some(ui) = weak.upgrade() else { return };
-            let size = size.clamp(12, 24);
-            ui.global::<UiState>().set_font_size(size as f32);
+            let size = size.clamp(4, 24);
+            ui.global::<UiState>().set_font_size(size);
             ui.global::<SettingsUi>().set_font_size(size);
             let mut config = config_write();
             config.font_size = size;

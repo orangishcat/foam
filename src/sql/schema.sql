@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS materials (
     parent_id TEXT NOT NULL,
     title TEXT NOT NULL,
     data TEXT NOT NULL,
+    last_updated TEXT,
     PRIMARY KEY (course_id, type, material_id)
 );
 CREATE TABLE IF NOT EXISTS courses (

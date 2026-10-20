@@ -49,7 +49,7 @@ import { ScreenMenuItem } from "types/screen-menu-item.slint";
 export component AppWindow inherits Window {
     title: "foam";
     default-font-family: "Mozilla Text";
-    default-font-size: UiState.font-size;
+    default-font-size: UiState.font-size * 1px;
     preferred-width: 68.75rem;
     preferred-height: 43.75rem;
     no-frame: WindowChrome.client-side;
@@ -401,7 +401,7 @@ export component AppWindow inherits Window {
         Rectangle {
             background: parent.has-hover || parent.pressed ? UiState.theme.text-200.with-alpha(0.1) : transparent;
             border-width: parent.has-focus ? 1px : 0px;
-            border-color: #66aaff;
+            border-color: UiState.theme.secondary-200;
             Image {
                 x: (parent.width - self.width) / 2;
                 y: (parent.height - self.height) / 2;

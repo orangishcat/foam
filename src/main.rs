@@ -14,7 +14,9 @@ mod account;
 mod api;
 mod config;
 mod database;
+mod embedded_webview;
 mod filesystem;
+mod logging;
 mod platform;
 mod plugin;
 mod state;
@@ -33,7 +35,7 @@ fn shutdown(ui: &AppWindow) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let _logger = logging::init(&config::default_data_dir())?;
 
     #[cfg(target_os = "macos")]
     {
@@ -57,6 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Wayland desktops run this window through XWayland.
         gtk::gdk::set_allowed_backends("x11");
         gtk::init()?;
+        crate::platform::linux::x11_interop::install_x11_error_hook(true)?;
         let mut event_loop_builder = winit::event_loop::EventLoop::with_user_event();
         event_loop_builder.with_x11();
         crate::platform::linux::select(event_loop_builder)?;
@@ -75,6 +78,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_client_side(cfg!(any(target_os = "linux", target_os = "windows")));
 
     #[cfg(any(target_os = "linux", target_os = "windows"))]
+    {
+        let weak = ui.as_weak();
+        crate::platform::linux::webview_focus::on_activation_change(move |id, active| {
+            if let Some(ui) = weak.upgrade() {
+                ui.window().with_winit_window(|window| {
+                    if window.id() == id {
+                        ui.set_window_active(active);
+                    }
+                });
+            }
+        });
+    }
+
+    #[cfg(target_os = "linux")]
     {
         let weak_ui = ui.as_weak();
         ui.global::<WindowChrome>().on_toggle_maximized(move || {
@@ -96,11 +113,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     let titlebar_ui = ui.as_weak();
     ui.window().on_winit_window_event(move |_window, event| {
+        #[cfg(target_os = "linux")]
+        if crate::platform::linux::webview_diagnostics::enabled()
+            && let winit::event::WindowEvent::Focused(focused) = event
+        {
+            _window.with_winit_window(|window| {
+                crate::platform::linux::webview_diagnostics::trace_parent_focus(window, *focused);
+            });
+        }
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         if let winit::event::WindowEvent::Focused(focus) = event
             && let Some(ui) = titlebar_ui.upgrade()
         {
-            ui.set_window_active(*focus);
+            let active = _window
+                .with_winit_window(|window| {
+                    crate::platform::linux::webview_focus::parent_active(window.id())
+                        .unwrap_or(*focus)
+                })
+                .unwrap_or(*focus);
+            ui.set_window_active(active);
         }
         #[cfg(target_os = "windows")]
         if matches!(
