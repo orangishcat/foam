@@ -26,10 +26,7 @@ pub fn init(ui: &AppWindow) {
     #[cfg(target_os = "windows")]
     ui.on_focus_onboarding_input(focus_input);
     ui.on_edit_webview(|action| {
-        #[cfg(target_os = "macos")]
-        crate::platform::macos::edit_webview(action);
-        #[cfg(not(target_os = "macos"))]
-        let _ = action;
+        crate::platform::edit_webview(action);
     });
     if crate::account::active_account().is_err() {
         ui.global::<UiState>().set_screen(Screen::Onboarding);
@@ -112,7 +109,7 @@ fn update(ui: &AppWindow) {
     let result = FLOW.with(|flow| -> wry::Result<()> {
         let mut flow = flow.borrow_mut();
         #[cfg(target_os = "linux")]
-        if crate::platform::linux::webview_diagnostics::enabled() {
+        if crate::platform::webview_diagnostics::enabled() {
             log::info!(target: "foam::webview", "onboarding update: step={step} visible={visible} bounds={bounds:?} exists={}", flow.webview.is_some());
         }
         if visible {
@@ -129,34 +126,26 @@ fn update(ui: &AppWindow) {
                             let builder = WebViewBuilder::new_with_web_context(context)
                                 .with_bounds(bounds);
                             #[cfg(target_os = "linux")]
-                            let builder = crate::platform::linux::webview_diagnostics::instrument(builder);
-                            #[cfg(target_os = "linux")]
-                            let builder = if crate::platform::linux::webview_diagnostics::test_page() {
-                                builder.with_html(crate::platform::linux::webview_diagnostics::TEST_HTML)
-                            } else {
-                                builder.with_url(&url)
-                            };
+                            let builder = crate::platform::webview_diagnostics::decorate(
+                                builder, &url,
+                            );
                             #[cfg(not(target_os = "linux"))]
                             let builder = builder.with_url(&url);
                             EmbeddedWebView::build(builder, window, bounds, true)
                         })?);
                         #[cfg(target_os = "linux")]
-                        crate::platform::linux::webview_diagnostics::attach(flow.webview.as_ref().unwrap());
+                        crate::platform::webview_diagnostics::attach(flow.webview.as_ref().unwrap());
                         Ok::<_, wry::Error>(())
                     })
                     .transpose()?;
             } else if flow.url != url {
                 #[cfg(target_os = "linux")]
-                if crate::platform::linux::webview_diagnostics::enabled() {
+                if crate::platform::webview_diagnostics::enabled() {
                     log::info!(target: "foam::webview", "onboarding navigation: step={step}");
                 }
                 let webview = flow.webview.as_ref().unwrap();
                 #[cfg(target_os = "linux")]
-                if crate::platform::linux::webview_diagnostics::test_page() {
-                    webview.load_html(crate::platform::linux::webview_diagnostics::TEST_HTML)?;
-                } else {
-                    webview.load_url(&url)?;
-                }
+                crate::platform::webview_diagnostics::navigate(webview, &url)?;
                 #[cfg(not(target_os = "linux"))]
                 webview.load_url(&url)?;
             }

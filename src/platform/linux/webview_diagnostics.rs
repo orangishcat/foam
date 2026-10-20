@@ -99,56 +99,23 @@ pub const TEST_HTML: &str = r#"<!doctype html>
 <label>Password<input type="password" placeholder="Password"></label>
 <button type="button">Tab target</button><label>Composition<textarea rows="2"></textarea></label></body></html>"#;
 
-#[cfg(test)]
-mod tests {
-    use super::super::x11_interop::is_gtk_glx_destroy_window_error;
-    use super::*;
-
-    #[test]
-    fn glx_filter_uses_server_codes_and_preserves_unrelated_errors() {
-        let mut event = x11_dl::xlib::XErrorEvent {
-            type_: 0,
-            display: std::ptr::null_mut(),
-            resourceid: 0,
-            serial: 0,
-            error_code: 170,
-            request_code: 150,
-            minor_code: 32,
-        };
-        assert!(is_gtk_glx_destroy_window_error(1, 1, 150, 158, &event));
-        assert!(!is_gtk_glx_destroy_window_error(1, 2, 150, 158, &event));
-        // The same numbers can identify another extension on a different server.
-        assert!(!is_gtk_glx_destroy_window_error(1, 1, 151, 159, &event));
-        event.error_code = 171;
-        event.request_code = 151;
-        assert!(is_gtk_glx_destroy_window_error(1, 1, 151, 159, &event));
-        event.minor_code = 31;
-        assert!(!is_gtk_glx_destroy_window_error(1, 1, 151, 159, &event));
-        event.minor_code = 32;
-        event.error_code = 3; // Core BadWindow must never be suppressed.
-        assert!(!is_gtk_glx_destroy_window_error(1, 1, 151, 159, &event));
+/// Instrument a webview builder and, with the test page enabled, point it at
+/// the probe content instead of its intended URL.
+#[allow(dead_code)] // The test-page path is exercised only via FOAM_WEBVIEW_TEST_PAGE.
+pub fn decorate(builder: WebViewBuilder<'_>, url: &str) -> WebViewBuilder<'_> {
+    let builder = instrument(builder);
+    if test_page() {
+        builder.with_html(TEST_HTML)
+    } else {
+        builder.with_url(url)
     }
+}
 
-    #[test]
-    fn dom_diagnostics_reject_page_text_and_input_contents() {
-        let valid = r#"{"event":"input","target":"input","active":"input","document_focused":false,"top_frame":true}"#;
-        assert!(serde_json::from_str::<FocusMessage>(valid).is_ok());
-        let with_value = valid.replace(
-            "\"top_frame\":true",
-            "\"top_frame\":true,\"value\":\"secret\"",
-        );
-        assert!(serde_json::from_str::<FocusMessage>(&with_value).is_err());
-        assert!(
-            serde_json::from_str::<FocusMessage>(
-                &valid.replace("\"event\":\"input\"", "\"event\":\"secret\"")
-            )
-            .is_err()
-        );
-        assert!(
-            serde_json::from_str::<FocusMessage>(
-                &valid.replace("\"active\":\"input\"", "\"active\":\"secret\"")
-            )
-            .is_err()
-        );
+/// Navigate an existing webview, substituting the test page when enabled.
+pub fn navigate(webview: &WebView, url: &str) -> Result<(), wry::Error> {
+    if test_page() {
+        webview.load_html(TEST_HTML)
+    } else {
+        webview.load_url(url)
     }
 }

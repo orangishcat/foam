@@ -6,7 +6,7 @@ use wry::{Rect, WebView, WebViewBuilder};
 pub(crate) struct EmbeddedWebView {
     // Fields drop in declaration order: unregister before destroying WebKit.
     #[cfg(target_os = "linux")]
-    focus: crate::platform::linux::webview_focus::Registration,
+    focus: crate::platform::webview_focus::Registration,
     inner: WebView,
     visible: Cell<bool>,
 }
@@ -28,7 +28,7 @@ impl EmbeddedWebView {
             inner.set_visible(false)?;
         }
         #[cfg(target_os = "linux")]
-        let focus = crate::platform::linux::webview_focus::Registration::new(
+        let focus = crate::platform::webview_focus::Registration::new(
             &inner, parent, bounds, visible,
         )?;
         Ok(Self {

@@ -5,13 +5,25 @@ use slint::{
     platform::{Clipboard, EventLoopProxy, Platform, WindowAdapter},
 };
 
-// Explicit paths also allow the standalone probe to reuse this backend.
-#[path = "linux/webview_diagnostics.rs"]
 pub mod webview_diagnostics;
-#[path = "linux/webview_focus.rs"]
 pub(crate) mod webview_focus;
-#[path = "linux/x11_interop.rs"]
 pub(crate) mod x11_interop;
+
+/// Drain GTK events alongside the Slint event loop. WebKitGTK widgets created
+/// as wry children share GTK's event loop, which Slint does not run.
+pub fn start_gtk_pump() -> slint::Timer {
+    let timer = slint::Timer::default();
+    timer.start(
+        slint::TimerMode::Repeated,
+        std::time::Duration::from_millis(10),
+        || {
+            while gtk::events_pending() {
+                gtk::main_iteration_do(false);
+            }
+        },
+    );
+    timer
+}
 
 /// Share GTK's clipboard with the embedded WebKit views. Arboard's synchronous
 /// X11 reads otherwise block the thread GTK needs to answer the selection request.

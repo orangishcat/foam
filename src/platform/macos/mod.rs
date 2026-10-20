@@ -1,11 +1,8 @@
-/**
- * this entire file exists because macos cmd+q will instantly terminate the program,
- * skipping shutdown, and this file will make it... not do that
- */
+//! macOS specifics: native webview edit actions and keeping Cmd+Q from
+//! bypassing the shutdown path.
 
-// this function sends webview keystrokes to macos native handling
-// fixme: use less hacky workarounds
-#[cfg(target_os = "macos")]
+/// This function sends webview keystrokes to macOS native handling
+/// fixme: use less hacky workarounds
 pub fn edit_webview(action: i32) {
     use objc2::sel;
     use objc2_app_kit::NSApplication;
@@ -29,7 +26,6 @@ pub fn edit_webview(action: i32) {
     }
 }
 
-#[cfg(target_os = "macos")]
 pub mod macos_quit {
     use objc2::rc::Retained;
     use objc2::runtime::AnyObject;
@@ -100,4 +96,20 @@ pub mod macos_quit {
             }
         });
     }
+}
+
+/// Refresh the Quit-menu redirection on every window focus event. The target
+/// is created once and retained for the lifetime of the main thread because
+/// menu item targets are weak references.
+pub fn on_focus() {
+    use std::cell::OnceCell;
+
+    use objc2::rc::Retained;
+
+    thread_local! {
+        static TARGET: OnceCell<Retained<macos_quit::QuitTarget>> = const { OnceCell::new() };
+    }
+    TARGET.with(|target| {
+        macos_quit::on_focus(target.get_or_init(macos_quit::new_target));
+    });
 }
