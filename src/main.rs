@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.global::<WindowChrome>()
         .set_client_side(cfg!(any(target_os = "linux", target_os = "windows")));
 
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     {
         let weak = ui.as_weak();
         crate::platform::linux::webview_focus::on_activation_change(move |id, active| {
@@ -125,13 +125,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let winit::event::WindowEvent::Focused(focus) = event
             && let Some(ui) = titlebar_ui.upgrade()
         {
-            let active = _window
-                .with_winit_window(|window| {
-                    crate::platform::linux::webview_focus::parent_active(window.id())
-                        .unwrap_or(*focus)
-                })
-                .unwrap_or(*focus);
-            ui.set_window_active(active);
+            #[cfg(target_os = "linux")]
+            {
+                let active = _window
+                    .with_winit_window(|window| {
+                        crate::platform::linux::webview_focus::parent_active(window.id())
+                            .unwrap_or(*focus)
+                    })
+                    .unwrap_or(*focus);
+                ui.set_window_active(active);
+            }
+            #[cfg(target_os = "windows")]
+            ui.set_window_active(*focus);
         }
         #[cfg(target_os = "windows")]
         if matches!(
