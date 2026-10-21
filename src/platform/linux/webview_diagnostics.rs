@@ -102,7 +102,7 @@ pub const TEST_HTML: &str = r#"<!doctype html>
 /// Instrument a webview builder and, with the test page enabled, point it at
 /// the probe content instead of its intended URL.
 #[allow(dead_code)] // The test-page path is exercised only via FOAM_WEBVIEW_TEST_PAGE.
-pub fn decorate(builder: WebViewBuilder<'_>, url: &str) -> WebViewBuilder<'_> {
+pub fn decorate<'a>(builder: WebViewBuilder<'a>, url: &'a str) -> WebViewBuilder<'a> {
     let builder = instrument(builder);
     if test_page() {
         builder.with_html(TEST_HTML)
