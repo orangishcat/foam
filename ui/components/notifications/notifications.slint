@@ -19,6 +19,7 @@ import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 
 export global NotificationsMenu {
     out property <[ScreenMenuItem]> items: [
+        { title: "Mark all as read", shortcut: @keys(A), enabled: true },
         { title: "View item", shortcut: @keys(V), enabled: NotificationUi.can-open-selected },
         {
             title: "Mark as read",
@@ -32,9 +33,10 @@ export global NotificationsMenu {
         },
     ];
     public function activate(index: int) {
-        if index == 0 { NotificationUi.open-selected(); }
-        else if index == 1 { NotificationUi.toggle-selected-read(); }
-        else if index == 2 { NotificationUi.unselect(); }
+        if index == 0 { NotificationUi.mark-all-as-read(); }
+        if index == 1 { NotificationUi.open-selected(); }
+        else if index == 2 { NotificationUi.toggle-selected-read(); }
+        else if index == 3 { NotificationUi.unselect(); }
     }
 }
 

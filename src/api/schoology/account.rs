@@ -109,7 +109,7 @@ impl Account for SchoologyAccountConfig {
         for updated in pending {
             if let Some(n) = notifications
                 .iter_mut()
-                .find(|n| n.resource_id == updated.resource_id)
+                .find(|n| n.title == updated.title || n.resource_id == updated.resource_id)
             {
                 *n = updated;
             }

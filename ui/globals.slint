@@ -98,13 +98,14 @@ export global NotificationUi {
     }
     public function toggle-selected-read() {
         if !selected-notification.id.is-empty {
-            set-read(selected-notification.id, selected-notification.unread);
+            set-read(selected-notification.id, !selected-notification.unread);
         }
     }
     public function unselect() { selected-notification = { }; }
     in-out property <int> unread-count;
     callback opened();
     callback closed();
+    callback mark-all-as-read();
     callback set-read(string, bool);
     in-out property <float> progress;
     in-out property <color> progress-color: #78aaff;

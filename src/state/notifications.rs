@@ -172,18 +172,18 @@ impl NotificationState {
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<crate::NotificationUi>();
         global.on_closed(ui::sync_ui);
-        global.on_opened(|| {
+        global.on_mark_all_as_read(|| {
             if let Err(err) =
                 database::execute("UPDATE notifications SET is_unread = 0".to_owned(), &[])
             {
-                log::warn!("Marking notifications viewed failed: {err}");
+                log::warn!("Marking notifications read failed: {err}");
             }
             ui::sync_ui();
         });
         global.on_set_read(|id, read| {
             if let Err(err) = database::execute(
                 "UPDATE notifications SET is_unread = ? WHERE id = ?".to_owned(),
-                &[&!read, &id.as_str()],
+                &[&read, &id.as_str()],
             ) {
                 log::warn!("Marking notification failed: {err}");
             }
