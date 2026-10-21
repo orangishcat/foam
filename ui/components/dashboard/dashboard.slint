@@ -93,6 +93,10 @@ export component Dashboard inherits FocusScope {
                                             DashboardUi.sel-col = x;
                                             DashboardUi.sel-row = y;
                                         }
+                                        double-clicked => {
+                                            DashboardUi.selected-assignment = assignment;
+                                            DashboardUi.open-selected();
+                                        }
                                     }
 
                                     inner := Rectangle {
