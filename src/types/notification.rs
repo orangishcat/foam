@@ -20,6 +20,7 @@ pub struct Notification {
     pub is_unread: bool,
     pub event: NotificationEvent,
     pub title: String,
+    pub subtitle: String,
     pub created: DateTime<Local>, // best effort; if api doesn't expose use local time when fetching the resource
     pub resource_id: String,
     pub material_type: Option<MaterialType>,
@@ -59,9 +60,9 @@ pub(crate) fn save_notifications_on(
         let id = notification.id()?;
         let mut values = serialized.to_slice();
         values.push((":id", &id));
-        transaction.execute("INSERT INTO notifications (id, is_unread, event, title, created, resource_id, material_type, course_id, course_title)
-            VALUES (:id, :is_unread, :event, :title, :created, :resource_id, :material_type, :course_id, :course_title)
-            ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title
+        transaction.execute("INSERT INTO notifications (id, is_unread, event, title, subtitle, created, resource_id, material_type, course_id, course_title)
+            VALUES (:id, :is_unread, :event, :title, :subtitle, :created, :resource_id, :material_type, :course_id, :course_title)
+            ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, subtitle = excluded.subtitle, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title
             WHERE julianday(excluded.created) >= julianday(notifications.created)", values.as_slice()).map_err(Error::other)?;
     }
     notif_state.save_state_on(&transaction)?;

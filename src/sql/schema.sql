@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     is_unread INTEGER NOT NULL DEFAULT 1,
     event TEXT NOT NULL,
     title TEXT NOT NULL,
+    subtitle TEXT NOT NULL,
     created TEXT NOT NULL,
     resource_id TEXT NOT NULL UNIQUE,
     material_type TEXT,

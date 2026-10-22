@@ -26,6 +26,7 @@ fn create_schema() -> Result<()> {
         .execute_batch(include_str!("sql/schema.sql"))
         .map_err(Error::other)?;
     add_column_if_missing("materials", "last_updated", "TEXT")?;
+    add_column_if_missing("notifications", "subtitle", "TEXT NOT NULL DEFAULT \"\"")?;
     Ok(())
 }
 

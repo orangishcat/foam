@@ -135,7 +135,7 @@ export component Notifications inherits FocusScope {
                                         course := Text {
                                             color: UiState.theme.text-400;
                                             font-size: 0.75rem;
-                                            text: notif.course;
+                                            text: notif.subtitle + (notif.subtitle.is-empty ? "" : " • ") + notif.course;
                                             vertical-alignment: top;
                                             wrap: word-wrap;
                                         }

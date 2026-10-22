@@ -29,6 +29,7 @@ impl SchoologyAccountConfig {
             &NOTIFICATION_PROGRESS_COLOR,
         );
         for i in 0..notifications.len() {
+            // grades are batch processed
             if notifications[i].event == NotificationEvent::GradeUpdated {
                 continue;
             }
@@ -72,17 +73,24 @@ impl SchoologyAccountConfig {
                         .iter_mut()
                         .filter(|n| n.event == NotificationEvent::GradeUpdated)
                     {
+                        let assignments = database::from_sql::<Assignment>(
+                            "SELECT * FROM assignments WHERE id = ?".to_owned(),
+                            &[&n.resource_id],
+                        )?;
+                        let Some(assignment) = assignments.into_iter().next() else {
+                            continue;
+                        };
                         if let Some(course) = crate::types::course::course(&n.course_id)? {
                             n.course_id = course.course_id;
                         } else {
-                            let assignments = database::from_sql::<Assignment>(
-                                "SELECT * FROM assignments WHERE id = ?".to_owned(),
-                                &[&n.resource_id],
-                            )?;
-                            if assignments.len() == 1 {
-                                n.course_id = assignments[0].course_id.clone();
-                            }
+                            n.course_id = assignment.course_id.clone();
                         }
+                        n.subtitle = match (&assignment.score, &assignment.letter_grade) {
+                            (Some(score), Some(letter)) => format!("{score} / {} ({letter})", assignment.max_points),
+                            (Some(score), None) => format!("{score} / {}", assignment.max_points),
+                            (None, Some(letter)) => letter.clone(),
+                            (None, None) => String::new(),
+                        };
                     }
                 }
                 Err(err) => {

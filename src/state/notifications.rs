@@ -133,6 +133,7 @@ impl NotificationState {
                     id: n.id()?.into(),
                     unread: n.is_unread,
                     title: n.title.into(),
+                    subtitle: n.subtitle.into(),
                     course: course.into(),
                     course_id: n.course_id.into(),
                     resource_id: n.resource_id.into(),

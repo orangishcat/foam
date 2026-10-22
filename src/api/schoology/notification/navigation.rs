@@ -45,6 +45,7 @@ impl SchoologyNotification {
                 is_unread: true,
                 event,
                 title: decode_title(&arg.title),
+                subtitle: "".into(),
                 created,
                 resource_id: arg.id.0.clone(),
                 material_type: match (arg.kind.as_str(), arg.document_type.as_str()) {
