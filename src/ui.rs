@@ -1,7 +1,44 @@
 use slint::ComponentHandle;
+use std::io::Error;
 use std::sync::Mutex;
 
-use crate::{AppWindow, state::state::state};
+use crate::{AppWindow, UiState, database, state::state::state};
+
+pub(crate) fn progress_color(ui: &AppWindow, percent: f64) -> slint::Color {
+    let theme = ui.global::<UiState>().get_theme();
+    let level = (((percent / 100.0) * 9.0).ceil() as usize).clamp(1, 9);
+    match level {
+        1 => theme.progress_100,
+        2 => theme.progress_200,
+        3 => theme.progress_300,
+        4 => theme.progress_400,
+        5 => theme.progress_500,
+        6 => theme.progress_600,
+        7 => theme.progress_700,
+        8 => theme.progress_800,
+        _ => theme.progress_900,
+    }
+}
+
+pub(crate) fn progress_percent(course: &str, id: &str) -> Option<f64> {
+    database::from_sql_map(
+        "SELECT score, max_points FROM assignments WHERE course_id = ? AND id = ?".into(),
+        rusqlite::params![course, id],
+        |row| {
+            Ok((
+                row.get::<_, Option<f64>>(0).map_err(Error::other)?,
+                row.get::<_, f64>(1).map_err(Error::other)?,
+            ))
+        },
+    )
+    .ok()
+    .and_then(|rows| rows.into_iter().next())
+    .and_then(|(score, max_points)| {
+        (max_points > 0.0)
+            .then(|| score.map(|score| score / max_points * 100.0))
+            .flatten()
+    })
+}
 
 pub(super) static WEAK_UI: Mutex<Option<slint::Weak<AppWindow>>> = Mutex::new(None);
 

@@ -350,6 +350,7 @@ impl CourseState {
                 id: "".into(),
                 title: course.title,
                 kind: "course".into(),
+                icon_color: slint::Color::default(),
             })
             .collect()
     }
@@ -370,16 +371,31 @@ impl CourseState {
     )?.into_iter().next().ok_or_else(|| io::Error::other("Folder no longer exists: {folder}"))
     }
 
-    pub fn children(course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {
-        database::from_sql_map(
+    pub fn children(ui: &AppWindow, course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {
+        let mut items = database::from_sql_map(
         "SELECT material_id, title, type FROM materials WHERE course_id = ? AND parent_id = ? ORDER BY type != 'folder', title COLLATE NOCASE, material_id".into(),
         params![course, folder],
-        |row| Ok(MaterialItem {
-            course_id: course.into(),
-            id: row.get::<_, String>(0).map_err(io::Error::other)?.into(),
-            title: row.get::<_, String>(1).map_err(io::Error::other)?.into(),
-            kind: row.get::<_, String>(2).map_err(io::Error::other)?.into(),
-        }),
-    )
+        |row| {
+            let id: String = row.get(0).map_err(io::Error::other)?;
+            let title: String = row.get(1).map_err(io::Error::other)?;
+            let kind: String = row.get(2).map_err(io::Error::other)?;
+            Ok(MaterialItem {
+                course_id: course.into(),
+                id: id.into(),
+                title: title.into(),
+                kind: kind.into(),
+                icon_color: slint::Color::default(),
+            })
+        },
+    )?;
+        for item in &mut items {
+            if item.kind == "assignment" {
+                item.icon_color = match ui::progress_percent(course, &item.id) {
+                    Some(percent) => ui::progress_color(ui, percent),
+                    None => ui.global::<UiState>().get_theme().background_400,
+                };
+            }
+        }
+        Ok(items)
     }
 }

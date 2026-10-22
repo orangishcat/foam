@@ -37,7 +37,7 @@ pub fn get_path_data(
         return Ok((
             course_title,
             "Courses".to_owned(),
-            CourseState::children(&course, &root)?,
+            CourseState::children(&ui, &course, &root)?,
             CourseState::course_folders(ui),
         ));
     }
@@ -50,8 +50,8 @@ pub fn get_path_data(
     Ok((
         title,
         parent_title,
-        CourseState::children(&course, &folder)?,
-        CourseState::children(&course, &parent)?,
+        CourseState::children(&ui, &course, &folder)?,
+        CourseState::children(&ui, &course, &parent)?,
     ))
 }
 
@@ -148,6 +148,7 @@ pub fn breadcrumbs(
             id: doc_id.into(),
             kind: doc_kind.into(),
             title: doc_name.into(),
+            icon_color: Default::default(),
         });
     }
     while !current.is_empty() && current != root {
@@ -160,6 +161,7 @@ pub fn breadcrumbs(
             id: current.into(),
             title: folder_title.into(),
             kind: "folder".into(),
+            icon_color: Default::default(),
         });
         current = parent;
     }
@@ -168,6 +170,7 @@ pub fn breadcrumbs(
         id: "".into(),
         title,
         kind: "course".into(),
+        icon_color: Default::default(),
     });
     ancestors.reverse();
     Ok(ancestors)

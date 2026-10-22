@@ -127,16 +127,16 @@ impl NotificationState {
                     row.get::<_, String>("display_course").map_err(Error::other)?))
             })?;
         let models = notifications
-            .into_iter()
+            .iter()
             .map(|(n, course)| {
                 Ok(crate::Notification {
                     id: n.id()?.into(),
                     unread: n.is_unread,
-                    title: n.title.into(),
-                    subtitle: n.subtitle.into(),
+                    title: (&n.title).into(),
+                    subtitle: (&n.subtitle).into(),
                     course: course.into(),
-                    course_id: n.course_id.into(),
-                    resource_id: n.resource_id.into(),
+                    course_id: (&n.course_id).into(),
+                    resource_id: (&n.resource_id).into(),
                     n_type: match (n.event, n.material_type) {
                         (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
                         (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
@@ -146,11 +146,19 @@ impl NotificationState {
                         (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
                         _ => crate::NotificationType::Unknown,
                     },
-                    icon_color: match n.material_type {
-                        Some(MaterialType::Assignment | MaterialType::Assessment) => {
-                            ui.global::<UiState>().get_theme().progress_900
+                    icon_color: match n.event {
+                        NotificationEvent::GradeUpdated => {
+                            match ui::progress_percent(&n.course_id, &n.resource_id) {
+                                Some(percent) => ui::progress_color(ui, percent),
+                                None => ui.global::<UiState>().get_theme().background_400,
+                            }
                         }
-                        _ => ui.global::<UiState>().get_theme().text_400,
+                        _ => match n.material_type {
+                            Some(MaterialType::Assignment | MaterialType::Assessment) => {
+                                ui.global::<UiState>().get_theme().progress_900
+                            }
+                            _ => ui.global::<UiState>().get_theme().text_400,
+                        },
                     },
                 })
             })

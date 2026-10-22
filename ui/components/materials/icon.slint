@@ -2,15 +2,18 @@ import { UiState } from "../../globals.slint";
 
 export component Icon inherits Image {
     in property <string> kind;
+    in property <color> icon-color: transparent;
     source: kind == "course" ? @image-url("../../icons/book-text.svg")
         : kind == "folder" ? @image-url("../../icons/folder.svg")
         : kind == "link" ? @image-url("../../icons/link.svg")
         : kind == "assignment" ? @image-url("../../icons/circle-check-big.svg")
         : @image-url("../../icons/file-text.svg");
-    colorize: kind == "course" ? UiState.theme.primary-400
+    colorize: icon-color == transparent
+        ? (kind == "course" ? UiState.theme.primary-400
         : kind == "folder" ? UiState.theme.secondary-300
         : kind == "link" ? UiState.theme.secondary-100
         : kind == "assignment" ? UiState.theme.progress-900
-        : UiState.theme.background-400;  // document
+        : UiState.theme.background-400)  // document
+        : icon-color;
     vertical-alignment: center;
 }

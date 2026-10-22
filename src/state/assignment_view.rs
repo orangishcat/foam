@@ -174,38 +174,36 @@ impl AssignmentViewState {
     }
 
     pub fn init_ui(&self, ui: &AppWindow) {
+        let g = ui.global::<AssignmentUi>();
         let weak = ui.as_weak();
-        ui.global::<AssignmentUi>()
-            .on_view_submissions(move |index| {
-                if let Some(ui) = weak.upgrade() {
-                    crate::state::attachment_view::open_submissions(&ui, index);
-                }
-            });
+        g.on_view_submissions(move |index| {
+            if let Some(ui) = weak.upgrade() {
+                crate::state::attachment_view::open_submissions(&ui, index);
+            }
+        });
         let weak = ui.as_weak();
-        ui.global::<AssignmentUi>()
-            .on_view_attachments(move |index| {
-                if let Some(ui) = weak.upgrade() {
-                    crate::state::attachment_view::open(&ui, index);
-                }
-            });
+        g.on_view_attachments(move |index| {
+            if let Some(ui) = weak.upgrade() {
+                crate::state::attachment_view::open(&ui, index);
+            }
+        });
         let weak = ui.as_weak();
-        ui.global::<AssignmentUi>()
-            .on_open_browser(move |assignment_id| {
-                if let Some(_ui) = weak.upgrade() {
-                    let account = match crate::account::active_account() {
-                        Ok(account) => account,
-                        Err(error) => {
-                            log::warn!("Getting active account failed: {error}");
-                            return;
-                        }
-                    };
-                    crate::state::attachment_view::open_browser(
-                        &account.assignment_url(&assignment_id),
-                    );
-                }
-            });
+        g.on_open_browser(move |assignment_id| {
+            if let Some(_ui) = weak.upgrade() {
+                let account = match crate::account::active_account() {
+                    Ok(account) => account,
+                    Err(error) => {
+                        log::warn!("Getting active account failed: {error}");
+                        return;
+                    }
+                };
+                crate::state::attachment_view::open_browser(
+                    &account.assignment_url(&assignment_id),
+                );
+            }
+        });
         let weak = ui.as_weak();
-        ui.global::<AssignmentUi>().on_open(move |course, id| {
+        g.on_open(move |course, id| {
             let Some(ui) = weak.upgrade() else { return };
             let global = ui.global::<AssignmentUi>();
             global.set_error("".into());
