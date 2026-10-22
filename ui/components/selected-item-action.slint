@@ -16,8 +16,7 @@ export component SelectedItemAction {
         Rectangle {
             border-radius: 0.3125rem;
             background: {
-                let hoverBg = UiState.theme.background-600.to-oklch();
-                action-button.has-hover || action-button.has-focus ? oklch(hoverBg.lightness, hoverBg.chroma, hoverBg.hue, 0.6) : transparent
+                action-button.has-hover || action-button.has-focus ? UiState.theme.background-600.with-alpha(0.6) : transparent
             };
             vl := VerticalLayout {
                 alignment: center;

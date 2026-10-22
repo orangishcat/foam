@@ -1,5 +1,6 @@
 use std::{
     io::{self, Error, Result},
+    path::PathBuf,
     sync::{Mutex, MutexGuard, OnceLock},
 };
 
@@ -12,13 +13,16 @@ static DB_CONNECTION: OnceLock<Mutex<Connection>> = OnceLock::new();
 const DB_NAME: &str = "foam.db";
 
 pub fn init() -> Result<()> {
-    let data_dir = config().data_dir().to_owned();
-    let connection = Connection::open(data_dir.join(DB_NAME)).map_err(Error::other)?;
+    let connection = Connection::open(db_path()).map_err(Error::other)?;
     DB_CONNECTION
         .set(Mutex::new(connection))
         .map_err(|_| Error::other("setting oncelock failed"))?;
     create_schema()?;
     Ok(())
+}
+
+pub fn db_path() -> PathBuf {
+    config().data_dir().join(DB_NAME)
 }
 
 fn create_schema() -> Result<()> {

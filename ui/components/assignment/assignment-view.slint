@@ -43,7 +43,7 @@ export global AssignmentMenu {
     ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
-        else if index == 1 { AssignmentUi.copy-selected-details(); }
+        else if index == 1 { AssignmentUi.copy-details(AssignmentUi.assignment.id); }
         else if index == 2 { AssignmentUi.view-attachments(0); }
         else if index == 3 { AssignmentUi.open-selected-in-browser(); }
         else if index == 4 { AssignmentUi.view-submissions(0); }

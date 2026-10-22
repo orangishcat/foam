@@ -147,6 +147,10 @@ export component Notifications inherits FocusScope {
                                     clicked => {
                                         NotificationUi.selected-notification = notif;
                                     }
+                                    double-clicked => {
+                                        NotificationUi.selected-notification = notif;
+                                        NotificationUi.open-selected();
+                                    }
                                 }
                             }
                         }

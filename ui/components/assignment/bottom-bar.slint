@@ -11,6 +11,12 @@ export component AssignmentBottomBar inherits BottomBarFrame {
             action-name: "Open in browser";
             action => { AssignmentUi.open-selected-in-browser(); }
         }
+        if !AssignmentUi.assignment.id.is-empty: SelectedItemAction {
+            hotkey-name: "Shift+C";
+            hotkey: @keys(Shift+C);
+            action-name: "Copy details";
+            action => { AssignmentUi.view-attachments(0); }
+        }
         if AssignmentUi.assignment.attachments.length > 0: SelectedItemAction {
             hotkey-name: "A";
             hotkey: @keys(A);

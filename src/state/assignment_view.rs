@@ -245,5 +245,43 @@ impl AssignmentViewState {
                 }
             }
         });
+        g.on_copy_details(|assignment_id| {
+            match copy_details(&assignment_id) {
+                Ok(()) => log::debug!("Copied details for {assignment_id} to clipboard"),
+                Err(err) => {
+                    log::warn!("Failed to copy details for {assignment_id} to clipboard: {err}")
+                }
+            };
+        });
     }
+}
+
+fn copy_details(assignment_id: &str) -> io::Result<()> {
+    let assignments = database::from_sql::<Assignment>(
+        "SELECT * FROM assignments WHERE id = ?".to_owned(),
+        &[&assignment_id.to_string()],
+    )?;
+    let mut clipboard = arboard::Clipboard::new().map_err(io::Error::other)?;
+    if assignments.is_empty() {
+        return Err(Error::other(
+            "No assignment found with id = {assignment_id}",
+        ));
+    }
+    if assignments.len() > 1 {
+        log::warn!(
+            "copy_details found {} entries with id {assignment_id}",
+            assignments.len()
+        );
+    }
+    let a = &assignments[0];
+    clipboard
+        .set_text(format!(
+            "Assignment id: {assignment_id}\nAssignment title: {}\nCourse id: {}\nInternal database path: {}",
+            a.title,
+            a.course_id,
+            database::db_path()
+                .to_str()
+                .unwrap_or("Failed to get internal database path")
+        ))
+        .map_err(io::Error::other)
 }
