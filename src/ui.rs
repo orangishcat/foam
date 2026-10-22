@@ -6,7 +6,7 @@ use crate::{AppWindow, UiState, database, state::state::state};
 
 pub(crate) fn progress_color(ui: &AppWindow, percent: f64) -> slint::Color {
     let theme = ui.global::<UiState>().get_theme();
-    let level = (((percent / 100.0) * 9.0).ceil() as usize).clamp(1, 9);
+    let level = (((percent / 100.0) * 9.0).floor() as usize).clamp(1, 9);
     match level {
         1 => theme.progress_100,
         2 => theme.progress_200,
