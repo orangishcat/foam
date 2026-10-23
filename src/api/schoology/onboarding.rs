@@ -271,7 +271,6 @@ fn next(ui: &AppWindow) -> crate::account::RequestResult<()> {
             fields.set_api_secret("".into());
             ui.global::<UiState>().set_screen(Screen::Dashboard);
             FLOW.with(|flow| *flow.borrow_mut() = Onboarding::default());
-            crate::state::state::state().notif.last_update = chrono::DateTime::default();
             crate::state::state::state().on_focus();
             return Ok(());
         }

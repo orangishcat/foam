@@ -23,13 +23,10 @@ use crate::{
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NotificationState {
-    pub last_update: DateTime<Local>,
-    pub last_sync: DateTime<Local>,
-    pub last_submission_sync: DateTime<Local>,
-    pub last_update_success: bool,
-    pub scrape_attempts: u32,
+    pub last_fast_sync: DateTime<Local>,
+    pub last_slow_sync: DateTime<Local>,
     #[serde(skip)]
-    is_checking_notifications: bool,
+    is_fast_syncing: bool,
     #[serde(skip)]
     is_slow_syncing: bool,
 }
@@ -40,10 +37,9 @@ impl NotificationState {
             Ok(saved) => {
                 *self = saved;
                 log::debug!(
-                    "Last synced load: {} update: {} success: {}",
-                    self.last_sync,
-                    self.last_update,
-                    self.last_update_success
+                    "Last synced load: fast: {} slow: {}",
+                    self.last_fast_sync,
+                    self.last_slow_sync,
                 );
             }
             Err(err) => log::warn!("Loading notification sync state failed: {err}"),
@@ -54,19 +50,17 @@ impl NotificationState {
         if crate::account::active_account().is_err() {
             return;
         }
-        if !self.is_checking_notifications
-            && Local::now() - self.last_update >= self.refresh_duration()
+        if !self.is_fast_syncing && Local::now() - self.last_fast_sync >= config().refresh_duration
         {
-            self.is_checking_notifications = true;
-            self.scrape_attempts += 1;
+            self.is_fast_syncing = true;
             log::debug!("Calling fast sync");
             if let Err(err) = thread_manager::spawn_thread("sync notifications", Self::fast_sync) {
-                self.is_checking_notifications = false;
+                self.is_fast_syncing = false;
                 log::warn!("Starting notification sync failed: {err}");
             }
         }
         if !self.is_slow_syncing
-            && Local::now() - self.last_submission_sync >= config().submission_refresh_duration
+            && Local::now() - self.last_slow_sync >= config().submission_refresh_duration
         {
             log::info!("Calling slow sync");
             self.is_slow_syncing = true;
@@ -77,24 +71,12 @@ impl NotificationState {
         }
     }
 
-    fn refresh_duration(&self) -> TimeDelta {
-        if self.last_update_success {
-            config().refresh_duration
-        } else {
-            min(
-                api::exponential_retry(self.scrape_attempts),
-                config().refresh_duration,
-            )
-        }
-    }
-
     fn fast_sync() {
         let result = crate::account::active_account().and_then(|account| account.fast_sync());
         {
             let notif = &mut state().notif;
-            notif.is_checking_notifications = false;
-            notif.last_update_success = result.is_ok();
-            notif.last_update = Local::now();
+            notif.is_fast_syncing = false;
+            notif.last_fast_sync = Local::now();
             match notif.save_state() {
                 Ok(_) => log::debug!("Saved notification sync state"),
                 Err(save_err) => {
@@ -111,7 +93,9 @@ impl NotificationState {
 
     fn slow_sync() {
         let result = crate::account::active_account().and_then(|account| account.slow_sync());
-        state().notif.is_slow_syncing = false;
+        let notif = &mut state().notif;
+        notif.is_slow_syncing = false;
+        notif.last_slow_sync = Local::now();
         if let Err(err) = result {
             log::warn!("Submission sync failed: {err}");
         }

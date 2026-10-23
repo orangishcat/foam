@@ -92,7 +92,7 @@ impl Account for SchoologyAccountConfig {
         }
         let mut notifications = self.scrape_notifications().map_err(io::Error::other)?;
         let previous = notification::notifications()?;
-        let last_sync = state().notif.last_sync;
+        let last_sync = state().notif.last_fast_sync;
         notifications.sort_by_key(|n| std::cmp::Reverse(n.created));
         let mut seen = std::collections::HashSet::new();
         notifications.retain(|n| seen.insert(n.resource_id.clone()));
@@ -122,14 +122,6 @@ impl Account for SchoologyAccountConfig {
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
         let next = &mut state().notif;
-        if update_result.is_ok() {
-            next.last_sync = check_started;
-        }
-        next.last_update = chrono::Local::now();
-        next.last_update_success = update_result.is_ok();
-        if next.last_update_success {
-            next.scrape_attempts = 0;
-        }
         notification::save_notifications(&notifications, next)?;
         update_result.map_err(io::Error::other)
     }
@@ -156,7 +148,7 @@ impl Account for SchoologyAccountConfig {
             check_cancelled()?;
             submission::update_submissions(&assignments)?;
             let mut app = state();
-            app.notif.last_submission_sync = check_started;
+            app.notif.last_slow_sync = check_started;
             app.notif.save_state()?;
             Ok(())
         })()
