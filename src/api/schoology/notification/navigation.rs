@@ -58,6 +58,7 @@ impl SchoologyNotification {
                 course_title: course_title.clone(),
             });
         }
+        result.reverse();
         result
     }
 }
