@@ -80,7 +80,6 @@ impl Account for SchoologyAccountConfig {
     }
 
     fn fast_sync(&self) -> io::Result<()> {
-        let check_started = chrono::Local::now();
         let loaded = database::from_sql_map(
             "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
             &[],

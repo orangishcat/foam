@@ -1,15 +1,12 @@
-use std::{
-    cmp::min,
-    io::{self, Error, Result},
-};
+use std::io::{self, Error, Result};
 
-use chrono::{DateTime, Local, TimeDelta};
+use chrono::{DateTime, Local};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 use crate::{
-    AppWindow, UiState, api,
+    AppWindow, UiState,
     config::config,
     database,
     state::state::state,

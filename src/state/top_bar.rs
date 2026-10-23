@@ -37,7 +37,7 @@ pub fn get_path_data(
         return Ok((
             course_title,
             "Courses".to_owned(),
-            CourseState::children(&ui, &course, &root)?,
+            CourseState::children(ui, &course, &root)?,
             CourseState::course_folders(ui),
         ));
     }
@@ -50,8 +50,8 @@ pub fn get_path_data(
     Ok((
         title,
         parent_title,
-        CourseState::children(&ui, &course, &folder)?,
-        CourseState::children(&ui, &course, &parent)?,
+        CourseState::children(ui, &course, &folder)?,
+        CourseState::children(ui, &course, &parent)?,
     ))
 }
 
