@@ -90,11 +90,13 @@ impl NotificationState {
 
     fn slow_sync() {
         let result = crate::account::active_account().and_then(|account| account.slow_sync());
-        let notif = &mut state().notif;
-        notif.is_slow_syncing = false;
-        notif.last_slow_sync = Local::now();
-        if let Err(err) = result {
-            log::warn!("Submission sync failed: {err}");
+        {
+            let notif = &mut state().notif;
+            notif.is_slow_syncing = false;
+            notif.last_slow_sync = Local::now();
+            if let Err(err) = &result {
+                log::warn!("Submission sync failed: {err}");
+            }
         }
         ui::sync_ui();
     }

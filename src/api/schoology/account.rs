@@ -120,8 +120,9 @@ impl Account for SchoologyAccountConfig {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
-        let next = &mut state().notif;
-        notification::save_notifications(&notifications, next)?;
+        // clone to avoid deadlock
+        let next = state().notif.clone();
+        notification::save_notifications(&notifications, &next)?;
         update_result.map_err(io::Error::other)
     }
 
