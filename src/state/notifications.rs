@@ -105,7 +105,7 @@ impl NotificationState {
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
-             ORDER BY julianday(n.created) DESC, n.id".to_owned(), &[], |row| {
+             ORDER BY julianday(n.created) DESC, n.seq".to_owned(), &[], |row| {
                 Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
                     row.get::<_, String>("display_course").map_err(Error::other)?))
             })?;

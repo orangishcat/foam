@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     material_type TEXT,
     course_id TEXT NOT NULL,
     course_title TEXT,
+    seq INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS sync_state (

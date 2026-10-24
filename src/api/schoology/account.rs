@@ -89,24 +89,26 @@ impl Account for SchoologyAccountConfig {
             self.scrape_courses().map_err(io::Error::other)?;
             database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
         }
-        let mut notifications = self.scrape_notifications().map_err(io::Error::other)?;
-        let previous = notification::notifications()?;
+        let mut scraped_notifs = self.scrape_notifications().map_err(io::Error::other)?;
+        let existing_notifs = notification::notifications()?;
         let last_sync = state().notif.last_fast_sync;
-        notifications.sort_by_key(|n| std::cmp::Reverse(n.created));
+        scraped_notifs.sort_by_key(|n| n.created);
         let mut seen = std::collections::HashSet::new();
-        notifications.retain(|n| seen.insert(n.resource_id.clone()));
-        let mut pending: Vec<_> = notifications
+        scraped_notifs.retain(|n| seen.insert((n.resource_id.clone(), n.title.clone())));
+        let mut pending: Vec<_> = scraped_notifs
             .iter()
             .filter(|n| {
                 n.created >= last_sync
-                    || !previous.iter().any(|old| old.resource_id == n.resource_id)
+                    || !existing_notifs
+                        .iter()
+                        .any(|old| old.resource_id == n.resource_id)
             })
             .cloned()
             .collect();
         check_cancelled()?;
         let update_result = self.update_notifications(&mut pending);
         for updated in pending {
-            if let Some(n) = notifications
+            if let Some(n) = scraped_notifs
                 .iter_mut()
                 .find(|n| n.title == updated.title || n.resource_id == updated.resource_id)
             {
@@ -122,7 +124,7 @@ impl Account for SchoologyAccountConfig {
         }
         // clone to avoid deadlock
         let next = state().notif.clone();
-        notification::save_notifications(&notifications, &next)?;
+        notification::save_notifications(&scraped_notifs, &next)?;
         update_result.map_err(io::Error::other)
     }
 

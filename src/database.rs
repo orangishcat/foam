@@ -31,6 +31,7 @@ fn create_schema() -> Result<()> {
         .map_err(Error::other)?;
     add_column_if_missing("materials", "last_updated", "TEXT")?;
     add_column_if_missing("notifications", "subtitle", "TEXT NOT NULL DEFAULT \"\"")?;
+    add_column_if_missing("notifications", "seq", "INTEGER NOT NULL DEFAULT 0")?;
     Ok(())
 }
 

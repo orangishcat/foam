@@ -26,6 +26,8 @@ pub struct Notification {
     pub material_type: Option<MaterialType>,
     pub course_id: String,
     pub course_title: String,
+    // scrape order within one sync; used as the display tiebreak for equal `created`
+    pub seq: i64,
 }
 
 impl Notification {
@@ -36,7 +38,7 @@ impl Notification {
 
 pub fn notifications() -> Result<Vec<Notification>> {
     database::from_sql(
-        "SELECT * FROM notifications ORDER BY julianday(created) DESC, id".to_owned(),
+        "SELECT * FROM notifications ORDER BY julianday(created) DESC, seq".to_owned(),
         &[],
     )
 }
@@ -60,9 +62,9 @@ pub(crate) fn save_notifications_on(
         let id = notification.id()?;
         let mut values = serialized.to_slice();
         values.push((":id", &id));
-        transaction.execute("INSERT INTO notifications (id, is_unread, event, title, subtitle, created, resource_id, material_type, course_id, course_title)
-            VALUES (:id, :is_unread, :event, :title, :subtitle, :created, :resource_id, :material_type, :course_id, :course_title)
-            ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, subtitle = excluded.subtitle, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title
+        transaction.execute("INSERT INTO notifications (id, is_unread, event, title, subtitle, created, resource_id, material_type, course_id, course_title, seq)
+            VALUES (:id, :is_unread, :event, :title, :subtitle, :created, :resource_id, :material_type, :course_id, :course_title, :seq)
+            ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, subtitle = excluded.subtitle, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title, seq = excluded.seq
             WHERE julianday(excluded.created) >= julianday(notifications.created)", values.as_slice()).map_err(Error::other)?;
     }
     notif_state.save_state_on(&transaction)?;

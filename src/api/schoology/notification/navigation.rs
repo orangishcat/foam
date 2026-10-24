@@ -1,7 +1,7 @@
 use crate::api::schoology::account::SchoologyAccountConfig;
 use std::collections::HashSet;
 
-use chrono::{DateTime, Days, Local, NaiveTime, TimeZone};
+use chrono::{DateTime, Datelike, Days, Local, NaiveTime, TimeZone, Weekday};
 
 use super::super::RequestResult;
 use crate::{
@@ -56,9 +56,9 @@ impl SchoologyNotification {
                 },
                 course_id: course_id.clone(),
                 course_title: course_title.clone(),
+                ..Default::default()
             });
         }
-        result.reverse();
         result
     }
 }
@@ -94,7 +94,27 @@ fn parse_created(value: &str, now: DateTime<Local>) -> DateTime<Local> {
         let date = match day {
             "Today" => now.date_naive(),
             "Yesterday" => now.date_naive().checked_sub_days(Days::new(1))?,
-            _ => return None,
+            _ => {
+                let weekday = match day {
+                    "Mon" => Weekday::Mon,
+                    "Tue" => Weekday::Tue,
+                    "Wed" => Weekday::Wed,
+                    "Thu" => Weekday::Thu,
+                    "Fri" => Weekday::Fri,
+                    "Sat" => Weekday::Sat,
+                    "Sun" => Weekday::Sun,
+                    _ => return None,
+                };
+                let diff = now
+                    .date_naive()
+                    .weekday()
+                    .num_days_from_monday()
+                    .abs_diff(weekday.num_days_from_monday());
+                // Weekday labels are only used for past days, so the same
+                // weekday refers to a week ago rather than today.
+                now.date_naive()
+                    .checked_sub_days(Days::new(if diff == 0 { 7 } else { diff as u64 }))?
+            }
         };
         let time = NaiveTime::parse_from_str(time, "%I:%M %P").ok()?;
         Local.from_local_datetime(&date.and_time(time)).single()
@@ -106,10 +126,15 @@ impl SchoologyAccountConfig {
     pub fn scrape_notifications(&self) -> RequestResult<Vec<Notification>> {
         let response: NotificationsResponse = self.internal_get(ROUTE)?;
         let now = Local::now();
-        Ok(response
-            .data
-            .into_iter()
-            .flat_map(|item| item.into_notifications(now))
-            .collect())
+        let mut seq = 0i64;
+        let mut notifications = Vec::new();
+        for item in response.data {
+            for mut notification in item.into_notifications(now) {
+                notification.seq = seq;
+                seq += 1;
+                notifications.push(notification);
+            }
+        }
+        Ok(notifications)
     }
 }
