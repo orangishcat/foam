@@ -10,7 +10,12 @@ slint = { version = "1.18.1", features = ["unstable-winit-030"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dirs = "6"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls", "cookies"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls-tls",
+    "cookies",
+] }
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.10"
@@ -23,7 +28,7 @@ derivative = "2.2.0"
 scraper = "0.27.0"
 itertools = "0.15.0"
 # Windows does not provide sqlite3.lib; compile SQLite into the application there.
-rusqlite = { version = "0.40.2", features = ["bundled-windows"] }
+rusqlite = { version = "0.40.2", features = ["bundled-windows", "collation"] }
 serde_rusqlite = "0.43.0"
 serde_with = { version = "3", features = ["json", "chrono_0_4"] }
 i-slint-live-preview = "1.18.1"
@@ -31,6 +36,7 @@ slint-interpreter = "1.18.1"
 wry = "0.57.0"
 arboard = "3.7.0"
 cargo-packager-updater = "0.2.3"
+natord = "1.0.9"
 
 [build-dependencies]
 slint-build = "1.16.1"
@@ -50,7 +56,12 @@ lto = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"
-objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSResponder", "NSMenu", "NSMenuItem"] }
+objc2-app-kit = { version = "0.2", features = [
+    "NSApplication",
+    "NSResponder",
+    "NSMenu",
+    "NSMenuItem",
+] }
 objc2-foundation = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]

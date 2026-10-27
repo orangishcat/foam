@@ -16,7 +16,7 @@ pub struct CourseState {}
 impl CourseState {
     pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let courses = database::from_sql::<Course>(
-        "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NOCASE, section_title COLLATE NOCASE"
+        "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NATURAL_ORDER, section_title COLLATE NATURAL_ORDER"
             .to_owned(),
         &[],
     )?;
@@ -373,7 +373,7 @@ impl CourseState {
 
     pub fn children(ui: &AppWindow, course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {
         let mut items = database::from_sql_map(
-        "SELECT material_id, title, type FROM materials WHERE course_id = ? AND parent_id = ? ORDER BY type != 'folder', title COLLATE NOCASE, material_id".into(),
+        "SELECT material_id, title, type FROM materials WHERE course_id = ? AND parent_id = ? ORDER BY type != 'folder', title COLLATE NATURAL_ORDER, material_id".into(),
         params![course, folder],
         |row| {
             let id: String = row.get(0).map_err(io::Error::other)?;

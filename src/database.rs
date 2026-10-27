@@ -14,6 +14,9 @@ const DB_NAME: &str = "foam.db";
 
 pub fn init() -> Result<()> {
     let connection = Connection::open(db_path()).map_err(Error::other)?;
+    connection
+        .create_collation("NATURAL_ORDER", |a, b| natord::compare_ignore_case(a, b))
+        .map_err(io::Error::other)?;
     DB_CONNECTION
         .set(Mutex::new(connection))
         .map_err(|_| Error::other("setting oncelock failed"))?;
