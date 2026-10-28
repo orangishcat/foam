@@ -56,7 +56,11 @@ impl Platform for GtkClipboardBackend {
         self.0.create_window_adapter()
     }
 
-    fn bind_context(&self, context: i_slint_core::SlintContextWeak, token: i_slint_core::InternalToken) {
+    fn bind_context(
+        &self,
+        context: i_slint_core::SlintContextWeak,
+        token: i_slint_core::InternalToken,
+    ) {
         self.0.bind_context(context, token);
     }
 
@@ -97,7 +101,9 @@ impl Platform for GtkClipboardBackend {
     fn clipboard_text(&self, kind: Clipboard) -> Option<String> {
         // GTK services its event loop while waiting, including requests whose
         // owner is one of our WebKit views. All Slint paste paths use this hook.
-        clipboard(kind)?.wait_for_text().map(|text| text.to_string())
+        clipboard(kind)?
+            .wait_for_text()
+            .map(|text| text.to_string())
     }
 
     fn debug_log(&self, arguments: std::fmt::Arguments) {

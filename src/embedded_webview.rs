@@ -28,9 +28,8 @@ impl EmbeddedWebView {
             inner.set_visible(false)?;
         }
         #[cfg(target_os = "linux")]
-        let focus = crate::platform::webview_focus::Registration::new(
-            &inner, parent, bounds, visible,
-        )?;
+        let focus =
+            crate::platform::webview_focus::Registration::new(&inner, parent, bounds, visible)?;
         Ok(Self {
             #[cfg(target_os = "linux")]
             focus,

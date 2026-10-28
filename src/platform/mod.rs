@@ -153,9 +153,7 @@ pub fn on_window_event(slint_window: &slint::Window, event: &winit::event::Windo
                 #[cfg(target_os = "linux")]
                 {
                     let active = slint_window
-                        .with_winit_window(|window| {
-                            parent_active(window.id()).unwrap_or(*focus)
-                        })
+                        .with_winit_window(|window| parent_active(window.id()).unwrap_or(*focus))
                         .unwrap_or(*focus);
                     ui.set_window_active(active);
                 }

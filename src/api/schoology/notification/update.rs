@@ -86,7 +86,9 @@ impl SchoologyAccountConfig {
                             n.course_id = assignment.course_id.clone();
                         }
                         n.subtitle = match (&assignment.score, &assignment.letter_grade) {
-                            (Some(score), Some(letter)) => format!("{score} / {} ({letter})", assignment.max_points),
+                            (Some(score), Some(letter)) => {
+                                format!("{score} / {} ({letter})", assignment.max_points)
+                            }
                             (Some(score), None) => format!("{score} / {}", assignment.max_points),
                             (None, Some(letter)) => letter.clone(),
                             (None, None) => String::new(),

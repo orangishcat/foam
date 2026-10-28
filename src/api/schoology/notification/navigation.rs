@@ -112,8 +112,11 @@ fn parse_created(value: &str, now: DateTime<Local>) -> DateTime<Local> {
                     .abs_diff(weekday.num_days_from_monday());
                 // Weekday labels are only used for past days, so the same
                 // weekday refers to a week ago rather than today.
-                now.date_naive()
-                    .checked_sub_days(Days::new(if diff == 0 { 7 } else { diff as u64 }))?
+                now.date_naive().checked_sub_days(Days::new(if diff == 0 {
+                    7
+                } else {
+                    diff as u64
+                }))?
             }
         };
         let time = NaiveTime::parse_from_str(time, "%I:%M %P").ok()?;

@@ -62,7 +62,10 @@ pub(super) fn recover(
     let (tx, rx) = mpsc::channel();
     weak.upgrade_in_event_loop(move |ui| {
         let loaded = Arc::new(AtomicBool::new(false));
+        let finished = Arc::new(AtomicBool::new(false));
+        let promoted = Arc::new(AtomicBool::new(false));
         let page_loaded = loaded.clone();
+        let page_finished = finished.clone();
         let page_host = host.clone();
         let result = with_context(|context| {
             ui.window()
@@ -79,11 +82,11 @@ pub(super) fn recover(
                     };
                     let builder = WebViewBuilder::new_with_web_context(context)
                         .with_on_page_load_handler(move |event, url| {
-                            page_loaded.store(
-                                matches!(event, wry::PageLoadEvent::Finished)
-                                    && authenticated_home(&url, &page_host),
-                                Ordering::Relaxed,
-                            );
+                            if matches!(event, wry::PageLoadEvent::Finished) {
+                                page_finished.store(true, Ordering::Relaxed);
+                                page_loaded
+                                    .store(authenticated_home(&url, &page_host), Ordering::Relaxed);
+                            }
                         })
                         .with_url(url.as_str());
                     EmbeddedWebView::build(builder, window, bounds, false)
@@ -94,7 +97,7 @@ pub(super) fn recover(
         match result {
             Ok(webview) => {
                 BROWSER.with(|browser| *browser.borrow_mut() = Some(webview));
-                poll(host, key, tx, Instant::now(), loaded);
+                poll(host, key, tx, Instant::now(), loaded, finished, promoted);
             }
             Err(error) => {
                 let _ = tx.send(Err(error));
@@ -127,6 +130,8 @@ fn poll(
     tx: mpsc::Sender<io::Result<String>>,
     started: Instant,
     loaded: Arc<AtomicBool>,
+    finished: Arc<AtomicBool>,
+    promoted: Arc<AtomicBool>,
 ) {
     slint::Timer::single_shot(Duration::from_millis(250), move || {
         let result = BROWSER.with(|browser| -> io::Result<Option<String>> {
@@ -141,9 +146,12 @@ fn poll(
                     "Schoology sign-in timed out. Try syncing again to sign in.",
                 ));
             }
-            if loaded.load(Ordering::Relaxed)
-                && authenticated_home(&webview.url().map_err(io::Error::other)?, &host)
-            {
+            let authenticated = if loaded.load(Ordering::Relaxed) {
+                authenticated_home(&webview.url().map_err(io::Error::other)?, &host)
+            } else {
+                false
+            };
+            if authenticated {
                 let cookies = webview
                     .cookies_for_url(&format!("https://{host}/"))
                     .map_err(io::Error::other)?;
@@ -154,10 +162,17 @@ fn poll(
                     return Ok(Some(cookie.value().to_owned()));
                 }
             }
+            // There is no live store session, so the hidden webview is stuck on
+            // a login page nobody can see. Promote it to a visible sign-in panel.
+            if finished.load(Ordering::Relaxed) && !promoted.swap(true, Ordering::Relaxed) {
+                log::info!("Schoology recovery needs interaction: showing sign-in panel");
+                webview.set_visible(true).map_err(io::Error::other)?;
+                let _ = webview.focus();
+            }
             Ok(None)
         });
         match result {
-            Ok(None) => poll(host, key, tx, started, loaded),
+            Ok(None) => poll(host, key, tx, started, loaded, finished, promoted),
             result => {
                 BROWSER.with(|browser| {
                     browser.borrow_mut().take();
