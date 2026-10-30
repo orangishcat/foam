@@ -68,10 +68,13 @@ export component Materials inherits Rectangle {
                     Rectangle {
                         horizontal-stretch: 1;
                         VerticalLayout {
-                        padding: 1rem;
+                            padding-left: 1rem;
+                            padding-right: 1rem;
                             list := ScrollView {
                                 horizontal-scrollbar-policy: always-off;
                                 VerticalLayout {
+                                    padding-top: 1rem;
+                                    padding-bottom: 1rem;
                                     for item[i] in root.tab.materials: VerticalLayout {
                                         padding-bottom: 0.25rem;
                                         Row {

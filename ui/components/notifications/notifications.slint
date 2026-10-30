@@ -65,91 +65,96 @@ export component Notifications inherits FocusScope {
                 width: parent.width - root.sidebar-width;
                 height: parent.height;
                 VerticalBox {
-                    padding: 2rem;
-                    ListView {
-                        for notif in NotificationUi.notifications: Rectangle {
-                            height: inner.height + 0.625rem;
-                            inner := Rectangle {
-                                border-radius: 0.3125rem;
-                                border-width: 0.0625rem;
-                                height: min(7.5rem, max(1.875rem, self.preferred-height));
-                                border-color: UiState.theme.background-400;
-                                background: NotificationUi.selected-notification.id == notif.id
-                                    ? UiState.theme.background-500 : action.has-hover || action.has-focus
-                                    ? UiState.theme.background-600 : UiState.theme.background-700;
+                    padding-left: 2rem;
+                    padding-right: 2rem;
+                    ScrollView {
+                        VerticalLayout {
+                            padding-top: 1rem;
+                            padding-bottom: 1rem;
+                            for notif in NotificationUi.notifications: Rectangle {
+                                height: inner.height + 0.625rem;
+                                inner := Rectangle {
+                                    border-radius: 0.3125rem;
+                                    border-width: 0.0625rem;
+                                    height: min(7.5rem, max(1.875rem, self.preferred-height));
+                                    border-color: UiState.theme.background-400;
+                                    background: NotificationUi.selected-notification.id == notif.id
+                                        ? UiState.theme.background-500 : action.has-hover || action.has-focus
+                                        ? UiState.theme.background-600 : UiState.theme.background-700;
 
-                                preferred-height: title.preferred-height + course.preferred-height
-                                    + content.padding-top + content.padding-bottom + 2rem;
-                                clip: true;
+                                    preferred-height: title.preferred-height + course.preferred-height
+                                        + content.padding-top + content.padding-bottom + 2rem;
+                                    clip: true;
 
-                                HorizontalLayout {
-                                    padding: 0.1245rem;
-                                    alignment: start;
-                                    spacing: 0.75rem;
+                                    HorizontalLayout {
+                                        padding: 0.1245rem;
+                                        alignment: start;
+                                        spacing: 0.75rem;
 
-                                    padding-left: 0.75rem;
-                                    padding-right: 0.75rem;
-                                    Rectangle {
-                                        width: 0.625rem;
-                                        height: 0.625rem;
-                                        border-radius: 0.3125rem;
-                                        background: notif.unread ? UiState.theme.secondary-200 : transparent;
-                                        cross-axis-self-alignment: center;
-                                    }
-
-                                    if notif.n_type == NotificationType.new-assignment: Image {
-                                        source: @image-url("../../icons/file-plus.svg");
-                                        colorize: notif.icon-color;
-                                        height: 4rem;
-                                    }
-                                    if notif.n_type == NotificationType.new-document: Image {
-                                        source: @image-url("../../icons/file-text.svg");
-                                        colorize: notif.icon-color;
-                                        height: 4rem;
-                                    }
-                                    if notif.n_type == NotificationType.new-grade: Image {
-                                        source: @image-url("../../icons/circle-check-big.svg");
-                                        colorize: notif.icon-color;
-                                        height: 4rem;
-                                    }
-                                    if notif.n_type == NotificationType.new_link: Image {
-                                        source: @image-url("../../icons/link.svg");
-                                        colorize: notif.icon-color;
-                                        height: 4rem;
-                                    }
-                                    if notif.n_type == NotificationType.unknown: Image {
-                                        source: @image-url("../../icons/square-plus.svg");
-                                        colorize: notif.icon-color;
-                                        height: 4rem;
-                                    }
-                                    content := VerticalLayout {
-                                        spacing: 0.25rem;
-                                        title := Text {
-                                            text: notif.title;
-                                            font-size: 1.125rem;
-                                            font-weight: 700;
-                                            vertical-alignment: bottom;
-                                            wrap: word-wrap;
+                                        padding-left: 0.75rem;
+                                        padding-right: 0.75rem;
+                                        Rectangle {
+                                            width: 0.625rem;
+                                            height: 0.625rem;
+                                            border-radius: 0.3125rem;
+                                            background: notif.unread ? UiState.theme.secondary-200 : transparent;
+                                            cross-axis-self-alignment: center;
                                         }
 
-                                        course := Text {
-                                            color: UiState.theme.text-400;
-                                            font-size: 0.75rem;
-                                            text: notif.subtitle + (notif.subtitle.is-empty ? "" : " • ") + notif.course;
-                                            vertical-alignment: top;
-                                            wrap: word-wrap;
+                                        if notif.n_type == NotificationType.new-assignment: Image {
+                                            source: @image-url("../../icons/file-plus.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new-document: Image {
+                                            source: @image-url("../../icons/file-text.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new-grade: Image {
+                                            source: @image-url("../../icons/circle-check-big.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new_link: Image {
+                                            source: @image-url("../../icons/link.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.unknown: Image {
+                                            source: @image-url("../../icons/square-plus.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        content := VerticalLayout {
+                                            spacing: 0.25rem;
+                                            title := Text {
+                                                text: notif.title;
+                                                font-size: 1.125rem;
+                                                font-weight: 700;
+                                                vertical-alignment: bottom;
+                                                wrap: word-wrap;
+                                            }
+
+                                            course := Text {
+                                                color: UiState.theme.text-400;
+                                                font-size: 0.75rem;
+                                                text: notif.subtitle + (notif.subtitle.is-empty ? "" : " • ") + notif.course;
+                                                vertical-alignment: top;
+                                                wrap: word-wrap;
+                                            }
                                         }
                                     }
-                                }
 
-                                action := HoverableButton {
-                                    text: notif.title;
-                                    clicked => {
-                                        NotificationUi.selected-notification = notif;
-                                    }
-                                    double-clicked => {
-                                        NotificationUi.selected-notification = notif;
-                                        NotificationUi.open-selected();
+                                    action := HoverableButton {
+                                        text: notif.title;
+                                        clicked => {
+                                            NotificationUi.selected-notification = notif;
+                                        }
+                                        double-clicked => {
+                                            NotificationUi.selected-notification = notif;
+                                            NotificationUi.open-selected();
+                                        }
                                     }
                                 }
                             }

@@ -14,14 +14,14 @@ export component Sidebar inherits Rectangle {
         oklch(c.lightness - 0.03, c.chroma, c.hue, c.alpha)
     };
     VerticalLayout {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
         sidebar := ScrollView {
             horizontal-scrollbar-policy: always-off;
             VerticalLayout {
                 spacing: 0.125rem;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
 
                 for item[i] in root.items: Row {
                     width: sidebar.visible-width;
