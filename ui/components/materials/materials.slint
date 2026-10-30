@@ -67,23 +67,25 @@ export component Materials inherits Rectangle {
 
                     Rectangle {
                         horizontal-stretch: 1;
-                        list := ScrollView {
-                            horizontal-scrollbar-policy: always-off;
-                            VerticalLayout {
-                                padding: 1rem;
-                                for item[i] in root.tab.materials: VerticalLayout {
-                                    padding-bottom: 0.25rem;
-                                    Row {
-                                        width: list.visible-width;
-                                        item: item;
-                                        selected-index <=> MaterialsMenu.selected-index;
-                                        row-index: i;
-                                    }
+                        VerticalLayout {
+                        padding: 1rem;
+                            list := ScrollView {
+                                horizontal-scrollbar-policy: always-off;
+                                VerticalLayout {
+                                    for item[i] in root.tab.materials: VerticalLayout {
+                                        padding-bottom: 0.25rem;
+                                        Row {
+                                            width: list.visible-width;
+                                            item: item;
+                                            selected-index <=> MaterialsMenu.selected-index;
+                                            row-index: i;
+                                        }
 
-                                    if i < root.tab.materials.length - 1: Rectangle {
-                                        border-width: 0.0625rem;
-                                        height: 0.0625rem;
-                                        border-color: UiState.theme.background-700;
+                                        if i < root.tab.materials.length - 1: Rectangle {
+                                            border-width: 0.0625rem;
+                                            height: 0.0625rem;
+                                            border-color: UiState.theme.background-700;
+                                        }
                                     }
                                 }
                             }
