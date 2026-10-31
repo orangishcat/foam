@@ -1,0 +1,153 @@
+import { ColorPalette } from "../palette.slint";
+import { UiState } from "../globals.slint";
+
+// One swatch: a shade value and its display name, e.g. { color: ..., shade: "500" }
+struct ColorSwatch {
+    color: color,
+    shade: string,
+}
+
+component Swatch inherits Rectangle {
+    in property <ColorSwatch> swatch;
+    in property <length> shade-width: 2.25rem;
+    width: root.shade-width;
+    height: 2.25rem;
+    background: root.swatch.color;
+    border-width: 1px;
+    border-color: UiState.theme.background-700;
+
+    Text {
+        y: parent.height * 0.9;
+        width: parent.width;
+        text: root.swatch.shade;
+        font-size: 0.625rem;
+        color: UiState.theme.text-500;
+        horizontal-alignment: center;
+    }
+}
+
+component SwatchRow inherits HorizontalLayout {
+    in property <string> title;
+    in property <[ColorSwatch]> swatches;
+    in property <color> title-color: UiState.theme.text-500;
+    spacing: 0.25rem;
+    Text {
+        vertical-alignment: center;
+        width: 6rem;
+        text: root.title;
+        font-size: 0.75rem;
+        color: root.title-color;
+    }
+    for swatch in root.swatches: Swatch {
+        swatch: swatch;
+    }
+}
+
+export component PalettePreview inherits Rectangle {
+    // Which palette to render; defaults to the app's active theme.
+    // Pass Theme.dark / Theme.light to inspect a specific scheme.
+    in property <ColorPalette> palette: UiState.theme;
+    in property <color> title-color: UiState.theme.text-500;
+
+    // `p` is a workaround: array literals can't read sibling properties directly.
+    private property <ColorPalette> p: root.palette;
+
+    private property <[ColorSwatch]> text-colors: [
+        { color: self.p.text-50, shade: "50" },
+        { color: self.p.text-100, shade: "100" },
+        { color: self.p.text-200, shade: "200" },
+        { color: self.p.text-300, shade: "300" },
+        { color: self.p.text-400, shade: "400" },
+        { color: self.p.text-500, shade: "500" },
+        { color: self.p.text-600, shade: "600" },
+        { color: self.p.text-700, shade: "700" },
+        { color: self.p.text-800, shade: "800" },
+        { color: self.p.text-900, shade: "900" },
+        { color: self.p.text-950, shade: "950" },
+    ];
+    private property <[ColorSwatch]> background-colors: [
+        { color: self.p.background-50, shade: "50" },
+        { color: self.p.background-100, shade: "100" },
+        { color: self.p.background-200, shade: "200" },
+        { color: self.p.background-300, shade: "300" },
+        { color: self.p.background-400, shade: "400" },
+        { color: self.p.background-500, shade: "500" },
+        { color: self.p.background-600, shade: "600" },
+        { color: self.p.background-700, shade: "700" },
+        { color: self.p.background-750, shade: "750" },
+        { color: self.p.background-800, shade: "800" },
+        { color: self.p.background-850, shade: "850" },
+        { color: self.p.background-900, shade: "900" },
+        { color: self.p.background-950, shade: "950" },
+    ];
+    private property <[ColorSwatch]> primary-colors: [
+        { color: self.p.primary-50, shade: "50" },
+        { color: self.p.primary-100, shade: "100" },
+        { color: self.p.primary-200, shade: "200" },
+        { color: self.p.primary-300, shade: "300" },
+        { color: self.p.primary-400, shade: "400" },
+        { color: self.p.primary-500, shade: "500" },
+        { color: self.p.primary-600, shade: "600" },
+        { color: self.p.primary-700, shade: "700" },
+        { color: self.p.primary-800, shade: "800" },
+        { color: self.p.primary-900, shade: "900" },
+        { color: self.p.primary-950, shade: "950" },
+    ];
+    private property <[ColorSwatch]> secondary-colors: [
+        { color: self.p.secondary-50, shade: "50" },
+        { color: self.p.secondary-100, shade: "100" },
+        { color: self.p.secondary-200, shade: "200" },
+        { color: self.p.secondary-300, shade: "300" },
+        { color: self.p.secondary-400, shade: "400" },
+        { color: self.p.secondary-500, shade: "500" },
+        { color: self.p.secondary-600, shade: "600" },
+        { color: self.p.secondary-700, shade: "700" },
+        { color: self.p.secondary-800, shade: "800" },
+        { color: self.p.secondary-900, shade: "900" },
+        { color: self.p.secondary-950, shade: "950" },
+    ];
+    private property <[ColorSwatch]> progress-colors: [
+        { color: self.p.progress-100, shade: "100" },
+        { color: self.p.progress-200, shade: "200" },
+        { color: self.p.progress-300, shade: "300" },
+        { color: self.p.progress-400, shade: "400" },
+        { color: self.p.progress-500, shade: "500" },
+        { color: self.p.progress-600, shade: "600" },
+        { color: self.p.progress-700, shade: "700" },
+        { color: self.p.progress-800, shade: "800" },
+        { color: self.p.progress-900, shade: "900" },
+    ];
+
+    background: transparent;
+
+    HorizontalLayout {
+        alignment: start;
+        spacing: 0.5rem;
+        padding: 0.5rem;
+
+        SwatchRow {
+            title: "text";
+            swatches: root.text-colors;
+        }
+
+        SwatchRow {
+            title: "background";
+            swatches: root.background-colors;
+        }
+
+        SwatchRow {
+            title: "primary";
+            swatches: root.primary-colors;
+        }
+
+        SwatchRow {
+            title: "secondary";
+            swatches: root.secondary-colors;
+        }
+
+        SwatchRow {
+            title: "progress";
+            swatches: root.progress-colors;
+        }
+    }
+}

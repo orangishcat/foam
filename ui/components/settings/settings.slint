@@ -3,6 +3,28 @@ import { UiState, SettingsUi } from "../../globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { IntInput } from "number-input.slint";
+import { ThemeSettings } from "theme-settings.slint";
+
+component SettingsTab inherits Rectangle {
+    in property <int> tab-index;
+    in property <string> label;
+    width: 6rem;
+    height: 2.25rem;
+    border-radius: 0.25rem;
+    background: SettingsUi.tab == root.tab-index ? UiState.theme.background-600
+        : (touch.has-hover ? UiState.theme.background-700 : transparent);
+    accessible-role: tab;
+    touch := TouchArea {
+        clicked => { SettingsUi.tab = root.tab-index; }
+    }
+    Text {
+        text: root.label;
+        font-size: 1rem;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+        color: SettingsUi.tab == root.tab-index ? UiState.theme.text-50 : UiState.theme.text-300;
+    }
+}
 
 export component Settings inherits Rectangle {
     in property <length> sidebar-width;
@@ -25,7 +47,21 @@ export component Settings inherits Rectangle {
                     padding: 1.5rem;
                     spacing: 1rem;
                     alignment: start;
-                    VerticalLayout {
+
+                    HorizontalLayout {
+                        spacing: 0.5rem;
+                        SettingsTab {
+                            tab-index: 0;
+                            label: "Appearance";
+                        }
+                        SettingsTab {
+                            tab-index: 1;
+                            label: "Theme";
+                        }
+                        Rectangle { horizontal-stretch: 1; }
+                    }
+
+                    if SettingsUi.tab == 0: VerticalLayout {
                         spacing: 0.25rem;
                         Text {
                             text: "Appearance";
@@ -39,7 +75,7 @@ export component Settings inherits Rectangle {
                         }
                     }
 
-                    HorizontalLayout {
+                    if SettingsUi.tab == 0: HorizontalLayout {
                         Text {
                             text: "UI Scaling";
                             font-size: 1.25rem;
@@ -60,6 +96,8 @@ export component Settings inherits Rectangle {
                             }
                         }
                     }
+
+                    if SettingsUi.tab == 1: ThemeSettings { }
                 }
             }
         }
