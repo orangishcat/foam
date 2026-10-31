@@ -26,6 +26,12 @@ pub struct NotificationState {
     is_fast_syncing: bool,
     #[serde(skip)]
     is_slow_syncing: bool,
+    #[serde(skip, default = "default_notification_limit")]
+    notification_limit: i32,
+}
+
+fn default_notification_limit() -> i32 {
+    25
 }
 
 impl NotificationState {
@@ -105,7 +111,7 @@ impl NotificationState {
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
-             ORDER BY julianday(n.created) DESC, n.seq LIMIT 25".to_owned(), &[], |row| {
+             ORDER BY julianday(n.created) DESC, n.seq LIMIT ?1".to_owned(), &[&self.notification_limit], |row| {
                 Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
                     row.get::<_, String>("display_course").map_err(Error::other)?))
             })?;
@@ -163,6 +169,20 @@ impl NotificationState {
 
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<crate::NotificationUi>();
+        global.on_opened(|| {
+            {
+                let notif = &mut state().notif;
+                notif.notification_limit = 20;
+            }
+            ui::sync_ui();
+        });
+        global.on_load_more(|| {
+            {
+                let notif = &mut state().notif;
+                notif.notification_limit += 20;
+            }
+            ui::sync_ui();
+        });
         global.on_closed(ui::sync_ui);
         global.on_mark_all_as_read(|| {
             if let Err(err) =

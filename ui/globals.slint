@@ -107,6 +107,7 @@ export global NotificationUi {
     callback closed();
     callback mark-all-as-read();
     callback set-read(string, bool);
+    callback load-more();
     in-out property <float> progress;
     in-out property <color> progress-color: #78aaff;
     in-out property <[Notification]> temp-notifs;

@@ -67,7 +67,16 @@ export component Notifications inherits FocusScope {
                 VerticalBox {
                     padding-left: 2rem;
                     padding-right: 2rem;
-                    ScrollView {
+                    scroll := ScrollView {
+                            changed viewport-y => {
+                                // Trigger load-more once scrolled to (or near) the bottom.
+                                if self.viewport-height > self.visible-height
+                                    && self.viewport-y + self.viewport-height
+                                        <= self.visible-height + 2rem
+                                {
+                                    NotificationUi.load-more();
+                                }
+                            }
                         VerticalLayout {
                             padding-top: 1rem;
                             padding-bottom: 1rem;
