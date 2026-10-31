@@ -1,0 +1,12 @@
+export global OnboardingUi {
+    in-out property <int> step: 0;
+    in-out property <string> subdomain;
+    in-out property <string> api-key;
+    in-out property <string> api-secret;
+    in-out property <string> calendar-url;
+    in-out property <string> error;
+    in-out property <bool> busy: false;
+    callback previous();
+    callback next();
+    callback skip-api();
+}

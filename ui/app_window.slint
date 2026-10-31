@@ -12,27 +12,29 @@ import { Sidebar } from "components/sidebar.slint";
 import { WindowControls } from "components/window-controls.slint";
 import { Settings } from "components/settings/settings.slint";
 import { DocumentView } from "components/document/document-view.slint";
-import {
-    UiState,
-    CoursesUi,
-    DashboardUi,
-    NotificationUi,
-    WindowChrome,
-} from "globals.slint";
+import { UiState, WindowChrome } from "globals.slint";
+import { OnboardingUi } from "components/onboarding/globals.slint";
+import { SettingsUi } from "components/settings/globals.slint";
+import { DashboardUi } from "components/dashboard/globals.slint";
+import { NotificationUi } from "components/notifications/globals.slint";
+import { CoursesUi } from "components/courses/globals.slint";
+import { MaterialUi } from "components/materials/globals.slint";
+import { AssignmentUi } from "components/assignment/globals.slint";
+import { DocumentUi } from "components/document/globals.slint";
+import { SearchUi, SearchResult } from "components/search/globals.slint";
+export { OnboardingUi } from "components/onboarding/globals.slint";
+export { SettingsUi } from "components/settings/globals.slint";
+export { DashboardUi } from "components/dashboard/globals.slint";
+export { NotificationUi } from "components/notifications/globals.slint";
+export { CoursesUi } from "components/courses/globals.slint";
+export { MaterialUi } from "components/materials/globals.slint";
+export { AssignmentUi } from "components/assignment/globals.slint";
+export { DocumentUi } from "components/document/globals.slint";
 export {
-    WindowChrome,
-    UiState,
-    OnboardingUi,
-    SettingsUi,
-    DashboardUi,
-    NotificationUi,
-    CoursesUi,
-    MaterialUi,
-    AssignmentUi,
-    DocumentUi,
     SearchUi,
     SearchResult,
-} from "globals.slint";
+} from "components/search/globals.slint";
+export { WindowChrome, UiState } from "globals.slint";
 import "fonts/MozillaText.ttf";
 import {
     Notifications,

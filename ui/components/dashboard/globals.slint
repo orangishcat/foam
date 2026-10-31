@@ -1,0 +1,23 @@
+import { Assignment, AssignmentCol } from "../../types/dashboard-ui.slint";
+import { AssignmentUi } from "../assignment/globals.slint";
+
+export global DashboardUi {
+    in-out property <[AssignmentCol]> assignment-view;
+    in-out property <Assignment> selected-assignment;
+    in-out property <int> sel-row;
+    in-out property <int> sel-col;
+    callback view-item();
+    callback refresh();
+    callback set-done(bool, string);
+    public function open-selected() {
+        AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
+    }
+    public function toggle-selected-done() {
+        assignment-view[sel-col].assignments[sel-row].done = !selected-assignment.done;
+        selected-assignment = assignment-view[sel-col].assignments[sel-row];
+        set-done(selected-assignment.done, selected-assignment.id);
+    }
+    public function unselect() {
+        selected-assignment = { };
+    }
+}

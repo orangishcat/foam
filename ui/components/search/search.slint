@@ -4,11 +4,11 @@ import { ListView } from "std-widgets.slint";
 import { LineEdit } from "../line-edit.slint";
 import {
     UiState,
-    SearchUi,
-    AssignmentUi,
-    DocumentUi,
-    CoursesUi,
 } from "../../globals.slint";
+import { SearchUi } from "globals.slint";
+import { AssignmentUi } from "../assignment/globals.slint";
+import { DocumentUi } from "../document/globals.slint";
+import { CoursesUi } from "../courses/globals.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
 export component Search inherits FocusScope {

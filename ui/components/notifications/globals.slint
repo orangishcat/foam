@@ -1,0 +1,37 @@
+import { Notification, NotificationType } from "../../types/notification-ui.slint";
+import { AssignmentUi } from "../assignment/globals.slint";
+import { DocumentUi } from "../document/globals.slint";
+
+export global NotificationUi {
+    in-out property <Notification> selected-notification;
+    out property <bool> can-open-selected: !selected-notification.course-id.is-empty
+        && !selected-notification.resource-id.is-empty
+        && (selected-notification.n-type == NotificationType.new-assignment
+        || selected-notification.n-type == NotificationType.new-grade
+        || selected-notification.n-type == NotificationType.new-document);
+    public function open-selected() {
+        if can-open-selected {
+            if selected-notification.n-type == NotificationType.new-document {
+                DocumentUi.open(selected-notification.course-id, selected-notification.resource-id);
+            } else {
+                AssignmentUi.open(selected-notification.course-id, selected-notification.resource-id);
+            }
+        }
+    }
+    public function toggle-selected-read() {
+        if !selected-notification.id.is-empty {
+            set-read(selected-notification.id, !selected-notification.unread);
+        }
+    }
+    public function unselect() { selected-notification = { }; }
+    in-out property <int> unread-count;
+    callback opened();
+    callback closed();
+    callback mark-all-as-read();
+    callback set-read(string, bool);
+    callback load-more();
+    in-out property <float> progress;
+    in-out property <color> progress-color: #78aaff;
+    in-out property <[Notification]> temp-notifs;
+    in-out property <[Notification]> notifications;
+}
