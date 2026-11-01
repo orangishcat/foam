@@ -1,4 +1,4 @@
-use std::{fmt::format, fs, io, path::Path};
+use std::{fs, io, path::Path};
 
 use serde_json::Value;
 use slint::Color;
@@ -70,7 +70,7 @@ pub fn load_themes(
             Err(error) => log::warn!("Ignoring invalid theme {}: {error}", path.display()),
         }
     }
-    themes[2..].sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    themes[2..].sort_by_key(|a| a.name.to_lowercase());
     Ok(themes)
 }
 
