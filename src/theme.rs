@@ -108,6 +108,7 @@ fn apply_theme(json: Value, dark: &ColorPalette) -> Result<ColorPalette, String>
 
             // not having fields exposed dynamically in rust kinda sucks
             // todo: is there a better way to do this?
+            // i can't inject deserialize and serialize into the slint generated types either
             match key.as_str() {
                 "surface.0" => palette.colors.surface_0 = color,
                 "surface.1" => palette.colors.surface_1 = color,
