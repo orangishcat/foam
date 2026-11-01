@@ -1,4 +1,4 @@
-use std::{fs, io, path::Path};
+use std::{fmt::format, fs, io, path::Path};
 
 use serde_json::Value;
 use slint::Color;
@@ -97,104 +97,120 @@ fn apply_theme(json: Value, dark: &ColorPalette) -> Result<ColorPalette, String>
             return Err(format!("unknown theme section '{key}'"));
         }
     }
+
+    // 1. set up fallbacks for palette colors
     let mut palette = dark.clone();
-    let colors = object
+    let colors_option = object
         .get("colors")
         .map(|value| value.as_object().ok_or("colors must be a JSON object"))
         .transpose()?;
-    if let Some(colors) = colors {
-        for (key, value) in colors {
-            let color = parse_color(value, key)?;
 
-            // not having fields exposed dynamically in rust kinda sucks
-            // todo: is there a better way to do this?
-            // i can't inject deserialize and serialize into the slint generated types either
-            match key.as_str() {
-                "surface.0" => palette.colors.surface_0 = color,
-                "surface.1" => palette.colors.surface_1 = color,
-                "surface.2" => palette.colors.surface_2 = color,
-                "surface.3" => palette.colors.surface_3 = color,
-                "surface.4" => palette.colors.surface_4 = color,
-                "background" => palette.colors.background = color,
-                "topbar" => palette.colors.top_bar = color,
-                "sidebar" => palette.colors.sidebar = color,
-                "bottombar" => palette.colors.bottom_bar = color,
-                "text.base" => palette.colors.text_base = color,
-                "text.strong" => palette.colors.text_strong = color,
-                "text.secondary" => palette.colors.text_secondary = color,
-                "text.tertiary" => palette.colors.text_tertiary = color,
-                "text.muted" => palette.colors.text_muted = color,
-                "text.subtle" => palette.colors.text_subtle = color,
-                "border" => palette.colors.border = color,
-                "border.subtle" => palette.colors.border_subtle = color,
-                "border.strong" => palette.colors.border_strong = color,
-                "surface.hover" => palette.colors.surface_hover = color,
-                "surface.overlay" => palette.colors.surface_overlay = color,
-                "elevate.1" => palette.colors.elevate_1 = color,
-                "elevate.2" => palette.colors.elevate_2 = color,
-                "primary" => palette.colors.primary = color,
-                "primary.hover" => palette.colors.primary_hover = color,
-                "primary.strong" => palette.colors.primary_strong = color,
-                "primary.status" => palette.colors.primary_status = color,
-                "secondary" => palette.colors.secondary = color,
-                "secondary.soft" => palette.colors.secondary_soft = color,
-                "secondary.muted" => palette.colors.secondary_muted = color,
-                "secondary.strong" => palette.colors.secondary_strong = color,
-                "secondary.selected" => palette.colors.secondary_selected = color,
-                "secondary.status" => palette.colors.secondary_status = color,
-                "secondary.overlay" => palette.colors.secondary_overlay = color,
-                "progress.1" => palette.colors.progress_1 = color,
-                "progress.2" => palette.colors.progress_2 = color,
-                "progress.3" => palette.colors.progress_3 = color,
-                "progress.4" => palette.colors.progress_4 = color,
-                "progress.5" => palette.colors.progress_5 = color,
-                "progress.6" => palette.colors.progress_6 = color,
-                "progress.7" => palette.colors.progress_7 = color,
-                "progress.8" => palette.colors.progress_8 = color,
-                "progress.9" => palette.colors.progress_9 = color,
-                _ => log::warn!("Unknown theme key: {key}"),
-            }
+    // 2. apply palette color overrides
+    if let Some(colors) = colors_option {
+        for (key, value) in colors {
+            apply_color(key, &mut palette, parse_color(value, key)?);
         }
     }
-    let has_color_override = |key: &str| colors.is_some_and(|colors| colors.contains_key(key));
-    if !has_color_override("background") {
-        palette.colors.background = palette.colors.surface_2;
+
+    // 3. set up fallbacks for secondary palette colors
+    set_defaults(&mut palette);
+
+    // 4. override fallbacks if exist
+    if let Some(colors) = colors_option {
+        for (key, value) in colors {
+            apply_palette_override(key, &mut palette, parse_color(value, key)?);
+        }
     }
-    if !has_color_override("sidebar") {
-        palette.colors.sidebar = palette.colors.surface_0;
+
+    // 5. override screen specific
+    let overrides_option = object
+        .get("override")
+        .map(|value| value.as_object().ok_or("override must be a JSON object"))
+        .transpose()?;
+    if let Some(overrides) = overrides_option {
+        for (key, value) in overrides {
+            apply_screen_specific_override(key, &mut palette, parse_color(value, key)?);
+        }
     }
-    if !has_color_override("topbar") {
-        palette.colors.top_bar = palette.colors.surface_1;
+    Ok(palette)
+}
+
+fn apply_color(key: &str, palette: &mut ColorPalette, color: Color) {
+    // not having fields exposed dynamically in rust kinda sucks
+    // todo: is there a better way to do this?
+    // i can't inject deserialize and serialize into the slint generated types either
+    match key {
+        "surface.0" => palette.colors.surface_0 = color,
+        "surface.1" => palette.colors.surface_1 = color,
+        "surface.2" => palette.colors.surface_2 = color,
+        "surface.3" => palette.colors.surface_3 = color,
+        "surface.4" => palette.colors.surface_4 = color,
+        "text.base" => palette.colors.text_base = color,
+        "text.strong" => palette.colors.text_strong = color,
+        "text.secondary" => palette.colors.text_secondary = color,
+        "text.tertiary" => palette.colors.text_tertiary = color,
+        "text.muted" => palette.colors.text_muted = color,
+        "text.subtle" => palette.colors.text_subtle = color,
+        "border" => palette.colors.border = color,
+        "border.subtle" => palette.colors.border_subtle = color,
+        "border.strong" => palette.colors.border_strong = color,
+        "surface.hover" => palette.colors.surface_hover = color,
+        "surface.overlay" => palette.colors.surface_overlay = color,
+        "primary" => palette.colors.primary = color,
+        "primary.hover" => palette.colors.primary_hover = color,
+        "primary.strong" => palette.colors.primary_strong = color,
+        "primary.status" => palette.colors.primary_status = color,
+        "secondary" => palette.colors.secondary = color,
+        "secondary.soft" => palette.colors.secondary_soft = color,
+        "secondary.muted" => palette.colors.secondary_muted = color,
+        "secondary.strong" => palette.colors.secondary_strong = color,
+        "secondary.selected" => palette.colors.secondary_selected = color,
+        "secondary.status" => palette.colors.secondary_status = color,
+        "secondary.overlay" => palette.colors.secondary_overlay = color,
+        "progress.1" => palette.colors.progress_1 = color,
+        "progress.2" => palette.colors.progress_2 = color,
+        "progress.3" => palette.colors.progress_3 = color,
+        "progress.4" => palette.colors.progress_4 = color,
+        "progress.5" => palette.colors.progress_5 = color,
+        "progress.6" => palette.colors.progress_6 = color,
+        "progress.7" => palette.colors.progress_7 = color,
+        "progress.8" => palette.colors.progress_8 = color,
+        "progress.9" => palette.colors.progress_9 = color,
+        _ => log::warn!("Unknown theme key: {key}"),
     }
-    if !has_color_override("bottombar") {
-        palette.colors.bottom_bar = palette.colors.surface_1;
-    }
-    if !has_color_override("elevate.1") {
-        palette.colors.elevate_1 = palette.colors.surface_3;
-    }
-    if !has_color_override("elevate.2") {
-        palette.colors.elevate_2 = palette.colors.surface_4;
-    }
-    // Screen-specific defaults are aliases into the shared palette; explicit overrides win.
+}
+
+fn set_defaults(palette: &mut ColorPalette) {
+    palette.colors.background = palette.colors.surface_2;
+    palette.colors.sidebar = palette.colors.surface_0;
+    palette.colors.top_bar = palette.colors.surface_1;
+    palette.colors.bottom_bar = palette.colors.surface_1;
+    palette.colors.elevate_1 = palette.colors.surface_3;
+    palette.colors.elevate_2 = palette.colors.surface_4;
     palette.overrides.dashboard_overdue = palette.colors.primary_status;
     palette.overrides.dashboard_pending = palette.colors.secondary_status;
     palette.overrides.dashboard_done = palette.colors.progress_9;
     palette.overrides.attachment_backdrop = palette.colors.secondary_overlay;
-    let overrides = object
-        .get("override")
-        .map(|value| value.as_object().ok_or("override must be a JSON object"))
-        .transpose()?;
-    if let Some(overrides) = overrides {
-        for (key, value) in overrides {
-            let color = parse_color(value, key)?;
-            match key.as_str() {
-                "dashboard.overdue" => palette.overrides.dashboard_overdue = color,
-                "dashboard.pending" => palette.overrides.dashboard_pending = color,
-                "attachment.backdrop" => palette.overrides.attachment_backdrop = color,
-                "dashboard.done" => palette.overrides.dashboard_done = color,
-                _ => log::warn!("Unknown override key: {key}"),
-            }
-        }
+}
+
+fn apply_palette_override(key: &str, palette: &mut ColorPalette, color: Color) {
+    match key {
+        "background" => palette.colors.background = color,
+        "topbar" => palette.colors.top_bar = color,
+        "sidebar" => palette.colors.sidebar = color,
+        "bottombar" => palette.colors.bottom_bar = color,
+        "elevate.1" => palette.colors.elevate_1 = color,
+        "elevate.2" => palette.colors.elevate_2 = color,
+        _ => log::warn!("Unknown override key: {key}"),
     }
-    Ok(palette)
+}
+
+fn apply_screen_specific_override(key: &str, palette: &mut ColorPalette, color: Color) {
+    match key {
+        "dashboard.overdue" => palette.overrides.dashboard_overdue = color,
+        "dashboard.pending" => palette.overrides.dashboard_pending = color,
+        "attachment.backdrop" => palette.overrides.attachment_backdrop = color,
+        "dashboard.done" => palette.overrides.dashboard_done = color,
+        _ => log::warn!("Unknown override key: {key}"),
+    }
 }
