@@ -9,11 +9,11 @@ export component Icon inherits Image {
         : kind == "assignment" ? @image-url("../../icons/circle-check-big.svg")
         : @image-url("../../icons/file-text.svg");
     colorize: icon-color == transparent
-        ? (kind == "course" ? UiState.theme.primary-400
-        : kind == "folder" ? UiState.theme.secondary-300
-        : kind == "link" ? UiState.theme.secondary-100
-        : kind == "assignment" ? UiState.theme.progress-900
-        : UiState.theme.background-400)  // document
+        ? (kind == "course" ? UiState.theme.colors.primary-hover
+        : kind == "folder" ? UiState.theme.colors.secondary-muted
+        : kind == "link" ? UiState.theme.colors.secondary-soft
+        : kind == "assignment" ? UiState.theme.colors.progress-9
+        : UiState.theme.colors.border)  // document
         : icon-color;
     vertical-alignment: center;
 }

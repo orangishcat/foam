@@ -16,7 +16,7 @@ export component SelectedItemAction {
         Rectangle {
             border-radius: 0.3125rem;
             background: {
-                action-button.has-hover || action-button.has-focus ? UiState.theme.background-600.with-alpha(0.6) : transparent
+                action-button.has-hover || action-button.has-focus ? UiState.theme.colors.surface-hover.with-alpha(0.6) : transparent
             };
             vl := VerticalLayout {
                 alignment: center;
@@ -29,7 +29,7 @@ export component SelectedItemAction {
                     Rectangle {
                         border-width: 0.0625rem;
                         border-radius: 0.3125rem;
-                        border-color: UiState.theme.background-600;
+                        border-color: UiState.theme.colors.surface-hover;
                         VerticalLayout {
                             padding-top: 0.0625rem;
                             padding-bottom: 0.0625rem;
@@ -38,6 +38,7 @@ export component SelectedItemAction {
 
                             Text {
                                 text: hotkey-name;
+                                color: UiState.theme.colors.text-base;
                                 font-size: 0.625rem;
                                 font-weight: 700;
                             }
@@ -47,6 +48,7 @@ export component SelectedItemAction {
                     Rectangle {
                         Text {
                             text: action-name;
+                            color: UiState.theme.colors.text-base;
                             font-size: 0.75rem;
                         }
                     }

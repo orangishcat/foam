@@ -1,4 +1,4 @@
-import { Button, Slider, ScrollView } from "std-widgets.slint";
+import { Button, Slider, ScrollView, ComboBox } from "std-widgets.slint";
 import { UiState } from "../../globals.slint";
 import { SettingsUi } from "globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
@@ -24,27 +24,52 @@ export component Settings inherits Rectangle {
                 width: min(40rem, parent.width);
                 VerticalLayout {
                     padding: 1.5rem;
-                    spacing: 1rem;
                     alignment: start;
                     VerticalLayout {
                         spacing: 0.25rem;
+                        padding-bottom: 1rem;
                         Text {
                             text: "Appearance";
                             font-size: 1rem;
-                            color: UiState.theme.text-400;
+                            color: UiState.theme.colors.text-muted;
                         }
 
                         Rectangle {
                             height: 1px;
-                            background: UiState.theme.background-700;
+                            background: UiState.theme.colors.elevate-2;
                         }
+                    }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "Theme";
+                            font-size: 1.25rem;
+                            color: UiState.theme.colors.text-secondary;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        ComboBox {
+                            model: SettingsUi.themes;
+                            current-index: SettingsUi.selected-theme;
+                            selected(value) => { SettingsUi.select-theme(self.current-index); }
+                        }
+                    }
+
+                    Text {
+                        visible: SettingsUi.save-error != "";
+                        text: SettingsUi.save-error;
+                        color: UiState.theme.colors.primary-strong;
+                        wrap: word-wrap;
                     }
 
                     HorizontalLayout {
                         Text {
                             text: "UI Scaling";
                             font-size: 1.25rem;
-                            color: UiState.theme.text-200;
+                            color: UiState.theme.colors.text-secondary;
                         }
 
                         Rectangle {
@@ -58,6 +83,7 @@ export component Settings inherits Rectangle {
                             }
                             Text {
                                 text: "px";
+                                color: UiState.theme.colors.text-base;
                             }
                         }
                     }

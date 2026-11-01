@@ -392,7 +392,7 @@ impl CourseState {
             if item.kind == "assignment" {
                 item.icon_color = match ui::progress_percent(course, &item.id) {
                     Some(percent) => ui::progress_color(ui, percent),
-                    None => ui.global::<UiState>().get_theme().background_400,
+                    None => ui.global::<UiState>().get_theme().colors.border,
                 };
             }
         }

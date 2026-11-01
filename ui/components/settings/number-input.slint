@@ -6,14 +6,14 @@ export component IntInput inherits Rectangle {
     callback edited(int);
 
     border-width: 1px;
-    border-color: UiState.theme.background-600;
-    background: UiState.theme.background-750;
+    border-color: UiState.theme.colors.surface-hover;
+    background: UiState.theme.colors.elevate-1;
     border-radius: 0.25rem;
     clip: true;
 
     HorizontalLayout {
         HoverableButton {
-            background: self.has-hover ? UiState.theme.background-600 : transparent;
+            background: self.has-hover ? UiState.theme.colors.surface-hover : transparent;
             clicked => {
                 value -= 1;
                 edited(value);
@@ -32,7 +32,7 @@ export component IntInput inherits Rectangle {
         Rectangle {
             width: 1px;
             horizontal-stretch: 0;
-            background: UiState.theme.background-600;
+            background: UiState.theme.colors.surface-hover;
         }
 
         VerticalLayout {
@@ -62,11 +62,11 @@ export component IntInput inherits Rectangle {
         Rectangle {
             width: 1px;
             horizontal-stretch: 0;
-            background: UiState.theme.background-600;
+            background: UiState.theme.colors.surface-hover;
         }
 
         HoverableButton {
-            background: self.has-hover ? UiState.theme.background-600 : transparent;
+            background: self.has-hover ? UiState.theme.colors.surface-hover : transparent;
             clicked => {
                 value += 1;
                 edited(value);

@@ -19,8 +19,8 @@ export component Row inherits Rectangle {
     private property <bool> navigable: item.kind == "folder" || item.kind == "course";
     height: 2.5rem;
     border-radius: 0.3125rem;
-    background: (selected || selected-index == row-index ? UiState.theme.background-600
-        : (action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent));
+    background: (selected || selected-index == row-index ? UiState.theme.colors.surface-hover
+        : (action.has-hover || action.has-focus ? UiState.theme.colors.elevate-2 : transparent));
     HorizontalLayout {
         padding-left: 0.75rem;
         padding-right: 0.75rem;
@@ -37,7 +37,7 @@ export component Row inherits Rectangle {
 
         Text {
             text: item.title;
-            color: UiState.theme.text-50;
+            color: UiState.theme.colors.text-base;
             vertical-alignment: center;
             overflow: elide;
             font-size: 1.125rem;
@@ -47,7 +47,7 @@ export component Row inherits Rectangle {
         Text {
             font-size: 0.75rem;
             text: root.navigable ? "›" : "";
-            color: UiState.theme.text-200;
+            color: UiState.theme.colors.text-secondary;
             vertical-alignment: center;
         }
     }

@@ -42,7 +42,7 @@ export component Search inherits FocusScope {
                     }
 
                     Text {
-                        color: UiState.theme.text-400;
+                        color: UiState.theme.colors.text-muted;
                         text: !SearchUi.error.is-empty ? SearchUi.error : SearchUi.busy ? "Searching…"
                             : SearchUi.query.is-empty ? ""
                             : SearchUi.results.length == 0 ? "Nothing found :("
@@ -56,7 +56,7 @@ export component Search inherits FocusScope {
                             padding-bottom: 0.5rem;
                             Rectangle {
                                 border-radius: 0.3125rem;
-                                background: action.has-hover || action.has-focus ? UiState.theme.background-600 : UiState.theme.background-700;
+                                background: action.has-hover || action.has-focus ? UiState.theme.colors.surface-hover : UiState.theme.colors.elevate-2;
                                 HorizontalLayout {
                                     spacing: 0.5rem;
                                     padding-left: 1rem;
@@ -92,6 +92,7 @@ export component Search inherits FocusScope {
                                         alignment: start;
                                         Text {
                                             text: result.title;
+                                            color: UiState.theme.colors.text-base;
                                             font-weight: 700;
                                             font-size: 1rem;
                                             overflow: elide;
@@ -99,13 +100,14 @@ export component Search inherits FocusScope {
 
                                         Text {
                                             text: result.course-title;
-                                            color: UiState.theme.text-400;
+                                            color: UiState.theme.colors.text-muted;
                                             font-size: 0.8rem;
                                             overflow: elide;
                                         }
 
                                         if !result.preview.is-empty: Text {
                                             text: result.preview;
+                                            color: UiState.theme.colors.text-base;
                                             wrap: word-wrap;
                                             overflow: elide;
                                             font-size: 0.75rem;

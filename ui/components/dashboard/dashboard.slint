@@ -49,7 +49,7 @@ export component Dashboard inherits FocusScope {
     init => { root.focus(); }
 
     Rectangle {
-        background: UiState.theme.background-800;
+        background: UiState.theme.colors.background;
     }
 
     vertical-stretch: 1;
@@ -77,11 +77,12 @@ export component Dashboard inherits FocusScope {
                         Text {
                             font-size: 0.75rem;
                             text: col.title;
+                            color: UiState.theme.colors.text-base;
                             horizontal-alignment: center;
                         }
 
                         Rectangle {
-                            background: UiState.theme.background-750;
+                            background: UiState.theme.colors.elevate-1;
                             ListView {
                                 vertical-stretch: 1;
                                 horizontal-scrollbar-policy: always-off;
@@ -103,9 +104,9 @@ export component Dashboard inherits FocusScope {
 
                                     inner := Rectangle {
                                         background: {
-                                            let c = (assignment.done ? UiState.theme.progress-900 :
-                                                (assignment.overdue ? UiState.theme.primary-600 :
-                                                UiState.theme.secondary-600)).to-oklch();
+                                            let c = (assignment.done ? UiState.theme.colors.progress-9 :
+                                                (assignment.overdue ? UiState.theme.overrides.dashboard-overdue :
+                                                UiState.theme.overrides.dashboard-pending)).to-oklch();
                                             let selected = DashboardUi.selected-assignment.id == assignment.id;
 
                                             oklch(
@@ -127,13 +128,14 @@ export component Dashboard inherits FocusScope {
                                             title := Text {
                                                 font-size: 0.75rem;
                                                 text: assignment.title;
+                                                color: UiState.theme.colors.text-base;
                                                 font-weight: 700;
                                                 wrap: word-wrap;
                                             }
 
                                             course := Text {
                                                 font-size: 0.75rem;
-                                                color: UiState.theme.text-400;
+                                                color: UiState.theme.colors.text-muted;
                                                 text: assignment.course-name;
                                                 wrap: word-wrap;
                                             }

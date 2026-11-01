@@ -22,7 +22,7 @@ component OnboardingLineEdit inherits LineEdit {
 }
 
 export component SchoologyOnboarding inherits Rectangle {
-    background: UiState.theme.background-800;
+    background: UiState.theme.colors.background;
     in property <length> sidebar-width;
     in property <bool> custom-titlebar;
     private property <bool> subdomain-focused;
@@ -70,7 +70,7 @@ export component SchoologyOnboarding inherits Rectangle {
             y: OnboardingUi.step == 0 ? (content.height - 7.25rem) / 2 : 2rem;
             text: OnboardingUi.step == 0 ? "Welcome to Foam" : "Add Schoology account";
             font-size: 1.75rem;
-            color: UiState.theme.text-50;
+            color: UiState.theme.colors.text-base;
         }
 
         if OnboardingUi.step == 0: add-account := HoverableButton {
@@ -79,9 +79,9 @@ export component SchoologyOnboarding inherits Rectangle {
             width: account-label.preferred-width + 4rem;
             height: 3.25rem;
             border-radius: 0.375rem;
-            background: self.pressed ? UiState.theme.background-700
-                : self.has-hover || self.has-focus ? UiState.theme.background-600
-                : UiState.theme.background-700;
+            background: self.pressed ? UiState.theme.colors.elevate-2
+                : self.has-hover || self.has-focus ? UiState.theme.colors.surface-hover
+                : UiState.theme.colors.elevate-2;
             text: "Add Schoology account";
             clicked => { OnboardingUi.next(); }
             HorizontalLayout {
@@ -96,7 +96,7 @@ export component SchoologyOnboarding inherits Rectangle {
 
                 account-label := Text {
                     text: add-account.text;
-                    color: UiState.theme.text-200;
+                    color: UiState.theme.colors.text-secondary;
                     vertical-alignment: center;
                 }
             }
@@ -116,7 +116,7 @@ export component SchoologyOnboarding inherits Rectangle {
                     Text {
                         text: "Add Schoology account";
                         font-size: 1.75rem;
-                        color: UiState.theme.text-50;
+                        color: UiState.theme.colors.text-base;
                         wrap: word-wrap;
                     }
                 }
@@ -128,14 +128,14 @@ export component SchoologyOnboarding inherits Rectangle {
                         : "Click \"Export\" at the bottom of your screen, then \"Share Calendar\" in the popup, then paste your calendar feed link below.";
                     wrap: word-wrap;
                     line-height-factor: 1.25;
-                    color: UiState.theme.text-200;
+                    color: UiState.theme.colors.text-secondary;
                 }
 
                 if OnboardingUi.step == 1: HorizontalLayout {
                     spacing: 0px;
                     Text {
                         text: "https://";
-                        color: UiState.theme.text-200;
+                        color: UiState.theme.colors.text-secondary;
                         vertical-alignment: center;
                     }
 
@@ -148,7 +148,7 @@ export component SchoologyOnboarding inherits Rectangle {
 
                     Text {
                         text: ".schoology.com";
-                        color: UiState.theme.text-200;
+                        color: UiState.theme.colors.text-secondary;
                         vertical-alignment: center;
                     }
                 }
@@ -174,7 +174,7 @@ export component SchoologyOnboarding inherits Rectangle {
                         spacing: 0.25rem;
                         Text {
                             text: "No API key?";
-                            color: UiState.theme.text-200;
+                            color: UiState.theme.colors.text-secondary;
                             vertical-alignment: center;
                             horizontal-stretch: 0;
                         }
@@ -193,7 +193,7 @@ export component SchoologyOnboarding inherits Rectangle {
                                 text: skip-api.text;
                                 wrap: word-wrap;
                                 color: skip-api.has-hover || skip-api.has-focus
-                                    ? UiState.theme.secondary-200 : UiState.theme.secondary-400;
+                                    ? UiState.theme.colors.secondary : UiState.theme.colors.secondary-strong;
                             }
 
                             Rectangle {
@@ -215,7 +215,7 @@ export component SchoologyOnboarding inherits Rectangle {
                 Text {
                     text: OnboardingUi.error;
                     wrap: word-wrap;
-                    color: UiState.theme.text-200;
+                    color: UiState.theme.colors.text-secondary;
                 }
 
                 Rectangle {
@@ -238,7 +238,7 @@ export component SchoologyOnboarding inherits Rectangle {
 
                     Text {
                         text: "Step \{OnboardingUi.step} of 4";
-                        color: UiState.theme.text-200;
+                        color: UiState.theme.colors.text-secondary;
                         vertical-alignment: center;
                     }
                 }
@@ -251,6 +251,6 @@ export component SchoologyOnboarding inherits Rectangle {
         y: root.viewer-y;
         width: root.viewer-width;
         height: root.viewer-height;
-        background: UiState.theme.background-850;
+        background: UiState.theme.colors.surface-overlay;
     }
 }

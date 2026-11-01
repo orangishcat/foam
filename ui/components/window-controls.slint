@@ -16,9 +16,9 @@ component WindowControlButton inherits HoverableButton {
         height: self.width;
         border-radius: self.width / 2;
         background: root.enabled && (root.has-hover || root.pressed)
-            ? UiState.theme.text-200.with-alpha(root.pressed ? 0.2 : 0.1) : transparent;
+            ? UiState.theme.colors.text-secondary.with-alpha(root.pressed ? 0.2 : 0.1) : transparent;
         border-width: root.has-focus ? 1px : 0px;
-        border-color: UiState.theme.secondary-200;
+        border-color: UiState.theme.colors.secondary;
 
         Rectangle {
             x: (parent.width - self.width) / 2;
@@ -33,7 +33,7 @@ component WindowControlButton inherits HoverableButton {
                 viewbox-width: 10;
                 viewbox-height: 10;
                 fill: transparent;
-                stroke: UiState.theme.text-200;
+                stroke: UiState.theme.colors.text-secondary;
                 stroke-width: 1.2px;
                 commands: "M 1 8 L 9 8";
             }
@@ -43,7 +43,7 @@ component WindowControlButton inherits HoverableButton {
                 viewbox-width: 10;
                 viewbox-height: 10;
                 fill: transparent;
-                stroke: UiState.theme.text-200;
+                stroke: UiState.theme.colors.text-secondary;
                 stroke-width: 1.2px;
                 commands: "M 1 1 L 9 1 L 9 9 L 1 9 Z";
             }
@@ -53,7 +53,7 @@ component WindowControlButton inherits HoverableButton {
                 viewbox-width: 10;
                 viewbox-height: 10;
                 fill: transparent;
-                stroke: UiState.theme.text-200;
+                stroke: UiState.theme.colors.text-secondary;
                 stroke-width: 1.2px;
                 commands: "M 3 0 L 10 0 L 10 7 M 0 3 L 7 3 L 7 10 L 0 10 Z";
             }
@@ -63,7 +63,7 @@ component WindowControlButton inherits HoverableButton {
                 viewbox-width: 10;
                 viewbox-height: 10;
                 fill: transparent;
-                stroke: UiState.theme.text-200;
+                stroke: UiState.theme.colors.text-secondary;
                 stroke-width: 1.2px;
                 commands: "M 2 2 L 8 8 M 2 8 L 8 2";
             }

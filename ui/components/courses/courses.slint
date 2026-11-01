@@ -79,7 +79,7 @@ export component Courses inherits FocusScope {
                                             height: 4.625rem;
                                             border-radius: 0.5rem;
                                             border-width: 0.0625rem;
-                                            border-color: UiState.theme.background-500;
+                                            border-color: UiState.theme.colors.border-strong;
 
                                             period-input := TextInput {
                                                 x: 0.5rem;
@@ -87,7 +87,7 @@ export component Courses inherits FocusScope {
                                                 width: parent.width - 1rem;
                                                 height: parent.height - 1rem;
                                                 text: course.period;
-                                                color: UiState.theme.text-200;
+                                                color: UiState.theme.colors.text-secondary;
                                                 font-family: "monospace";
                                                 font-size: 1rem;
                                                 horizontal-alignment: center;
@@ -106,9 +106,9 @@ export component Courses inherits FocusScope {
                                             height: 4.625rem;
                                             border-radius: 0.5rem;
                                             border-width: 0.0625rem;
-                                            border-color: UiState.theme.background-500;
-                                            background: course-action.has-hover || course-action.has-focus ? UiState.theme.background-600 :
-                                                course.hidden ? UiState.theme.background-750 : UiState.theme.background-700;
+                                            border-color: UiState.theme.colors.border-strong;
+                                            background: course-action.has-hover || course-action.has-focus ? UiState.theme.colors.surface-hover :
+                                                course.hidden ? UiState.theme.colors.elevate-1 : UiState.theme.colors.elevate-2;
                                             opacity: root.drag-from == i ? 0 : 1;
 
                                             HorizontalLayout {
@@ -141,7 +141,7 @@ export component Courses inherits FocusScope {
                                                         text: course.title;
                                                         font-size: 1.125rem;
                                                         font-weight: 700;
-                                                        color: course.hidden ? UiState.theme.text-400 : UiState.theme.text-50;
+                                                        color: course.hidden ? UiState.theme.colors.text-muted : UiState.theme.colors.text-base;
                                                         overflow: elide;
                                                     }
 
@@ -151,20 +151,20 @@ export component Courses inherits FocusScope {
                                                         Text {
                                                             font-size: 0.75rem;
                                                             text: course.section + " • ID " + course.id;
-                                                            color: course.hidden ? UiState.theme.text-500 : UiState.theme.text-200;
+                                                            color: course.hidden ? UiState.theme.colors.text-subtle : UiState.theme.colors.text-secondary;
                                                             overflow: elide;
                                                         }
 
                                                         if course.hidden: Text {
                                                             font-size: 0.75rem;
                                                             text: "•";
-                                                            color: UiState.theme.text-500;
+                                                            color: UiState.theme.colors.text-subtle;
                                                             overflow: elide;
                                                         }
                                                         if course.hidden: Text {
                                                             font-size: 0.75rem;
                                                             text: "Hidden";
-                                                            color: UiState.theme.primary-400;
+                                                            color: UiState.theme.colors.primary-hover;
                                                             overflow: elide;
                                                         }
                                                     }
@@ -177,14 +177,14 @@ export component Courses inherits FocusScope {
                                                         width: 2rem;
                                                         border-radius: 0.625rem;
                                                         background: {
-                                                            let color = UiState.theme.background-400.to-oklch();
+                                                            let color = UiState.theme.colors.border.to-oklch();
                                                             drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
                                                         };
                                                         drag-touch := TouchArea {
                                                             mouse-cursor: grab;
                                                             Image {
                                                                 source: @image-url("../../icons/grip-horizontal.svg");
-                                                                colorize: UiState.theme.background-400;
+                                                                colorize: UiState.theme.colors.border;
                                                                 vertical-alignment: center;
                                                                 horizontal-alignment: center;
                                                             }
@@ -206,7 +206,7 @@ export component Courses inherits FocusScope {
                                                         width: 2rem;
                                                         border-radius: 0.625rem;
                                                         background: {
-                                                            let color = UiState.theme.background-400.to-oklch();
+                                                            let color = UiState.theme.colors.border.to-oklch();
                                                             hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
                                                         };
 
@@ -220,7 +220,7 @@ export component Courses inherits FocusScope {
                                                             height: 100%;
                                                             source: course.hidden ? @image-url("../../icons/eye.svg") : @image-url("../../icons/eye-off.svg");
                                                             image-fit: contain;
-                                                            colorize: UiState.theme.background-400;
+                                                            colorize: UiState.theme.colors.border;
                                                             vertical-alignment: center;
                                                             horizontal-alignment: center;
                                                         }
@@ -269,8 +269,8 @@ export component Courses inherits FocusScope {
                         height: 4.625rem;
                         border-radius: 0.5rem;
                         border-width: 0.0625rem;
-                        border-color: UiState.theme.background-500;
-                        background: UiState.theme.background-700;
+                        border-color: UiState.theme.colors.border-strong;
+                        background: UiState.theme.colors.elevate-2;
                         opacity: 0.65;
 
                         HorizontalLayout {
@@ -283,7 +283,7 @@ export component Courses inherits FocusScope {
                                     text: root.dragged-course.title;
                                     font-size: 1.125rem;
                                     font-weight: 700;
-                                    color: UiState.theme.text-50;
+                                    color: UiState.theme.colors.text-base;
                                     overflow: elide;
                                 }
                             }

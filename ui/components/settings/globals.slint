@@ -1,5 +1,8 @@
 export global SettingsUi {
     in-out property <int> font-size: 16;
+    in-out property <[string]> themes;
+    in-out property <int> selected-theme: 0;
     in-out property <string> save-error;
     callback set-font-size(int);
+    callback select-theme(int);
 }

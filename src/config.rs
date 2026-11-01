@@ -35,6 +35,9 @@ pub struct AppConfig {
     #[derivative(Default(value = "16"))]
     pub font_size: i32,
 
+    #[derivative(Default(value = "\"Dark\".to_owned()"))]
+    pub selected_theme: String,
+
     #[serde(skip)]
     data_dir: PathBuf,
 }

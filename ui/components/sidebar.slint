@@ -22,7 +22,7 @@ component NavigationItem inherits Rectangle {
 
     height: 2.75rem;
     border-radius: 0.375rem;
-    background: UiState.screen == change-to ? UiState.theme.background-700 : (action.has-hover || action.has-focus ? UiState.theme.background-600 : transparent);
+    background: UiState.screen == change-to ? UiState.theme.colors.elevate-2 : (action.has-hover || action.has-focus ? UiState.theme.colors.surface-hover : transparent);
 
     action := HoverableButton {
         enabled: UiState.screen != Screen.onboarding;
@@ -38,13 +38,13 @@ component NavigationItem inherits Rectangle {
                 Text {
                     font-size: 0.75rem;
                     text: root.label;
-                    color: UiState.theme.text-50;
+                    color: UiState.theme.colors.text-base;
                 }
 
                 if !root.shortcut.is-empty: Text {
                     font-size: 0.75rem;
                     text: UiState.shortcut-modifier + "+" + root.shortcut;
-                    color: UiState.theme.text-200;
+                    color: UiState.theme.colors.text-secondary;
                 }
             }
         }
@@ -57,7 +57,7 @@ component NavigationItem inherits Rectangle {
 
     Image {
         source: icon;
-        colorize: UiState.theme.text-200;
+        colorize: UiState.theme.colors.text-secondary;
     }
 
     if root.unread-count > 0: Rectangle {
@@ -66,10 +66,10 @@ component NavigationItem inherits Rectangle {
         x: parent.width - self.width * 1.5;
         y: parent.height - self.height * 1.5;
         border-radius: self.width / 2;
-        background: UiState.theme.primary-500;
+        background: UiState.theme.colors.primary;
         count := Text {
             text: root.unread-count;
-            color: UiState.theme.text-50;
+            color: UiState.theme.colors.text-base;
             font-size: 0.6875rem;
             font-weight: 700;
             horizontal-alignment: center;
@@ -83,7 +83,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> minimized: true;
 
     width: minimized ? 3.75rem : 15rem;
-    background: UiState.theme.background-900;
+    background: UiState.theme.colors.sidebar;
 
     VerticalLayout {
         padding-left: 0.5rem;
@@ -136,7 +136,7 @@ export component Sidebar inherits Rectangle {
 
         Rectangle {
             border-width: 0.0625rem;
-            border-color: UiState.theme.background-700;
+            border-color: UiState.theme.colors.elevate-2;
             height: 0.0625rem;
         }
 
@@ -153,8 +153,8 @@ export component Sidebar inherits Rectangle {
                     height: 2.75rem;
                     border-radius: 0.375rem;
                     background: (UiState.screen == Screen.materials || UiState.screen == Screen.assignment) && CoursesUi.active-tab == index
-                        ? UiState.theme.background-700
-                        : tab-action.has-hover || tab-action.has-focus ? UiState.theme.background-600 : transparent;
+                        ? UiState.theme.colors.elevate-2
+                        : tab-action.has-hover || tab-action.has-focus ? UiState.theme.colors.surface-hover : transparent;
                     accessible-role: button;
                     accessible-label: tab.title;
                     Rectangle {
@@ -163,7 +163,7 @@ export component Sidebar inherits Rectangle {
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
                         border-radius: 0.9375rem;
-                        background: UiState.theme.background-300;
+                        background: UiState.theme.colors.border-subtle;
                         clip: true;
                         Image {
                             source: tab.image;
@@ -181,11 +181,11 @@ export component Sidebar inherits Rectangle {
                             overflow: elide;
                             horizontal-alignment: center;
                             vertical-alignment: center;
-                            color: UiState.theme.text-50;
+                            color: UiState.theme.colors.text-base;
                         }
                         if UiState.shift-held && tab-action.has-hover: Image {
                             source: @image-url("../icons/x.svg");
-                            colorize: UiState.theme.primary-300;
+                            colorize: UiState.theme.colors.primary-strong;
                             width: parent.width;
                             height: parent.height;
                         }
@@ -208,13 +208,13 @@ export component Sidebar inherits Rectangle {
                                 Text {
                                     font-size: 0.75rem;
                                     text: tab.title;
-                                    color: UiState.theme.text-50;
+                                    color: UiState.theme.colors.text-base;
                                 }
 
                                 if index < 5: Text {
                                     font-size: 0.75rem;
                                     text: UiState.shortcut-modifier + "+" + (index + 5);
-                                    color: UiState.theme.text-400;
+                                    color: UiState.theme.colors.text-muted;
                                 }
                             }
                         }

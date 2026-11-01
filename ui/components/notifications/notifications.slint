@@ -47,7 +47,7 @@ export component Notifications inherits FocusScope {
     focus-on-click: false;
     init => { root.focus(); }
     Rectangle {
-        background: UiState.theme.background-800;
+        background: UiState.theme.colors.background;
     }
 
     VerticalLayout {
@@ -68,15 +68,14 @@ export component Notifications inherits FocusScope {
                     padding-left: 2rem;
                     padding-right: 2rem;
                     scroll := ScrollView {
-                            changed viewport-y => {
+                        changed viewport-y => {
                                 // Trigger load-more once scrolled to (or near) the bottom.
                                 if self.viewport-height > self.visible-height
-                                    && self.viewport-y + self.viewport-height
-                                        <= self.visible-height + 2rem
-                                {
-                                    NotificationUi.load-more();
-                                }
+                                && self.viewport-y + self.viewport-height
+                                <= self.visible-height + 2rem {
+                                NotificationUi.load-more();
                             }
+                        }
                         VerticalLayout {
                             padding-top: 1rem;
                             padding-bottom: 1rem;
@@ -86,10 +85,10 @@ export component Notifications inherits FocusScope {
                                     border-radius: 0.3125rem;
                                     border-width: 0.0625rem;
                                     height: min(7.5rem, max(1.875rem, self.preferred-height));
-                                    border-color: UiState.theme.background-400;
+                                    border-color: UiState.theme.colors.border;
                                     background: NotificationUi.selected-notification.id == notif.id
-                                        ? UiState.theme.background-500 : action.has-hover || action.has-focus
-                                        ? UiState.theme.background-600 : UiState.theme.background-700;
+                                        ? UiState.theme.colors.border-strong : action.has-hover || action.has-focus
+                                        ? UiState.theme.colors.surface-hover : UiState.theme.colors.elevate-2;
 
                                     preferred-height: title.preferred-height + course.preferred-height
                                         + content.padding-top + content.padding-bottom + 2rem;
@@ -106,7 +105,7 @@ export component Notifications inherits FocusScope {
                                             width: 0.625rem;
                                             height: 0.625rem;
                                             border-radius: 0.3125rem;
-                                            background: notif.unread ? UiState.theme.secondary-200 : transparent;
+                                            background: notif.unread ? UiState.theme.colors.secondary : transparent;
                                             cross-axis-self-alignment: center;
                                         }
 
@@ -139,6 +138,7 @@ export component Notifications inherits FocusScope {
                                             spacing: 0.25rem;
                                             title := Text {
                                                 text: notif.title;
+                                                color: UiState.theme.colors.text-base;
                                                 font-size: 1.125rem;
                                                 font-weight: 700;
                                                 vertical-alignment: bottom;
@@ -146,7 +146,7 @@ export component Notifications inherits FocusScope {
                                             }
 
                                             course := Text {
-                                                color: UiState.theme.text-400;
+                                                color: UiState.theme.colors.text-muted;
                                                 font-size: 0.75rem;
                                                 text: notif.subtitle + (notif.subtitle.is-empty ? "" : " • ") + notif.course;
                                                 vertical-alignment: top;

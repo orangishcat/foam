@@ -57,7 +57,7 @@ export component AppWindow inherits Window {
     no-frame: WindowChrome.client-side;
     resize-border-width: WindowChrome.client-side && !root.maximized && !root.full-screen ? 5px : 0px;
 
-    background: UiState.theme.background-800;
+    background: UiState.theme.colors.background;
     in property <bool> custom-titlebar: false;
     in property <bool> window-active: true;
     in-out property <int> sidebar-focus-request: -1;
@@ -401,16 +401,16 @@ export component AppWindow inherits Window {
         clicked => { app-menu.show({ x: 0px, y: self.height }); }
 
         Rectangle {
-            background: parent.has-hover || parent.pressed ? UiState.theme.text-200.with-alpha(0.1) : transparent;
+            background: parent.has-hover || parent.pressed ? UiState.theme.colors.text-secondary.with-alpha(0.1) : transparent;
             border-width: parent.has-focus ? 1px : 0px;
-            border-color: UiState.theme.secondary-200;
+            border-color: UiState.theme.colors.secondary;
             Image {
                 x: (parent.width - self.width) / 2;
                 y: (parent.height - self.height) / 2;
                 width: 1rem;
                 height: 1rem;
                 source: @image-url("icons/menu.svg");
-                colorize: UiState.theme.text-200;
+                colorize: UiState.theme.colors.text-secondary;
             }
         }
 

@@ -9,7 +9,7 @@ export component Breadcrumb inherits Rectangle {
     height: UiState.top-bar-height;
     width: content.preferred-width;
     horizontal-stretch: 0;
-    background: action.has-hover || action.has-focus ? UiState.theme.background-700 : transparent;
+    background: action.has-hover || action.has-focus ? UiState.theme.colors.elevate-2 : transparent;
     border-radius: 0.25rem;
     accessible-role: button;
     accessible-label: title;
@@ -28,7 +28,7 @@ export component Breadcrumb inherits Rectangle {
 
         Text {
             text: root.title;
-            color: UiState.theme.text-200;
+            color: UiState.theme.colors.text-secondary;
             font-size: 0.75rem;
             vertical-alignment: center;
         }

@@ -14,9 +14,9 @@ export component LineEdit inherits Rectangle {
     horizontal-stretch: 1;
     vertical-stretch: 0;
     border-radius: 4px;
-    background: UiState.theme.background-700;
+    background: UiState.theme.colors.elevate-2;
     border-width: 1px;
-    border-color: UiState.theme.background-400;
+    border-color: UiState.theme.colors.border;
     public function cut() { input.cut(); }
     public function copy() { input.copy(); }
     public function paste() { input.paste(); }
@@ -63,7 +63,7 @@ export component LineEdit inherits Rectangle {
                 alignment: center;
                 Image {
                     source: icon;
-                    colorize: UiState.theme.text-300;
+                    colorize: UiState.theme.colors.text-tertiary;
                     width: 1rem;
                     height: 1rem;
                     vertical-alignment: center;
@@ -85,9 +85,9 @@ export component LineEdit inherits Rectangle {
                     height: parent.height;
                     single-line: true;
                     vertical-alignment: center;
-                    color: UiState.theme.text-100;
-                    selection-background-color: UiState.theme.background-400;
-                    selection-foreground-color: UiState.theme.text-100;
+                    color: UiState.theme.colors.text-strong;
+                    selection-background-color: UiState.theme.colors.border;
+                    selection-foreground-color: UiState.theme.colors.text-strong;
                     cursor-position-changed(position) => {
                         if position.x + self.scroll-x < 0px {
                             self.scroll-x = -position.x;
@@ -103,7 +103,7 @@ export component LineEdit inherits Rectangle {
                     height: parent.height;
                     visible: input.text.is-empty;
                     text: root.placeholder-text;
-                    color: UiState.theme.text-400;
+                    color: UiState.theme.colors.text-muted;
                     vertical-alignment: center;
                     horizontal-alignment: left;
                 }

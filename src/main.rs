@@ -18,6 +18,7 @@ mod logging;
 mod platform;
 mod plugin;
 mod state;
+mod theme;
 mod thread_manager;
 mod types;
 mod ui;

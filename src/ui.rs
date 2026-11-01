@@ -8,15 +8,15 @@ pub(crate) fn progress_color(ui: &AppWindow, percent: f64) -> slint::Color {
     let theme = ui.global::<UiState>().get_theme();
     let level = (((percent / 100.0) * 9.0).floor() as usize).clamp(1, 9);
     match level {
-        1 => theme.progress_100,
-        2 => theme.progress_200,
-        3 => theme.progress_300,
-        4 => theme.progress_400,
-        5 => theme.progress_500,
-        6 => theme.progress_600,
-        7 => theme.progress_700,
-        8 => theme.progress_800,
-        _ => theme.progress_900,
+        1 => theme.colors.progress_1,
+        2 => theme.colors.progress_2,
+        3 => theme.colors.progress_3,
+        4 => theme.colors.progress_4,
+        5 => theme.colors.progress_5,
+        6 => theme.colors.progress_6,
+        7 => theme.colors.progress_7,
+        8 => theme.colors.progress_8,
+        _ => theme.colors.progress_9,
     }
 }
 

@@ -11,7 +11,7 @@ export component Sidebar inherits Rectangle {
 
     width: 12.5rem;
     background: {
-        let c = UiState.theme.background-800.to-oklch();
+        let c = UiState.theme.colors.background.to-oklch();
         oklch(c.lightness - 0.03, c.chroma, c.hue, c.alpha)
     };
     VerticalLayout {

@@ -3,10 +3,7 @@ import { UiState, WindowChrome } from "../globals.slint";
 export component TopBarFrame inherits Rectangle {
     in property <bool> custom-titlebar: false;
     height: UiState.top-bar-height;
-    background: {
-        let c = UiState.theme.background-900.to-oklch();
-        oklch(c.lightness + 0.03, c.chroma, c.hue, c.alpha)
-    };
+    background: UiState.theme.colors.top-bar;
 
     // Keep this behind the content so buttons and inputs retain their mouse handling.
     WindowMoveArea {

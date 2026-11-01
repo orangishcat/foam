@@ -41,6 +41,7 @@ impl AppState {
         self.notif.init_ui(ui);
         self.search.init_ui(ui);
         self.sidebar.restore_ui(ui);
+        self.settings.init_ui(ui);
         ui.global::<UiState>()
             .set_font_size(config().font_size.clamp(8, 24));
         ui.on_screen_changed(crate::ui::sync_ui);

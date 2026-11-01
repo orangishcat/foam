@@ -139,14 +139,14 @@ impl NotificationState {
                         NotificationEvent::GradeUpdated => {
                             match ui::progress_percent(&n.course_id, &n.resource_id) {
                                 Some(percent) => ui::progress_color(ui, percent),
-                                None => ui.global::<UiState>().get_theme().background_400,
+                                None => ui.global::<UiState>().get_theme().colors.border,
                             }
                         }
                         _ => match n.material_type {
                             Some(MaterialType::Assignment | MaterialType::Assessment) => {
-                                ui.global::<UiState>().get_theme().progress_900
+                                ui.global::<UiState>().get_theme().colors.progress_9
                             }
-                            _ => ui.global::<UiState>().get_theme().text_400,
+                            _ => ui.global::<UiState>().get_theme().colors.text_muted,
                         },
                     },
                 })
