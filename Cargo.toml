@@ -73,5 +73,6 @@ i-slint-backend-winit = { version = "=1.18.1", default-features = false }
 i-slint-core = { version = "=1.18.1", default-features = false }
 
 [package.metadata.packager]
+version = "0.1.0"
 icons = ["icon.icns", "icon.png"]
 formats = ["all"]
