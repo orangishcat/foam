@@ -61,6 +61,44 @@ export component Dashboard inherits FocusScope {
             custom-titlebar: root.custom-titlebar;
             title: "Dashboard";
             icon: @image-url("../../icons/calendar-days.svg");
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            new-event-btn := HoverableButton {
+                Rectangle {
+                    y: 0.35rem;
+                    height: parent.height - 0.7rem;
+                    background: new-event-btn.has-hover ? UiState.theme.colors.surface-hover : transparent;
+                    border-radius: 0.25rem;
+                }
+
+                HorizontalLayout {
+                    padding-left: 0.5rem;
+                    padding-right: 0.5rem;
+                    spacing: 0.25rem;
+                    VerticalLayout {
+                        alignment: center;
+                        icon := Image {
+                            source: @image-url("../../icons/plus.svg");
+                            colorize: UiState.theme.colors.text-secondary;
+                            width: 0.75rem;
+                            height: 0.75rem;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+
+                        text := Text {
+                            text: "New event";
+                            font-size: 0.75rem;
+                            color: UiState.theme.colors.text-secondary;
+                        }
+                    }
+                }
+            }
         }
 
         Rectangle {
