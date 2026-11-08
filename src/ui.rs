@@ -1,5 +1,4 @@
 use slint::ComponentHandle;
-use std::io::Error;
 use std::sync::Mutex;
 
 use crate::{AppWindow, UiState, database, state::state::state};
@@ -24,12 +23,7 @@ pub(crate) fn progress_percent(course: &str, id: &str) -> Option<f64> {
     database::from_sql_map(
         "SELECT score, max_points FROM assignments WHERE course_id = ? AND id = ?".into(),
         rusqlite::params![course, id],
-        |row| {
-            Ok((
-                row.get::<_, Option<f64>>(0).map_err(Error::other)?,
-                row.get::<_, f64>(1).map_err(Error::other)?,
-            ))
-        },
+        |row| Ok((row.get::<_, Option<f64>>(0)?, row.get::<_, f64>(1)?)),
     )
     .ok()
     .and_then(|rows| rows.into_iter().next())

@@ -7,12 +7,13 @@ use crate::{
     types::course::Course,
     ui::{self},
 };
+use anyhow;
 use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::io;
 
 impl State for CourseState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let courses = database::from_sql::<Course>(
         "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NATURAL_ORDER, section_title COLLATE NATURAL_ORDER"
             .to_owned(),
@@ -172,11 +173,11 @@ impl CourseState {
     }
 
     pub(crate) fn course_tab_image(course: String) {
-        (|| -> io::Result<Option<slint::Image>> {
+        (|| -> anyhow::Result<Option<slint::Image>> {
             let Some(url) = database::from_sql_map(
                 "SELECT logo_img_src FROM courses WHERE course_id = ?".into(),
                 params![course],
-                |row| row.get::<_, String>(0).map_err(io::Error::other),
+                |row| Ok(row.get::<_, String>(0)?),
             )?
             .into_iter()
             .next()
@@ -228,7 +229,7 @@ impl CourseState {
         ui: &AppWindow,
         course: &str,
         icon: Option<slint::Image>,
-    ) -> io::Result<usize> {
+    ) -> anyhow::Result<usize> {
         let global = ui.global::<CoursesUi>();
         let tabs = global.get_tabs();
         if let Some(index) = (0..tabs.row_count()).find(|&index| {
@@ -260,11 +261,11 @@ impl CourseState {
         Ok(index)
     }
 
-    pub fn show_assignment(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
+    pub fn show_assignment(ui: &AppWindow, course: &str, id: &str) -> anyhow::Result<()> {
         let parent = database::from_sql_map(
         "SELECT parent_id FROM materials WHERE course_id = ? AND type = 'assignment' AND material_id = ?".into(),
         params![course, id],
-        |row| row.get::<_, String>(0).map_err(io::Error::other),
+        |row| Ok(row.get::<_, String>(0)?),
     )?
     .into_iter()
     .next()
@@ -370,30 +371,34 @@ impl CourseState {
             .collect()
     }
 
-    pub fn root_folder(course: &str) -> io::Result<String> {
+    pub fn root_folder(course: &str) -> anyhow::Result<String> {
         Ok(database::from_sql_map(
         "SELECT material_id FROM materials WHERE course_id = ? AND type = 'folder' AND parent_id = ''".into(),
         params![course],
-        |row| row.get::<_, String>(0).map_err(io::Error::other),
+        |row| Ok(row.get::<_, String>(0)?),
     )?.into_iter().next().unwrap_or_else(|| "0".into()))
     }
 
-    pub fn folder_metadata(course: &str, folder: &str) -> io::Result<(String, String)> {
+    pub fn folder_metadata(course: &str, folder: &str) -> anyhow::Result<(String, String)> {
         database::from_sql_map(
         "SELECT title, parent_id FROM materials WHERE course_id = ? AND material_id = ? AND type = 'folder'".into(),
         params![course, folder],
-        |row| Ok((row.get(0).map_err(io::Error::other)?, row.get(1).map_err(io::Error::other)?)),
-    )?.into_iter().next().ok_or_else(|| io::Error::other("Folder no longer exists: {folder}"))
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?.into_iter().next().ok_or_else(|| io::Error::other("Folder no longer exists: {folder}").into())
     }
 
-    pub fn children(ui: &AppWindow, course: &str, folder: &str) -> io::Result<Vec<MaterialItem>> {
+    pub fn children(
+        ui: &AppWindow,
+        course: &str,
+        folder: &str,
+    ) -> anyhow::Result<Vec<MaterialItem>> {
         let mut items = database::from_sql_map(
         "SELECT material_id, title, type FROM materials WHERE course_id = ? AND parent_id = ? ORDER BY type != 'folder', title COLLATE NATURAL_ORDER, material_id".into(),
         params![course, folder],
         |row| {
-            let id: String = row.get(0).map_err(io::Error::other)?;
-            let title: String = row.get(1).map_err(io::Error::other)?;
-            let kind: String = row.get(2).map_err(io::Error::other)?;
+            let id: String = row.get(0)?;
+            let title: String = row.get(1)?;
+            let kind: String = row.get(2)?;
             Ok(MaterialItem {
                 course_id: course.into(),
                 id: id.into(),

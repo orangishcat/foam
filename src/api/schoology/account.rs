@@ -1,7 +1,4 @@
-use std::{
-    io,
-    sync::{Arc, OnceLock},
-};
+use std::sync::{Arc, OnceLock};
 
 use reqwest::header::ACCEPT;
 use serde::{Deserialize, Serialize};
@@ -16,6 +13,7 @@ use crate::{
     types::{assignment::Assignment, notification, submission},
     ui,
 };
+use anyhow;
 
 pub(super) struct ResetProgress(pub(super) u8, pub(super) slint::Color);
 
@@ -58,12 +56,12 @@ impl Account for SchoologyAccountConfig {
         Self::resource_headers(self, url)
     }
 
-    fn load() -> Result<Self, std::io::Error> {
+    fn load() -> anyhow::Result<Self> {
         // todo: supply the data dir
         filesystem::read_json(&config().data_dir().join("plugins").join("schoology.json"))
     }
 
-    fn save(&self) -> Result<(), std::io::Error> {
+    fn save(&self) -> anyhow::Result<()> {
         filesystem::write_json(
             &config().data_dir().join("plugins").join("schoology.json"),
             self,
@@ -79,17 +77,20 @@ impl Account for SchoologyAccountConfig {
         Ok(request.header(ACCEPT, "*/*"))
     }
 
-    fn fast_sync(&self) -> io::Result<()> {
+    fn fast_sync(&self) -> anyhow::Result<()> {
         let loaded = database::from_sql_map(
             "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
             &[],
-            |row| row.get::<_, String>(0).map_err(io::Error::other),
+            |row| Ok(row.get::<_, String>(0)?),
         )?;
         if loaded.is_empty() {
-            self.scrape_courses().map_err(io::Error::other)?;
+            self.scrape_courses()
+                .map_err(|error| anyhow::anyhow!("{error}"))?;
             database::execute("INSERT INTO sync_state (key, data) VALUES ('courses_loaded', 'true') ON CONFLICT(key) DO NOTHING".to_owned(), &[])?;
         }
-        let mut scraped_notifs = self.scrape_notifications().map_err(io::Error::other)?;
+        let mut scraped_notifs = self
+            .scrape_notifications()
+            .map_err(|error| anyhow::anyhow!("{error}"))?;
         let existing_notifs = notification::notifications()?;
         let last_sync = state().notif.last_fast_sync;
         scraped_notifs.sort_by_key(|n| n.created);
@@ -125,16 +126,16 @@ impl Account for SchoologyAccountConfig {
         // clone to avoid deadlock
         let next = state().notif.clone();
         notification::save_notifications(&scraped_notifs, &next)?;
-        update_result.map_err(io::Error::other)
+        update_result.map_err(|error| anyhow::anyhow!("{error}"))
     }
 
-    fn slow_sync(&self) -> io::Result<()> {
+    fn slow_sync(&self) -> anyhow::Result<()> {
         let check_started = chrono::Local::now();
-        (|| -> RequestResult<()> {
+        (|| -> anyhow::Result<()> {
             let loaded = database::from_sql_map(
                 "SELECT data FROM sync_state WHERE key = 'courses_loaded'".to_owned(),
                 &[],
-                |row| row.get::<_, String>(0).map_err(io::Error::other),
+                |row| Ok(row.get::<_, String>(0)?),
             )?;
             if loaded.is_empty() {
                 return Ok(());
@@ -146,7 +147,8 @@ impl Account for SchoologyAccountConfig {
                 ),
                 &[],
             )?;
-            self.scrape_submissions(&mut assignments)?;
+            self.scrape_submissions(&mut assignments)
+                .map_err(|error| anyhow::anyhow!("{error}"))?;
             check_cancelled()?;
             submission::update_submissions(&assignments)?;
             let mut app = state();
@@ -154,6 +156,5 @@ impl Account for SchoologyAccountConfig {
             app.notif.save_state()?;
             Ok(())
         })()
-        .map_err(io::Error::other)
     }
 }

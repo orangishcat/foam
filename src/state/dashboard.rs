@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    io::{self, Error},
-};
+use std::collections::BTreeMap;
 
 use chrono::{Datelike, Days, Local};
 use rusqlite::params;
@@ -15,6 +12,7 @@ use crate::{
     types::assignment::Assignment,
     ui,
 };
+use anyhow;
 
 pub fn due_date_bucket(assignment: &Assignment) -> i64 {
     (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
@@ -37,13 +35,10 @@ pub(crate) fn dashboard_query() -> String {
 pub struct DashboardState {}
 
 impl crate::state::state::State for DashboardState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let assignments_on_dashboard =
             database::from_sql_map::<(Assignment, String)>(dashboard_query(), params![], |row| {
-                Ok((
-                    serde_rusqlite::from_row(row).map_err(Error::other)?,
-                    row.get("course_title").map_err(Error::other)?,
-                ))
+                Ok((serde_rusqlite::from_row(row)?, row.get("course_title")?))
             })?
             .into_iter()
             .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
@@ -147,7 +142,7 @@ impl crate::state::state::State for DashboardState {
     }
 }
 
-fn manual_refresh(acc: Box<dyn Account>) -> io::Result<()> {
+fn manual_refresh(acc: Box<dyn Account>) -> anyhow::Result<()> {
     acc.fast_sync()?;
     log::info!("Manually refreshed fast sync");
     acc.slow_sync()?;

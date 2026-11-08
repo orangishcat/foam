@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
 use std::{
-    io,
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
@@ -12,9 +11,10 @@ use std::{
 
 use crate::state::state::State;
 use crate::{AppWindow, SearchResult, SearchUi, database, filesystem};
+use anyhow;
 
 impl State for SearchState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let global = ui.global::<SearchUi>();
         global.invoke_search(global.get_query());
         Ok(())
@@ -40,7 +40,7 @@ fn match_query(input: &str) -> String {
         .join(" AND ")
 }
 
-fn search(input: &str) -> io::Result<Vec<ResultRow>> {
+fn search(input: &str) -> anyhow::Result<Vec<ResultRow>> {
     let query = match_query(input);
     if query.is_empty() {
         return Ok(Vec::new());

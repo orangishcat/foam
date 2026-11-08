@@ -1,5 +1,3 @@
-use std::io;
-
 use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
 use crate::state::state::State;
@@ -8,12 +6,13 @@ use crate::{
     config::{config, config_write},
     theme::load_themes,
 };
+use anyhow;
 
 #[derive(Clone, Default)]
 pub struct SettingsState {}
 
 impl State for SettingsState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let font_size = config().font_size.clamp(12, 24);
         ui.global::<UiState>().set_font_size(font_size);
         ui.global::<SettingsUi>().set_font_size(font_size);

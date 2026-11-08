@@ -1,6 +1,7 @@
 //! Updates to cached assignments from Schoology's calendar export.
 use crate::api::schoology::account::{ResetProgress, SchoologyAccountConfig};
 use crate::ui;
+use anyhow;
 
 const CALENDAR_PROGRESS_PRIORITY: u8 = 1;
 const CALENDAR_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(177, 134, 103);
@@ -193,11 +194,9 @@ type CalendarUpdate = (Option<String>, String, Option<String>, String);
 pub(crate) fn calendar_updates(
     ids: &[String],
     assignments: &[CalendarAssignment],
-) -> io::Result<Vec<CalendarUpdate>> {
+) -> anyhow::Result<Vec<CalendarUpdate>> {
     if ids.len() != assignments.len() {
-        return Err(io::Error::other(
-            "calendar IDs and assignments have different lengths",
-        ));
+        return Err(io::Error::other("calendar IDs and assignments have different lengths").into());
     }
     // A feed may repeat an event. Match by ID and let its last occurrence win.
     let updates: HashMap<_, _> = ids.iter().zip(assignments).collect();
@@ -237,11 +236,11 @@ impl SchoologyAccountConfig {
         &self,
         ids: &[String],
         cal_assignments: &[CalendarAssignment],
-    ) -> io::Result<usize> {
+    ) -> anyhow::Result<usize> {
         if ids.len() != cal_assignments.len() {
-            return Err(io::Error::other(
-                "calendar IDs and assignments have different lengths",
-            ));
+            return Err(
+                io::Error::other("calendar IDs and assignments have different lengths").into(),
+            );
         }
         self.scrape_missing_calendar(ids)?;
         database::bulk_execute(
@@ -250,13 +249,13 @@ impl SchoologyAccountConfig {
         )
     }
 
-    fn scrape_missing_calendar(&self, ids: &[String]) -> io::Result<()> {
+    fn scrape_missing_calendar(&self, ids: &[String]) -> anyhow::Result<()> {
         let _reset = ResetProgress(CALENDAR_PROGRESS_PRIORITY, CALENDAR_PROGRESS_COLOR);
         let mut missing: HashSet<String> = ids.iter().cloned().collect();
         let existing: Vec<String> = database::from_sql_map(
             "SELECT DISTINCT id FROM assignments".to_owned(),
             &[],
-            |row| row.get(0).map_err(io::Error::other),
+            |row| Ok(row.get(0)?),
         )?;
         for id in existing {
             missing.remove(&id);
@@ -269,19 +268,19 @@ impl SchoologyAccountConfig {
         ui::publish_progress(1.0, CALENDAR_PROGRESS_PRIORITY, &CALENDAR_PROGRESS_COLOR);
         let courses: Vec<String> =
             database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
-                row.get(0).map_err(io::Error::other)
+                Ok(row.get(0)?)
             })?;
         for course_id in courses {
             if missing.is_empty() {
                 break;
             }
-            crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
+            crate::thread_manager::check_cancelled()?;
             let cached = crate::types::material::materials(&course_id)?;
             match self.hierarchy(&course_id, &cached, &missing) {
                 Ok(root) => {
                     let found = assignments_in(&root, &missing);
                     if !found.is_empty() {
-                        crate::thread_manager::check_cancelled().map_err(io::Error::other)?;
+                        crate::thread_manager::check_cancelled()?;
                         crate::types::material::store_calendar_assignments(
                             &course_id, &root, &found,
                         )?;

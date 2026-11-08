@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use crate::state::courses::CourseState;
 use crate::{AppWindow, CourseTab, CoursesUi, Screen, UiState};
+use anyhow;
 
 #[derive(Clone, Default)]
 pub struct SidebarState {}
@@ -27,13 +28,13 @@ struct SavedTab {
 
 impl SidebarState {
     pub fn restore_ui(&self, ui: &AppWindow) {
-        let result = (|| -> std::io::Result<()> {
+        let result = (|| -> anyhow::Result<()> {
             let saved = crate::database::from_sql_map(
                 "SELECT data FROM sync_state WHERE key = 'sidebar'".into(),
                 &[],
                 |row| {
-                    let data: String = row.get(0).map_err(std::io::Error::other)?;
-                    serde_json::from_str::<SavedSidebar>(&data).map_err(std::io::Error::other)
+                    let data: String = row.get(0)?;
+                    Ok(serde_json::from_str::<SavedSidebar>(&data)?)
                 },
             )?
             .into_iter()
@@ -82,11 +83,14 @@ impl SidebarState {
                 })
                 .collect(),
         };
-        let result = serde_json::to_string(&saved).map_err(std::io::Error::other)
-            .and_then(|data| crate::database::execute(
+        let result: anyhow::Result<()> = (|| {
+            let data = serde_json::to_string(&saved)?;
+            crate::database::execute(
                 "INSERT INTO sync_state (key, data) VALUES ('sidebar', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data WHERE sync_state.data != excluded.data".into(),
                 rusqlite::params![data],
-            ).map(|_| ()));
+            )?;
+            Ok(())
+        })();
         if let Err(err) = result {
             log::warn!("Saving sidebar state failed: {err}");
         }

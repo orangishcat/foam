@@ -1,4 +1,4 @@
-use std::io::{self, Error, Result};
+use anyhow;
 
 use chrono::{DateTime, Local};
 use rusqlite::{Connection, params};
@@ -21,13 +21,13 @@ use crate::{
 };
 
 impl State for NotificationState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
              ORDER BY julianday(n.created) DESC, n.seq LIMIT ?1".to_owned(), &[&self.notification_limit], |row| {
-                Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
-                    row.get::<_, String>("display_course").map_err(Error::other)?))
+                Ok((serde_rusqlite::from_row::<Notification>(row)?,
+                    row.get::<_, String>("display_course")?))
             })?;
         let models = notifications
             .iter()
@@ -65,7 +65,7 @@ impl State for NotificationState {
                     },
                 })
             })
-            .collect::<io::Result<Vec<_>>>()?;
+            .collect::<anyhow::Result<Vec<_>>>()?;
         let global = ui.global::<crate::NotificationUi>();
         let selected_id = global.get_selected_notification().id;
         global.set_selected_notification(
@@ -219,7 +219,7 @@ impl NotificationState {
         });
     }
 
-    pub fn sync_sidebar(&self, ui: &AppWindow) -> io::Result<()> {
+    pub fn sync_sidebar(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let notifications =
             database::from_sql::<Notification>("SELECT * FROM notifications".into(), &[])?;
         ui.global::<crate::NotificationUi>()
@@ -227,24 +227,24 @@ impl NotificationState {
         Ok(())
     }
 
-    pub fn save_state(&self) -> Result<()> {
+    pub fn save_state(&self) -> anyhow::Result<()> {
         let connection = database::connection()?;
         self.save_state_on(&connection)
     }
 
-    pub(crate) fn save_state_on(&self, connection: &Connection) -> Result<()> {
+    pub(crate) fn save_state_on(&self, connection: &Connection) -> anyhow::Result<()> {
         connection.execute("INSERT INTO sync_state (key, data) VALUES ('notifications', ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data",
-            params![serde_json::to_string(self).map_err(Error::other)?]).map_err(Error::other)?;
+            params![serde_json::to_string(self)?])?;
         Ok(())
     }
 
-    pub fn load() -> Result<Self> {
+    pub fn load() -> anyhow::Result<Self> {
         let values = database::from_sql_map(
             "SELECT data FROM sync_state WHERE key = 'notifications'".to_owned(),
             &[],
             |row| {
-                let data: String = row.get(0).map_err(Error::other)?;
-                serde_json::from_str(&data).map_err(Error::other)
+                let data: String = row.get(0)?;
+                Ok(serde_json::from_str(&data)?)
             },
         )?;
         Ok(values.into_iter().next().unwrap_or_default())

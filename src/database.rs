@@ -1,5 +1,6 @@
+use anyhow;
 use std::{
-    io::{self, Error, Result},
+    io,
     path::PathBuf,
     sync::{Mutex, MutexGuard, OnceLock},
 };
@@ -12,14 +13,12 @@ use crate::config::config;
 static DB_CONNECTION: OnceLock<Mutex<Connection>> = OnceLock::new();
 const DB_NAME: &str = "foam.db";
 
-pub fn init() -> Result<()> {
-    let connection = Connection::open(db_path()).map_err(Error::other)?;
-    connection
-        .create_collation("NATURAL_ORDER", natord::compare_ignore_case)
-        .map_err(io::Error::other)?;
+pub fn init() -> anyhow::Result<()> {
+    let connection = Connection::open(db_path())?;
+    connection.create_collation("NATURAL_ORDER", natord::compare_ignore_case)?;
     DB_CONNECTION
         .set(Mutex::new(connection))
-        .map_err(|_| Error::other("setting oncelock failed"))?;
+        .map_err(|_| io::Error::other("setting oncelock failed"))?;
     create_schema()?;
     Ok(())
 }
@@ -28,28 +27,27 @@ pub fn db_path() -> PathBuf {
     config().data_dir().join(DB_NAME)
 }
 
-fn create_schema() -> Result<()> {
-    connection()?
-        .execute_batch(include_str!("sql/schema.sql"))
-        .map_err(Error::other)?;
+fn create_schema() -> anyhow::Result<()> {
+    connection()?.execute_batch(include_str!("sql/schema.sql"))?;
     add_column_if_missing("materials", "last_updated", "TEXT")?;
     add_column_if_missing("notifications", "subtitle", "TEXT NOT NULL DEFAULT \"\"")?;
     add_column_if_missing("notifications", "seq", "INTEGER NOT NULL DEFAULT 0")?;
     Ok(())
 }
 
-pub fn connection() -> Result<MutexGuard<'static, Connection>> {
-    DB_CONNECTION
+pub fn connection() -> anyhow::Result<MutexGuard<'static, Connection>> {
+    let guard = DB_CONNECTION
         .get()
-        .ok_or_else(|| Error::other("database is not initialized"))?
+        .ok_or_else(|| io::Error::other("database is not initialized"))?;
+    guard
         .lock()
-        .map_err(|_| Error::other("database lock is poisoned"))
+        .map_err(|_| io::Error::other("database lock is poisoned").into())
 }
 
 pub fn from_sql<M: DeserializeOwned>(
     query: String,
     params: &[&dyn rusqlite::ToSql],
-) -> io::Result<Vec<M>> {
+) -> anyhow::Result<Vec<M>> {
     let connection = connection()?;
     read_from(&connection, &query, params)
 }
@@ -58,30 +56,28 @@ pub(crate) fn read_from<M: DeserializeOwned>(
     connection: &Connection,
     query: &str,
     params: &[&dyn rusqlite::ToSql],
-) -> io::Result<Vec<M>> {
-    let mut statement = connection.prepare_cached(query).map_err(Error::other)?;
-    let rows = statement.query(params).map_err(Error::other)?;
-    serde_rusqlite::from_rows::<M>(rows)
-        .map(|r| r.map_err(Error::other))
-        .collect::<Result<Vec<M>>>()
+) -> anyhow::Result<Vec<M>> {
+    let mut statement = connection.prepare_cached(query)?;
+    let rows = statement.query(params)?;
+    Ok(serde_rusqlite::from_rows::<M>(rows).collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
 pub fn from_sql_map<T>(
     query: String,
     params: &[&dyn rusqlite::ToSql],
-    mut map_row: impl FnMut(&rusqlite::Row) -> io::Result<T>,
-) -> io::Result<Vec<T>> {
+    mut map_row: impl FnMut(&rusqlite::Row) -> anyhow::Result<T>,
+) -> anyhow::Result<Vec<T>> {
     let connection = connection()?;
-    let mut statement = connection.prepare_cached(&query).map_err(Error::other)?;
-    let mut rows = statement.query(params).map_err(Error::other)?;
+    let mut statement = connection.prepare_cached(&query)?;
+    let mut rows = statement.query(params)?;
     let mut results = Vec::new();
-    while let Some(row) = rows.next().map_err(Error::other)? {
+    while let Some(row) = rows.next()? {
         results.push(map_row(row)?);
     }
     Ok(results)
 }
 
-pub fn bulk_execute<P>(query: String, params: Vec<P>) -> io::Result<usize>
+pub fn bulk_execute<P>(query: String, params: Vec<P>) -> anyhow::Result<usize>
 where
     P: rusqlite::Params,
 {
@@ -93,46 +89,38 @@ pub(crate) fn bulk_execute_on<P: rusqlite::Params>(
     connection: &mut Connection,
     query: &str,
     params: Vec<P>,
-) -> io::Result<usize> {
+) -> anyhow::Result<usize> {
     let mut updated = 0;
-    let transaction = connection.transaction().map_err(Error::other)?;
-    let mut statement = transaction.prepare_cached(query).map_err(Error::other)?;
+    let transaction = connection.transaction()?;
+    let mut statement = transaction.prepare_cached(query)?;
     for entry in params {
-        updated += statement.execute(entry).map_err(Error::other)?;
+        updated += statement.execute(entry)?;
     }
     drop(statement);
-    transaction.commit().map_err(Error::other)?;
+    transaction.commit()?;
     Ok(updated)
 }
 
-pub fn execute(query: String, params: &[&dyn rusqlite::ToSql]) -> io::Result<usize> {
+pub fn execute(query: String, params: &[&dyn rusqlite::ToSql]) -> anyhow::Result<usize> {
     let connection = connection()?;
-    connection
-        .prepare_cached(&query)
-        .map_err(Error::other)?
-        .execute(params)
-        .map_err(Error::other)
+    Ok(connection.prepare_cached(&query)?.execute(params)?)
 }
 
 // for use in database migration only, function will be unused most of the time
-pub fn add_column_if_missing(table: &str, column: &str, definition: &str) -> io::Result<bool> {
+pub fn add_column_if_missing(table: &str, column: &str, definition: &str) -> anyhow::Result<bool> {
     let connection = connection()?;
-    let exists: bool = connection
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM pragma_table_xinfo(?1) WHERE name = ?2)",
-            (table, column),
-            |row| row.get(0),
-        )
-        .map_err(Error::other)?;
+    let exists: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_xinfo(?1) WHERE name = ?2)",
+        (table, column),
+        |row| Ok(row.get(0)?),
+    )?;
     if exists {
         return Ok(false);
     }
 
-    connection
-        .execute(
-            &format!("ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition}"),
-            [],
-        )
-        .map_err(Error::other)?;
+    connection.execute(
+        &format!("ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition}"),
+        [],
+    )?;
     Ok(true)
 }

@@ -1,4 +1,4 @@
-use std::io::{self, Error};
+use std::io::Error;
 
 use chrono::{DateTime, Local, Utc};
 use rusqlite::params;
@@ -11,6 +11,7 @@ use crate::{
     state::{state::menu_item, top_bar::refresh_file_view},
     types::{assignment::Assignment, attachment::Attachments},
 };
+use anyhow;
 
 pub(crate) fn assignment_menu_items(ui: &AppWindow) -> Vec<ScreenMenuItem> {
     let assignment = ui.global::<AssignmentUi>().get_assignment();
@@ -36,7 +37,7 @@ pub(crate) fn assignment_menu_items(ui: &AppWindow) -> Vec<ScreenMenuItem> {
 }
 
 impl State for AssignmentViewState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let global = ui.global::<AssignmentUi>();
         let current = global.get_assignment();
         if !current.id.is_empty() {
@@ -125,7 +126,7 @@ impl IfEmpty for str {
     }
 }
 
-fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
+fn load(course: &str, id: &str) -> anyhow::Result<Option<AssignmentWithDetails>> {
     let rows = database::from_sql_map(
         "SELECT a.*, COALESCE(c.course_title, a.course_id) AS course_title
          FROM assignments a LEFT JOIN courses c ON c.course_id = a.course_id
@@ -136,8 +137,8 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
         params![course, id],
         |row| {
             Ok((
-                serde_rusqlite::from_row::<Assignment>(row).map_err(Error::other)?,
-                row.get::<_, String>("course_title").map_err(Error::other)?,
+                serde_rusqlite::from_row::<Assignment>(row)?,
+                row.get::<_, String>("course_title")?,
             ))
         },
     )?;
@@ -285,16 +286,14 @@ impl AssignmentViewState {
     }
 }
 
-fn copy_details(assignment_id: &str) -> io::Result<()> {
+fn copy_details(assignment_id: &str) -> anyhow::Result<()> {
     let assignments = database::from_sql::<Assignment>(
         "SELECT * FROM assignments WHERE id = ?".to_owned(),
         &[&assignment_id.to_string()],
     )?;
-    let mut clipboard = arboard::Clipboard::new().map_err(io::Error::other)?;
+    let mut clipboard = arboard::Clipboard::new()?;
     if assignments.is_empty() {
-        return Err(Error::other(
-            "No assignment found with id = {assignment_id}",
-        ));
+        return Err(Error::other("No assignment found with id = {assignment_id}").into());
     }
     if assignments.len() > 1 {
         log::warn!(
@@ -303,7 +302,7 @@ fn copy_details(assignment_id: &str) -> io::Result<()> {
         );
     }
     let a = &assignments[0];
-    clipboard
+    Ok(clipboard
         .set_text(format!(
             "Assignment id: {assignment_id}\nAssignment title: {}\nCourse id: {}\nInternal database path: {}",
             a.title,
@@ -311,6 +310,5 @@ fn copy_details(assignment_id: &str) -> io::Result<()> {
             database::db_path()
                 .to_str()
                 .unwrap_or("Failed to get internal database path")
-        ))
-        .map_err(io::Error::other)
+        ))?)
 }

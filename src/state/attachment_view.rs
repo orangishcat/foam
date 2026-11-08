@@ -1,4 +1,5 @@
 use crate::embedded_webview::EmbeddedWebView;
+use anyhow;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use slint::{ComponentHandle, Model, winit_030::WinitWindowAccessor};
@@ -231,7 +232,7 @@ fn ready(preview: &Rc<RefCell<Preview>>, generation: u64, source: Source) {
     if let Source::Local(path) = &source {
         match file_url(path).and_then(|url| {
             url.to_file_path()
-                .map_err(|_| std::io::Error::other("Invalid attachment path"))
+                .map_err(|_| anyhow::anyhow!("Invalid attachment path"))
         }) {
             Ok(path) => {
                 preview.local_path = Some(path);

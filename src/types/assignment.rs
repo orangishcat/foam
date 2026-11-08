@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{PickFirst, Same, json::JsonString, serde_as};
 
 use crate::types::{attachment::Attachments, submission::Submission};
+use anyhow;
 
 #[serde_as]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -29,17 +30,14 @@ impl Assignment {
         &self,
         connection: &rusqlite::Connection,
         course_id: &str,
-    ) -> std::io::Result<()> {
+    ) -> anyhow::Result<()> {
         let mut assignment = self.clone();
         assignment.course_id = course_id.to_owned();
-        let serialized =
-            serde_rusqlite::to_params_named(&assignment).map_err(std::io::Error::other)?;
-        connection
-            .execute(
-                include_str!("../sql/assignment/write.sql"),
-                serialized.to_slice().as_slice(),
-            )
-            .map_err(std::io::Error::other)?;
+        let serialized = serde_rusqlite::to_params_named(&assignment)?;
+        connection.execute(
+            include_str!("../sql/assignment/write.sql"),
+            serialized.to_slice().as_slice(),
+        )?;
         Ok(())
     }
     pub fn is_completed(&self) -> bool {

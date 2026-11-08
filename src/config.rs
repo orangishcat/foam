@@ -9,6 +9,7 @@ use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
 use crate::filesystem;
+use anyhow;
 
 const APP_NAME: &str = concat!("dev.orangishcat.", env!("CARGO_PKG_NAME"));
 const CONFIG_FILE_NAME: &str = "config.json";
@@ -54,7 +55,7 @@ impl AppConfig {
         config
     }
 
-    pub fn save(&self) -> std::io::Result<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         filesystem::write_json(&self.config_file(), self)
             .inspect_err(|e| log::warn!("Failed to write config: {e}"))
     }

@@ -1,10 +1,9 @@
 // todo: implement plugin system using wasm; this will have to do for now
 
-use std::io;
-
 use crate::{account::Account, api::schoology::account::SchoologyAccountConfig};
+use anyhow;
 
-pub fn init() -> io::Result<Vec<Box<dyn Account>>> {
+pub fn init() -> anyhow::Result<Vec<Box<dyn Account>>> {
     Ok(match SchoologyAccountConfig::load() {
         Ok(acc) => vec![Box::new(acc)],
         Err(err) => {

@@ -1,6 +1,7 @@
 //! Browser SSO recovery. WebKit objects stay on the UI thread; sync workers wait
 //! for the result without blocking the event loop.
 use crate::embedded_webview::EmbeddedWebView;
+use anyhow;
 use std::{
     cell::RefCell,
     io,
@@ -92,7 +93,6 @@ pub(super) fn recover(
                     EmbeddedWebView::build(builder, window, bounds, false)
                 })
                 .ok_or_else(|| io::Error::other("Schoology recovery window unavailable"))?
-                .map_err(io::Error::other)
         });
         match result {
             Ok(webview) => {
@@ -100,7 +100,7 @@ pub(super) fn recover(
                 poll(host, key, tx, Instant::now(), loaded, finished, promoted);
             }
             Err(error) => {
-                let _ = tx.send(Err(error));
+                let _ = tx.send(Err(error.into()));
             }
         }
     })?;
@@ -127,14 +127,14 @@ fn authenticated_home(url: &str, host: &str) -> bool {
 fn poll(
     host: String,
     key: String,
-    tx: mpsc::Sender<io::Result<String>>,
+    tx: mpsc::Sender<anyhow::Result<String>>,
     started: Instant,
     loaded: Arc<AtomicBool>,
     finished: Arc<AtomicBool>,
     promoted: Arc<AtomicBool>,
 ) {
     slint::Timer::single_shot(Duration::from_millis(250), move || {
-        let result = BROWSER.with(|browser| -> io::Result<Option<String>> {
+        let result = BROWSER.with(|browser| -> anyhow::Result<Option<String>> {
             let browser = browser.borrow();
             let webview = browser
                 .as_ref()
@@ -144,17 +144,16 @@ fn poll(
             {
                 return Err(io::Error::other(
                     "Schoology sign-in timed out. Try syncing again to sign in.",
-                ));
+                )
+                .into());
             }
             let authenticated = if loaded.load(Ordering::Relaxed) {
-                authenticated_home(&webview.url().map_err(io::Error::other)?, &host)
+                authenticated_home(&webview.url()?, &host)
             } else {
                 false
             };
             if authenticated {
-                let cookies = webview
-                    .cookies_for_url(&format!("https://{host}/"))
-                    .map_err(io::Error::other)?;
+                let cookies = webview.cookies_for_url(&format!("https://{host}/"))?;
                 if let Some(cookie) = cookies
                     .iter()
                     .find(|cookie| cookie.name() == key && !cookie.value().is_empty())
@@ -166,7 +165,7 @@ fn poll(
             // a login page nobody can see. Promote it to a visible sign-in panel.
             if finished.load(Ordering::Relaxed) && !promoted.swap(true, Ordering::Relaxed) {
                 log::info!("Schoology recovery needs interaction: showing sign-in panel");
-                webview.set_visible(true).map_err(io::Error::other)?;
+                webview.set_visible(true)?;
                 let _ = webview.focus();
             }
             Ok(None)
@@ -178,7 +177,7 @@ fn poll(
                     browser.borrow_mut().take();
                 });
                 let _ = tx.send(result.and_then(|value| {
-                    value.ok_or_else(|| io::Error::other("No Schoology session cookie"))
+                    value.ok_or_else(|| io::Error::other("No Schoology session cookie").into())
                 }));
             }
         }

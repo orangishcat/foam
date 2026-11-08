@@ -153,9 +153,8 @@ impl SchoologyAccountConfig {
                     "SELECT type FROM materials WHERE course_id = ? AND material_id = ?".to_owned(),
                     &[&course.course_id, &n.resource_id],
                     |row| {
-                        let kind: String = row.get(0).map_err(io::Error::other)?;
-                        serde_json::from_value(serde_json::Value::String(kind))
-                            .map_err(io::Error::other)
+                        let kind: String = row.get(0)?;
+                        Ok(serde_json::from_value(serde_json::Value::String(kind))?)
                     },
                 )?;
                 let kind = kinds.into_iter().next().ok_or_else(|| {

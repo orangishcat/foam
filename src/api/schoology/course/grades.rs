@@ -1,5 +1,5 @@
 use crate::api::schoology::account::SchoologyAccountConfig;
-use std::{collections::HashMap, io};
+use std::collections::HashMap;
 
 use rusqlite::Connection;
 
@@ -7,6 +7,7 @@ use crate::{
     api::schoology::{RequestResult, types::grades::GradesResponse},
     database,
 };
+use anyhow;
 
 pub(crate) const UPDATE_GRADES: &str =
     "UPDATE assignments SET score = ?, letter_grade = ? WHERE course_id = ? AND id = ?";
@@ -15,7 +16,7 @@ type GradeUpdate = (Option<f64>, Option<String>, String, String);
 pub(crate) fn grade_updates(
     connection: &Connection,
     response: &GradesResponse,
-) -> io::Result<Vec<GradeUpdate>> {
+) -> anyhow::Result<Vec<GradeUpdate>> {
     let mut scores = HashMap::new();
     for section in &response.section {
         let Some(course) = crate::types::course::course_from(connection, &section.section_id.0)?
@@ -55,7 +56,7 @@ impl SchoologyAccountConfig {
         self.api_get(&url)
     }
 
-    pub(crate) fn apply_grades(&self, response: &GradesResponse) -> io::Result<()> {
+    pub(crate) fn apply_grades(&self, response: &GradesResponse) -> anyhow::Result<()> {
         let updates = {
             let connection = database::connection()?;
             grade_updates(&connection, response)?

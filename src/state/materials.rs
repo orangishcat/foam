@@ -9,6 +9,7 @@ use crate::state::top_bar::refresh_file_view;
 use crate::{
     AppWindow, CoursesUi, MaterialUi, MaterialsMenu, Screen, ScreenMenuItem, UiState, database,
 };
+use anyhow;
 
 impl State for MaterialsState {
     fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
@@ -39,14 +40,13 @@ pub struct MaterialsState {}
 impl MaterialsState {
     pub fn init_ui(&self, ui: &AppWindow) {
         ui.global::<MaterialUi>().on_open_browser(|item| {
-            let result = (|| -> io::Result<String> {
+            let result = (|| -> anyhow::Result<String> {
                 let account = crate::account::active_account()?;
                 if item.kind == "assignment" {
                     return Ok(account.assignment_url(&item.id));
                 }
                 if item.kind == "folder" || item.kind == "course" {
-                    let mut url = reqwest::Url::parse(&account.assignment_url(""))
-                        .map_err(io::Error::other)?;
+                    let mut url = reqwest::Url::parse(&account.assignment_url(""))?;
                     url.set_path(&format!("/course/{}/materials", item.course_id));
                     if item.kind == "folder" {
                         url.query_pairs_mut().append_pair("f", &item.id);
@@ -62,11 +62,11 @@ impl MaterialsState {
                         item.id.as_str(),
                         item.kind.as_str()
                     ],
-                    |row| row.get::<_, String>(0).map_err(io::Error::other),
+                    |row| Ok(row.get::<_, String>(0)?),
                 )?;
                 urls.into_iter()
                     .find(|url| !url.trim().is_empty())
-                    .ok_or_else(|| io::Error::other("Material has no browser URL"))
+                    .ok_or_else(|| io::Error::other("Material has no browser URL").into())
             })();
             match result {
                 Ok(url) => crate::state::attachment_view::open_browser(&url),

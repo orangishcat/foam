@@ -5,6 +5,7 @@ use reqwest::Url;
 use slint::ComponentHandle;
 
 use crate::{UiState, ui};
+use anyhow;
 
 pub fn spawn_check_update_timer() {
     let timer = slint::Timer::default();

@@ -4,20 +4,18 @@ use crate::{
     UiState,
     state::courses::CourseState,
 };
+use anyhow;
 use slint::{ComponentHandle, Model, ModelRc, ToSharedString, VecModel};
 use std::io;
 
 pub fn get_path_data(
     ui: &AppWindow,
-) -> Result<
-    (
-        std::string::String,
-        std::string::String,
-        Vec<MaterialItem>,
-        Vec<MaterialItem>,
-    ),
-    std::io::Error,
-> {
+) -> anyhow::Result<(
+    std::string::String,
+    std::string::String,
+    Vec<MaterialItem>,
+    Vec<MaterialItem>,
+)> {
     let courses_ui = ui.global::<CoursesUi>();
     let course = courses_ui.get_course_id().to_string();
     let folder = courses_ui.get_folder_id().to_string();
@@ -137,7 +135,7 @@ pub fn breadcrumbs(
     doc_name: &str,
     doc_kind: &str,
     title: slint::SharedString,
-) -> io::Result<Vec<MaterialItem>> {
+) -> anyhow::Result<Vec<MaterialItem>> {
     let root = CourseState::root_folder(course)?;
     let mut ancestors = Vec::new();
     let mut current = folder.to_owned();
@@ -153,7 +151,7 @@ pub fn breadcrumbs(
     }
     while !current.is_empty() && current != root {
         if !visited.insert(current.clone()) {
-            return Err(io::Error::other("Folder hierarchy contains a cycle"));
+            return Err(io::Error::other("Folder hierarchy contains a cycle").into());
         }
         let (folder_title, parent) = CourseState::folder_metadata(course, &current)?;
         ancestors.push(MaterialItem {

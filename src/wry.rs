@@ -1,7 +1,6 @@
 use crate::embedded_webview::EmbeddedWebView;
 use std::{
     cell::RefCell,
-    io,
     path::{Path, PathBuf},
 };
 
@@ -12,6 +11,7 @@ use ::wry::{
 use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 
 use crate::{AppWindow, DocumentUi, Screen, UiState};
+use anyhow;
 
 pub enum Source {
     Local(PathBuf),
@@ -60,9 +60,9 @@ pub fn init(ui: &AppWindow) {
     });
 }
 
-pub(crate) fn file_url(path: &Path) -> io::Result<reqwest::Url> {
+pub(crate) fn file_url(path: &Path) -> anyhow::Result<reqwest::Url> {
     let path = path.canonicalize()?;
-    reqwest::Url::from_file_path(path).map_err(|_| io::Error::other("Invalid document file path"))
+    reqwest::Url::from_file_path(path).map_err(|_| anyhow::anyhow!("Invalid document file path"))
 }
 
 fn update(ui: &AppWindow) {

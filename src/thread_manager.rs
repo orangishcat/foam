@@ -1,3 +1,4 @@
+use anyhow;
 use std::{
     collections::HashMap,
     io,
@@ -36,7 +37,7 @@ impl Drop for RemoveOnDrop {
 pub fn spawn_thread(
     name: impl Into<String>,
     f: impl FnOnce() + Send + 'static,
-) -> io::Result<ThreadId> {
+) -> anyhow::Result<ThreadId> {
     let id = NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed);
     let (start_tx, start_rx) = mpsc::channel();
 
@@ -44,7 +45,7 @@ pub fn spawn_thread(
     let mut registry = THREADS.lock().unwrap_or_else(|e| e.into_inner());
 
     if registry.shutting_down {
-        return Err(io::Error::other("program is shutting down"));
+        return Err(io::Error::other("program is shutting down").into());
     }
 
     let handle = thread::Builder::new().name(name.into()).spawn(move || {
@@ -81,12 +82,9 @@ pub fn join_all_threads() {
 }
 
 // cancel in progress threads when the app is shutting down
-pub fn check_cancelled() -> std::io::Result<()> {
+pub fn check_cancelled() -> anyhow::Result<()> {
     if CANCELLED.load(Ordering::Relaxed) {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Interrupted,
-            "shutting down",
-        ))
+        Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "shutting down").into())
     } else {
         Ok(())
     }

@@ -1,9 +1,10 @@
-use std::{fs, io, path::Path};
+use std::{fs, path::Path};
 
 use serde_json::Value;
 use slint::Color;
 
 use crate::ColorPalette;
+use anyhow;
 
 #[derive(Clone)]
 pub struct Theme {
@@ -15,7 +16,7 @@ pub fn load_themes(
     data_dir: &Path,
     dark: ColorPalette,
     light: ColorPalette,
-) -> io::Result<Vec<Theme>> {
+) -> anyhow::Result<Vec<Theme>> {
     let directory = data_dir.join("themes");
     fs::create_dir_all(&directory)?;
     let mut themes = vec![
@@ -74,7 +75,7 @@ pub fn load_themes(
     Ok(themes)
 }
 
-fn parse_color(value: &Value, key: &str) -> Result<Color, String> {
+fn parse_color(value: &Value, key: &str) -> anyhow::Result<Color, String> {
     let value = value
         .as_str()
         .ok_or_else(|| format!("value for '{key}' must be a CSS color string"))?;
@@ -84,13 +85,13 @@ fn parse_color(value: &Value, key: &str) -> Result<Color, String> {
     Ok(Color::from_argb_u8(rgba[3], rgba[0], rgba[1], rgba[2]))
 }
 
-fn read_theme(path: &Path, dark: &ColorPalette) -> Result<ColorPalette, String> {
+fn read_theme(path: &Path, dark: &ColorPalette) -> anyhow::Result<ColorPalette, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
     let json: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     apply_theme(json, dark)
 }
 
-fn apply_theme(json: Value, dark: &ColorPalette) -> Result<ColorPalette, String> {
+fn apply_theme(json: Value, dark: &ColorPalette) -> anyhow::Result<ColorPalette, String> {
     let object = json.as_object().ok_or("theme must be a JSON object")?;
     for key in object.keys() {
         if key != "colors" && key != "override" {

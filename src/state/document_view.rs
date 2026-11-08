@@ -11,12 +11,13 @@ use crate::{
     state::{courses::CourseState, state::State, top_bar::refresh_file_view},
     types::material::Material,
 };
+use anyhow;
 
 #[derive(Clone, Default)]
 pub struct DocumentViewerState {}
 
 impl State for DocumentViewerState {
-    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         wry::init(ui);
         Ok(())
     }
@@ -27,7 +28,7 @@ impl State for DocumentViewerState {
 }
 
 impl DocumentViewerState {
-    pub fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
+    pub fn open(ui: &AppWindow, course: &str, id: &str) -> anyhow::Result<()> {
         let (parent, material, canon_course_id) = database::from_sql_map(
             "SELECT m.parent_id, m.data, m.course_id
          FROM materials m LEFT JOIN courses c ON c.course_id = m.course_id
@@ -39,19 +40,17 @@ impl DocumentViewerState {
             params![course, id],
             |row| {
                 Ok((
-                    row.get::<_, String>(0).map_err(io::Error::other)?,
-                    row.get::<_, String>(1).map_err(io::Error::other)?,
-                    row.get::<_, String>(2).map_err(io::Error::other)?,
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
                 ))
             },
         )?
         .into_iter()
         .next()
         .ok_or_else(|| io::Error::other("Document no longer exists"))?;
-        let Material::Document(document) =
-            serde_json::from_str(&material).map_err(io::Error::other)?
-        else {
-            return Err(io::Error::other("Invalid document data"));
+        let Material::Document(document) = serde_json::from_str(&material)? else {
+            return Err(io::Error::other("Invalid document data").into());
         };
         let attachment = document
             .attachments
@@ -63,7 +62,7 @@ impl DocumentViewerState {
             .map(|file| file.download_path.clone())
             .unwrap_or(document.url);
         if url.trim().is_empty() {
-            return Err(io::Error::other("Document has no resource URL"));
+            return Err(io::Error::other("Document has no resource URL").into());
         }
         let course_id = canon_course_id.as_str();
         let index = CourseState::ensure_course_tab(ui, course_id, None)?;

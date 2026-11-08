@@ -1,7 +1,5 @@
-use std::{
-    io,
-    sync::{LazyLock, Mutex, MutexGuard},
-};
+use anyhow;
+use std::sync::{LazyLock, Mutex, MutexGuard};
 
 static STATE: LazyLock<Mutex<AppState>> = LazyLock::new(|| Mutex::new(AppState::default()));
 
@@ -32,7 +30,7 @@ pub struct AppState {
 }
 
 pub trait State {
-    fn sync_ui(&self, _ui: &AppWindow) -> io::Result<()> {
+    fn sync_ui(&self, _ui: &AppWindow) -> anyhow::Result<()> {
         Ok(())
     }
     fn menu_items(&self, _ui: &AppWindow) -> Vec<ScreenMenuItem> {

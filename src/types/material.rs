@@ -1,7 +1,7 @@
 use crate::database;
+use anyhow;
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
-use std::io::{Error, Result};
 
 use super::{
     assessment::Assessment, assignment::Assignment, document::Document, folder::Folder, link::Link,
@@ -40,24 +40,28 @@ impl From<&Material> for MaterialType {
     }
 }
 
-pub fn store_hierarchy(course_id: &str, root: &Folder) -> Result<()> {
+pub fn store_hierarchy(course_id: &str, root: &Folder) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
-    let transaction = connection.transaction().map_err(Error::other)?;
+    let transaction = connection.transaction()?;
     store_hierarchy_on(&transaction, course_id, root)?;
-    transaction.commit().map_err(Error::other)
+    Ok(transaction.commit()?)
 }
 
 /// Insert one assignment without replacing the rest of the course hierarchy.
-pub fn store_assignment(course_id: &str, parent_id: &str, assignment: &Assignment) -> Result<()> {
+pub fn store_assignment(
+    course_id: &str,
+    parent_id: &str,
+    assignment: &Assignment,
+) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
-    let transaction = connection.transaction().map_err(Error::other)?;
+    let transaction = connection.transaction()?;
     store_material_on(
         &transaction,
         course_id,
         parent_id,
         &Material::Assignment(assignment.clone()),
     )?;
-    transaction.commit().map_err(Error::other)
+    Ok(transaction.commit()?)
 }
 
 /// Add calendar assignments and their folder paths without pruning other materials.
@@ -65,11 +69,11 @@ pub fn store_calendar_assignments(
     course_id: &str,
     root: &Folder,
     wanted: &std::collections::HashSet<String>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
-    let transaction = connection.transaction().map_err(Error::other)?;
+    let transaction = connection.transaction()?;
     store_calendar_folder_on(&transaction, course_id, "", root, wanted)?;
-    transaction.commit().map_err(Error::other)
+    Ok(transaction.commit()?)
 }
 
 fn store_calendar_folder_on(
@@ -78,7 +82,7 @@ fn store_calendar_folder_on(
     parent_id: &str,
     folder: &Folder,
     wanted: &std::collections::HashSet<String>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let metadata = Folder {
         id: folder.id.clone(),
         title: folder.title.clone(),
@@ -109,20 +113,15 @@ pub(crate) fn store_hierarchy_on(
     connection: &Connection,
     course_id: &str,
     root: &Folder,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let mut retained = Vec::new();
     store_folder_on(connection, course_id, "", root, &mut retained)?;
-    connection
-        .execute(
-            "DELETE FROM materials WHERE course_id = ?1 AND NOT EXISTS (
+    connection.execute(
+        "DELETE FROM materials WHERE course_id = ?1 AND NOT EXISTS (
             SELECT 1 FROM json_each(?2) WHERE json_extract(value, '$[0]') = materials.type
                 AND json_extract(value, '$[1]') = materials.material_id)",
-            params![
-                course_id,
-                serde_json::to_string(&retained).map_err(Error::other)?
-            ],
-        )
-        .map_err(Error::other)?;
+        params![course_id, serde_json::to_string(&retained)?],
+    )?;
     Ok(())
 }
 
@@ -132,7 +131,7 @@ fn store_folder_on(
     parent_id: &str,
     folder: &Folder,
     retained: &mut Vec<(MaterialType, String)>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let metadata = Folder {
         id: folder.id.clone(),
         title: folder.title.clone(),
@@ -162,7 +161,7 @@ fn store_material_on(
     course_id: &str,
     parent_id: &str,
     material: &Material,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let (id, title) = match material {
         Material::Folder(m) => (&m.id, &m.title),
         Material::Assignment(m) => (&m.id, &m.title),
@@ -170,39 +169,37 @@ fn store_material_on(
         Material::Document(m) => (&m.id, &m.title),
         Material::Link(m) => (&m.id, &m.title),
     };
-    let kind = serde_json::to_value(MaterialType::from(material)).map_err(Error::other)?;
+    let kind = serde_json::to_value(MaterialType::from(material))?;
     // Assignment content lives only in assignments; data holds other material variants.
     let data = if matches!(material, Material::Assignment(_)) {
         "{}".to_owned()
     } else {
-        serde_json::to_string(material).map_err(Error::other)?
+        serde_json::to_string(material)?
     };
     connection.execute(
         "INSERT INTO materials (course_id, material_id, type, parent_id, title, data) VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT(course_id, type, material_id) DO UPDATE SET parent_id = excluded.parent_id,
          title = CASE WHEN excluded.type = 'assignment' THEN materials.title ELSE excluded.title END, data = excluded.data",
-        params![course_id, id, kind.as_str(), parent_id, title, data]).map_err(Error::other)?;
+        params![course_id, id, kind.as_str(), parent_id, title, data])?;
     if let Material::Assignment(assignment) = material {
         assignment.insert_on(connection, course_id)?;
     }
     Ok(())
 }
 
-pub fn materials(course_id: &str) -> Result<Vec<Material>> {
+pub fn materials(course_id: &str) -> anyhow::Result<Vec<Material>> {
     let connection = database::connection()?;
     materials_from(&connection, course_id)
 }
 
-fn materials_from(connection: &Connection, course_id: &str) -> Result<Vec<Material>> {
-    let mut statement = connection
-        .prepare_cached("SELECT data FROM materials WHERE course_id = ? AND type != 'assignment'")
-        .map_err(Error::other)?;
-    let rows = statement
-        .query_map(params![course_id], |row| row.get::<_, String>(0))
-        .map_err(Error::other)?;
+fn materials_from(connection: &Connection, course_id: &str) -> anyhow::Result<Vec<Material>> {
+    let mut statement = connection.prepare_cached(
+        "SELECT data FROM materials WHERE course_id = ? AND type != 'assignment'",
+    )?;
+    let rows = statement.query_map(params![course_id], |row| Ok(row.get::<_, String>(0)?))?;
     let mut materials = rows
-        .map(|row| serde_json::from_str(&row.map_err(Error::other)?).map_err(Error::other))
-        .collect::<Result<Vec<_>>>()?;
+        .map(|row| Ok(serde_json::from_str(&row?)?))
+        .collect::<anyhow::Result<Vec<_>>>()?;
     materials.extend(
         database::read_from::<Assignment>(
             connection,

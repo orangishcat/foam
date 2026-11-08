@@ -9,26 +9,27 @@ use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 use crate::{AppWindow, config::config, database, thread_manager, ui};
+use anyhow;
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 
 pub fn asset_from_url(
     url: &str,
     extension: &str,
-    on_complete: impl FnOnce(io::Result<PathBuf>) + Send + 'static,
+    on_complete: impl FnOnce(anyhow::Result<PathBuf>) + Send + 'static,
 ) {
     let url = url.to_owned();
     let extension = extension.to_owned();
     thread_manager::spawn_thread("download asset", move || {
-        let result = (|| -> io::Result<PathBuf> {
+        let result = (|| -> anyhow::Result<PathBuf> {
             if url.trim().is_empty() {
                 log::debug!("Skipping empty asset URL");
-                return Err(Error::new(io::ErrorKind::InvalidInput, "empty asset URL"));
+                return Err(Error::new(io::ErrorKind::InvalidInput, "empty asset URL").into());
             }
             match database::from_sql_map(
                 "SELECT file_path FROM attachments WHERE url = ?".into(),
                 &[&url],
-                |row| row.get::<_, String>(0).map_err(Error::other),
+                |row| Ok(row.get::<_, String>(0)?),
             ) {
                 Ok(paths) => {
                     if let Some(path) = paths.into_iter().next().map(PathBuf::from) {
@@ -57,12 +58,12 @@ pub fn asset_from_url(
             log::debug!("Downloading asset from {url}");
             let request = crate::account::active_account()?
                 .get_resource(&url)
-                .map_err(Error::other)?;
+                .map_err(|error| anyhow::anyhow!("{error}"))?;
             let mut response = request
                 .send()
-                .map_err(Error::other)?
+                ?
                 .error_for_status()
-                .map_err(Error::other)?;
+                ?;
             let max_bytes = config().max_attachment_bytes;
             if response
                 .content_length()
@@ -70,7 +71,7 @@ pub fn asset_from_url(
             {
                 return Err(Error::other(format!(
                     "asset exceeds configured limit of {max_bytes} bytes"
-                )));
+                )).into());
             }
             let mut bytes = Vec::new();
             response
@@ -80,7 +81,7 @@ pub fn asset_from_url(
             if bytes.len() as u64 > max_bytes {
                 return Err(Error::other(format!(
                     "asset exceeds configured limit of {max_bytes} bytes"
-                )));
+                )).into());
             }
             let hash = format!("{:x}", Sha256::digest(&bytes));
             let mut path = config()
@@ -118,7 +119,7 @@ pub fn asset_from_url(
 pub fn asset_as_slint_img(
     url: &str,
     extension: &str,
-    on_complete: impl FnOnce(&AppWindow, io::Result<slint::Image>) + Send + 'static,
+    on_complete: impl FnOnce(&AppWindow, anyhow::Result<slint::Image>) + Send + 'static,
 ) {
     asset_from_url(url, extension, move |result| {
         ui::run_on_ui_thread(|ui| match result {
@@ -128,30 +129,30 @@ pub fn asset_as_slint_img(
     });
 }
 
-fn load_slint_image(path: &PathBuf) -> Result<slint::Image, Error> {
-    let bytes = std::fs::read(path).map_err(io::Error::other)?;
-    slint::Image::load_from_data(&bytes, None).map_err(io::Error::other)
+fn load_slint_image(path: &PathBuf) -> anyhow::Result<slint::Image> {
+    let bytes = std::fs::read(path)?;
+    Ok(slint::Image::load_from_data(&bytes, None)?)
 }
 
-pub(super) fn read_json<T>(path: &Path) -> Result<T, Error>
+pub(super) fn read_json<T>(path: &Path) -> anyhow::Result<T>
 where
     T: DeserializeOwned,
 {
     let reader = BufReader::new(File::open(path)?);
-    serde_json::from_reader(reader).map_err(Error::other)
+    Ok(serde_json::from_reader(reader)?)
 }
 
-pub(super) fn write_json(path: &Path, value: &impl Serialize) -> io::Result<()> {
+pub(super) fn write_json(path: &Path, value: &impl Serialize) -> anyhow::Result<()> {
     create_if_missing(path)?;
     let writer = BufWriter::new(OpenOptions::new().write(true).truncate(true).open(path)?);
     serde_json::to_writer_pretty(writer, value)?;
     Ok(())
 }
 
-pub(super) fn create_if_missing(path: &Path) -> io::Result<()> {
+pub(super) fn create_if_missing(path: &Path) -> anyhow::Result<()> {
     match OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(_) => Ok(()),
         Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Ok(()),
-        Err(e) => Err(e),
+        Err(e) => Err(e.into()),
     }
 }

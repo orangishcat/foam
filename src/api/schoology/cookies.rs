@@ -7,6 +7,7 @@ use reqwest::{
 };
 
 use crate::{account::Account, api::schoology::account::SchoologyAccountConfig};
+use anyhow;
 
 /// Keeps the configured session cookie in sync with the jar, including redirects.
 #[derive(Debug)]
@@ -18,7 +19,7 @@ pub(super) struct SessionCookies {
 }
 
 impl SessionCookies {
-    pub(super) fn replace_session(&self, value: &str) -> std::io::Result<()> {
+    pub(super) fn replace_session(&self, value: &str) -> anyhow::Result<()> {
         let jar = self
             .jar
             .lock()
