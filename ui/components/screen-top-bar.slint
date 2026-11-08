@@ -28,6 +28,17 @@ export component ScreenTopBar inherits TopBarFrame {
             vertical-alignment: center;
         }
 
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
         @children
+
+        if !UiState.top-right-text.is-empty: Text {
+            text: UiState.top-right-text;
+            color: UiState.theme.colors.text-secondary;
+            font-size: 0.75rem;
+            vertical-alignment: center;
+        }
     }
 }

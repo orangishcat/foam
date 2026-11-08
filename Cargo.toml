@@ -38,6 +38,7 @@ wry = "0.57.0"
 arboard = "3.7.0"
 cargo-packager-updater = "0.2.3"
 natord = "1.0.9"
+anyhow = "1.0.104"
 
 [build-dependencies]
 slint-build = "1.16.1"

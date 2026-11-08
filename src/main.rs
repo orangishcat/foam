@@ -22,6 +22,7 @@ mod theme;
 mod thread_manager;
 mod types;
 mod ui;
+mod updater;
 mod wry;
 
 slint::include_modules!();
@@ -64,6 +65,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     state().init_ui(&ui);
     state().sync_ui(&ui);
     api::schoology::onboarding::init(&ui);
+
+    updater::spawn_check_update_timer();
 
     let _event_pump = crate::platform::start_event_pump();
 

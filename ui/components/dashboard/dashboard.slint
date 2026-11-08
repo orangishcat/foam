@@ -62,10 +62,6 @@ export component Dashboard inherits FocusScope {
             title: "Dashboard";
             icon: @image-url("../../icons/calendar-days.svg");
 
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
             new-event-btn := HoverableButton {
                 Rectangle {
                     y: 0.35rem;
@@ -88,14 +84,11 @@ export component Dashboard inherits FocusScope {
                         }
                     }
 
-                    VerticalLayout {
-                        alignment: center;
-
-                        text := Text {
-                            text: "New event";
-                            font-size: 0.75rem;
-                            color: UiState.theme.colors.text-secondary;
-                        }
+                    text := Text {
+                        text: "New event";
+                        font-size: 0.75rem;
+                        vertical-alignment: center;
+                        color: UiState.theme.colors.text-secondary;
                     }
                 }
             }
