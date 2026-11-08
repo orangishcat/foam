@@ -15,23 +15,8 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { NotificationType } from "../../types/notification-ui.slint";
 import { NotificationsBottomBar } from "bottom-bar.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
-import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 
 export global NotificationsMenu {
-    out property <[ScreenMenuItem]> items: [
-        { title: "Mark all as read", shortcut: @keys(A), enabled: true },
-        { title: "View item", shortcut: @keys(V), enabled: NotificationUi.can-open-selected },
-        {
-            title: "Mark as read",
-            shortcut: @keys(D),
-            enabled: !NotificationUi.selected-notification.id.is-empty
-        },
-        {
-            title: "Unselect item",
-            shortcut: @keys(Escape),
-            enabled: !NotificationUi.selected-notification.id.is-empty
-        },
-    ];
     public function activate(index: int) {
         if index == 0 { NotificationUi.mark-all-as-read(); }
         if index == 1 { NotificationUi.open-selected(); }

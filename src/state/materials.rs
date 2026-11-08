@@ -3,8 +3,35 @@ use std::io;
 use rusqlite::params;
 use slint::{ComponentHandle, Model};
 
+use super::state::menu_item;
+use crate::state::state::State;
 use crate::state::top_bar::refresh_file_view;
-use crate::{AppWindow, CoursesUi, MaterialUi, Screen, UiState, database};
+use crate::{
+    AppWindow, CoursesUi, MaterialUi, MaterialsMenu, Screen, ScreenMenuItem, UiState, database,
+};
+
+impl State for MaterialsState {
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        let courses_ui = ui.global::<CoursesUi>();
+        let active = courses_ui.get_active_tab();
+        let tabs = courses_ui.get_tabs();
+        let has_tab = active >= 0 && (active as usize) < tabs.row_count();
+        let selected = ui.global::<MaterialsMenu>().get_selected_index();
+        let materials_len = if has_tab {
+            tabs.row_data(active as usize)
+                .map_or(0, |tab| tab.materials.row_count())
+        } else {
+            0
+        };
+        let has_selection = has_tab && selected >= 0 && (selected as usize) < materials_len;
+        vec![
+            menu_item("Close tab", &["Control", "W"], has_tab),
+            menu_item("View item", &["V"], has_selection),
+            menu_item("Open in browser", &["O"], has_selection),
+            menu_item("Unselect item", &["Escape"], has_selection),
+        ]
+    }
+}
 
 #[derive(Clone, Default)]
 pub struct MaterialsState {}

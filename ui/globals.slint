@@ -1,5 +1,6 @@
 import { Screen } from "types/screen.slint";
 import { Theme, ColorPalette } from "palette.slint";
+import { ScreenMenuItem } from "types/screen-menu-item.slint";
 
 export global WindowChrome {
     // whether the traffic lights are slint rendered (macos false, windows and linux true)
@@ -19,4 +20,9 @@ export global UiState {
     out property <ColorPalette> default-light-theme: Theme.light;
     out property <length> top-bar-height: font-size * 2px;
     out property <length> bottom-bar-height: font-size * 1.75px;
+}
+
+export global MenubarData {
+    in property <[ScreenMenuItem]> items;
+    callback refresh();
 }

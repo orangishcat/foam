@@ -1,7 +1,9 @@
 import { AssignmentWithDetails } from "../../types/assignment-ui.slint";
+import { MenubarData } from "../../globals.slint";
 
 export global AssignmentUi {
     in-out property <AssignmentWithDetails> assignment;
+    changed assignment => { MenubarData.refresh(); }
     in-out property <string> error;
     callback open(string, string);
     callback copy-details(string);

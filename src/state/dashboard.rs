@@ -7,8 +7,9 @@ use chrono::{Datelike, Days, Local};
 use rusqlite::params;
 use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
+use super::state::menu_item;
 use crate::{
-    AppWindow, AssignmentCol,
+    AppWindow, AssignmentCol, DashboardUi, ScreenMenuItem,
     account::{self, Account},
     database, thread_manager,
     types::assignment::Assignment,
@@ -35,8 +36,8 @@ pub(crate) fn dashboard_query() -> String {
 #[derive(Clone, Default)]
 pub struct DashboardState {}
 
-impl DashboardState {
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+impl crate::state::state::State for DashboardState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let assignments_on_dashboard =
             database::from_sql_map::<(Assignment, String)>(dashboard_query(), params![], |row| {
                 Ok((
@@ -124,6 +125,25 @@ impl DashboardState {
                 .ok();
         });
         Ok(())
+    }
+
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        let selected = ui.global::<DashboardUi>().get_selected_assignment();
+        let enabled = !selected.course_id.is_empty();
+        vec![
+            menu_item("View item", &["V"], enabled),
+            menu_item(
+                if selected.done {
+                    "Unmark as done"
+                } else {
+                    "Mark as done"
+                },
+                &["D"],
+                enabled,
+            ),
+            menu_item("Unselect item", &["Escape"], enabled),
+            menu_item("Refresh", &["Control", "R"], true),
+        ]
     }
 }
 

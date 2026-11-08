@@ -4,14 +4,27 @@ use crate::wry::{self, Source, ready};
 use rusqlite::params;
 use slint::{ComponentHandle, Model};
 
+use super::assignment_view::assignment_menu_items;
+use crate::ScreenMenuItem;
 use crate::{
     AppWindow, CoursesUi, DocumentUi, Screen, UiState, database, filesystem,
-    state::{courses::CourseState, top_bar::refresh_file_view},
+    state::{courses::CourseState, state::State, top_bar::refresh_file_view},
     types::material::Material,
 };
 
 #[derive(Clone, Default)]
 pub struct DocumentViewerState {}
+
+impl State for DocumentViewerState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        wry::init(ui);
+        Ok(())
+    }
+
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        assignment_menu_items(ui)
+    }
+}
 
 impl DocumentViewerState {
     pub fn open(ui: &AppWindow, course: &str, id: &str) -> io::Result<()> {
@@ -119,10 +132,5 @@ impl DocumentViewerState {
                     .set_error(error.to_string().into());
             }
         });
-    }
-
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        wry::init(ui);
-        Ok(())
     }
 }

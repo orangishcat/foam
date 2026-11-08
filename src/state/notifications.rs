@@ -5,8 +5,10 @@ use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+use super::state::menu_item;
+use crate::state::state::State;
 use crate::{
-    AppWindow, UiState,
+    AppWindow, NotificationUi, ScreenMenuItem, UiState,
     config::config,
     database,
     state::state::state,
@@ -17,6 +19,80 @@ use crate::{
     },
     ui,
 };
+
+impl State for NotificationState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        let notifications = database::from_sql_map(
+            "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
+             FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
+             ORDER BY julianday(n.created) DESC, n.seq LIMIT ?1".to_owned(), &[&self.notification_limit], |row| {
+                Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
+                    row.get::<_, String>("display_course").map_err(Error::other)?))
+            })?;
+        let models = notifications
+            .iter()
+            .map(|(n, course)| {
+                Ok(crate::Notification {
+                    id: n.id()?.into(),
+                    unread: n.is_unread,
+                    title: (&n.title).into(),
+                    subtitle: (&n.subtitle).into(),
+                    course: course.into(),
+                    course_id: (&n.course_id).into(),
+                    resource_id: (&n.resource_id).into(),
+                    n_type: match (n.event, n.material_type) {
+                        (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
+                        (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
+                            crate::NotificationType::NewAssignment
+                        }
+                        (_, Some(MaterialType::Document)) => crate::NotificationType::NewDocument,
+                        (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
+                        _ => crate::NotificationType::Unknown,
+                    },
+                    icon_color: match n.event {
+                        NotificationEvent::GradeUpdated => {
+                            match ui::progress_percent(&n.course_id, &n.resource_id) {
+                                Some(percent) => ui::progress_color(ui, percent),
+                                None => ui.global::<UiState>().get_theme().colors.border,
+                            }
+                        }
+                        _ => match n.material_type {
+                            Some(MaterialType::Assignment | MaterialType::Assessment) => {
+                                ui.global::<UiState>().get_theme().colors.progress_9
+                            }
+                            _ => ui.global::<UiState>().get_theme().colors.text_muted,
+                        },
+                    },
+                })
+            })
+            .collect::<io::Result<Vec<_>>>()?;
+        let global = ui.global::<crate::NotificationUi>();
+        let selected_id = global.get_selected_notification().id;
+        global.set_selected_notification(
+            models
+                .iter()
+                .find(|n| n.id == selected_id)
+                .cloned()
+                .unwrap_or_default(),
+        );
+        global.set_unread_count(models.iter().filter(|n| n.unread).count() as i32);
+        global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
+        global.set_notifications(ModelRc::new(VecModel::from(models)));
+        self.sync_sidebar(ui)?;
+        Ok(())
+    }
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        let notification_ui = ui.global::<NotificationUi>();
+        let selected = notification_ui.get_selected_notification();
+        let enabled = !selected.id.is_empty();
+        vec![
+            menu_item("Mark all as read", &["A"], true),
+            menu_item("View item", &["V"], notification_ui.get_can_open_selected()),
+            menu_item("Mark as read", &["D"], enabled),
+            menu_item("Unselect item", &["Escape"], enabled),
+        ]
+    }
+}
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NotificationState {
@@ -105,66 +181,6 @@ impl NotificationState {
             }
         }
         ui::sync_ui();
-    }
-
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        let notifications = database::from_sql_map(
-            "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
-             FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id
-             ORDER BY julianday(n.created) DESC, n.seq LIMIT ?1".to_owned(), &[&self.notification_limit], |row| {
-                Ok((serde_rusqlite::from_row::<Notification>(row).map_err(Error::other)?,
-                    row.get::<_, String>("display_course").map_err(Error::other)?))
-            })?;
-        let models = notifications
-            .iter()
-            .map(|(n, course)| {
-                Ok(crate::Notification {
-                    id: n.id()?.into(),
-                    unread: n.is_unread,
-                    title: (&n.title).into(),
-                    subtitle: (&n.subtitle).into(),
-                    course: course.into(),
-                    course_id: (&n.course_id).into(),
-                    resource_id: (&n.resource_id).into(),
-                    n_type: match (n.event, n.material_type) {
-                        (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
-                        (_, Some(MaterialType::Assignment | MaterialType::Assessment)) => {
-                            crate::NotificationType::NewAssignment
-                        }
-                        (_, Some(MaterialType::Document)) => crate::NotificationType::NewDocument,
-                        (_, Some(MaterialType::Link)) => crate::NotificationType::NewLink,
-                        _ => crate::NotificationType::Unknown,
-                    },
-                    icon_color: match n.event {
-                        NotificationEvent::GradeUpdated => {
-                            match ui::progress_percent(&n.course_id, &n.resource_id) {
-                                Some(percent) => ui::progress_color(ui, percent),
-                                None => ui.global::<UiState>().get_theme().colors.border,
-                            }
-                        }
-                        _ => match n.material_type {
-                            Some(MaterialType::Assignment | MaterialType::Assessment) => {
-                                ui.global::<UiState>().get_theme().colors.progress_9
-                            }
-                            _ => ui.global::<UiState>().get_theme().colors.text_muted,
-                        },
-                    },
-                })
-            })
-            .collect::<io::Result<Vec<_>>>()?;
-        let global = ui.global::<crate::NotificationUi>();
-        let selected_id = global.get_selected_notification().id;
-        global.set_selected_notification(
-            models
-                .iter()
-                .find(|n| n.id == selected_id)
-                .cloned()
-                .unwrap_or_default(),
-        );
-        global.set_unread_count(models.iter().filter(|n| n.unread).count() as i32);
-        global.set_temp_notifs(ModelRc::new(VecModel::from(Vec::new())));
-        global.set_notifications(ModelRc::new(VecModel::from(models)));
-        Ok(())
     }
 
     pub fn init_ui(&self, ui: &AppWindow) {

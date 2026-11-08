@@ -1,5 +1,4 @@
-import { UiState } from "../../globals.slint";
-import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
+import { UiState, MenubarData } from "../../globals.slint";
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
@@ -16,6 +15,10 @@ export global AttachmentMenu {
     in-out property <bool> file-ready;
     in-out property <int> index;
     in-out property <int> count;
+    changed visible => { MenubarData.refresh(); }
+    changed index => { MenubarData.refresh(); }
+    changed count => { MenubarData.refresh(); }
+    changed file-ready => { MenubarData.refresh(); }
     in-out property <string> kind: "attachment";
     callback step(int);
     callback open-browser();
@@ -23,12 +26,6 @@ export global AttachmentMenu {
     callback open-libreoffice-link();
     callback reveal-file();
     callback close-preview();
-    out property <[ScreenMenuItem]> items: [
-        { title: "Previous " + kind, shortcut: @keys(LeftArrow), enabled: index > 0 },
-        { title: "Next " + kind, shortcut: @keys(RightArrow), enabled: index + 1 < count },
-        { title: "Close preview", shortcut: @keys(Escape), enabled: true },
-        { title: "Open in file manager", shortcut: @keys(O), enabled: file-ready },
-    ];
     public function activate(index: int) {
         if index == 0 { step(-1); }
         else if index == 1 { step(1); }

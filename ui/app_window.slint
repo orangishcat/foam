@@ -8,11 +8,12 @@ export { AttachmentMenu } from "components/assignment/attachment-window.slint";
 import { Screen } from "types/screen.slint";
 import { Courses, CoursesMenu } from "components/courses/courses.slint";
 import { Materials, MaterialsMenu } from "components/materials/materials.slint";
+export { MaterialsMenu } from "components/materials/materials.slint";
 import { Sidebar } from "components/sidebar.slint";
 import { WindowControls } from "components/window-controls.slint";
 import { Settings } from "components/settings/settings.slint";
 import { DocumentView } from "components/document/document-view.slint";
-import { UiState, WindowChrome } from "globals.slint";
+import { UiState, WindowChrome, MenubarData } from "globals.slint";
 import { OnboardingUi } from "components/onboarding/globals.slint";
 import { SettingsUi } from "components/settings/globals.slint";
 import { DashboardUi } from "components/dashboard/globals.slint";
@@ -34,7 +35,8 @@ export {
     SearchUi,
     SearchResult,
 } from "components/search/globals.slint";
-export { WindowChrome, UiState } from "globals.slint";
+export { WindowChrome, UiState, MenubarData } from "globals.slint";
+export { ScreenMenuItem } from "types/screen-menu-item.slint";
 import "fonts/MozillaText.ttf";
 import {
     Notifications,
@@ -68,7 +70,7 @@ export component AppWindow inherits Window {
     }
     callback screen-changed();
     private property <Screen> active-screen: UiState.screen;
-    changed active-screen => { root.screen-changed(); }
+    changed active-screen => { root.screen-changed(); MenubarData.refresh(); }
     callback navigate-sidebar(int);
     out property <length> onboarding-x: onboarding.viewer-x;
     out property <length> onboarding-y: onboarding.viewer-y;
@@ -105,13 +107,7 @@ export component AppWindow inherits Window {
 
     private property <bool> has-dialog: AttachmentMenu.visible || UiState.screen == Screen.onboarding;
     private property <bool> compact-menu: UiState.shortcut-modifier != "⌘";
-    private property <[ScreenMenuItem]> action-items:
-        AttachmentMenu.visible ? AttachmentMenu.items :
-        UiState.screen == Screen.dashboard ? DashboardMenu.items :
-        UiState.screen == Screen.notifs ? NotificationsMenu.items :
-        UiState.screen == Screen.courses ? CoursesMenu.items :
-        UiState.screen == Screen.materials ? MaterialsMenu.items :
-        UiState.screen == Screen.assignment || UiState.screen == Screen.document ? AssignmentMenu.items : [];
+    private property <[ScreenMenuItem]> action-items: MenubarData.items;
     callback activate-action(int);
     activate-action(index) => {
         if AttachmentMenu.visible { AttachmentMenu.activate(index); }
@@ -238,58 +234,13 @@ export component AppWindow inherits Window {
             }
         }
 
-        if !has-dialog && UiState.screen == Screen.dashboard: Menu {
+        if (!has-dialog && MenubarData.items.length > 0) || AttachmentMenu.visible: Menu {
             title: "Actions";
-            for item[index] in DashboardMenu.items: MenuItem {
+            for item[index] in MenubarData.items: MenuItem {
                 title: item.title;
                 shortcut: item.shortcut;
                 enabled: item.enabled;
-                activated => { DashboardMenu.activate(index); }
-            }
-        }
-        if !has-dialog && UiState.screen == Screen.notifs: Menu {
-            title: "Actions";
-            for item[index] in NotificationsMenu.items: MenuItem {
-                title: item.title;
-                shortcut: item.shortcut;
-                enabled: item.enabled;
-                activated => { NotificationsMenu.activate(index); }
-            }
-        }
-        if !has-dialog && UiState.screen == Screen.courses: Menu {
-            title: "Actions";
-            for item[index] in CoursesMenu.items: MenuItem {
-                title: item.title;
-                shortcut: item.shortcut;
-                enabled: item.enabled;
-                activated => { CoursesMenu.activate(index); }
-            }
-        }
-        if !has-dialog && UiState.screen == Screen.materials: Menu {
-            title: "Actions";
-            for item[index] in MaterialsMenu.items: MenuItem {
-                title: item.title;
-                shortcut: item.shortcut;
-                enabled: item.enabled;
-                activated => { MaterialsMenu.activate(index); }
-            }
-        }
-        if !has-dialog && (UiState.screen == Screen.assignment || UiState.screen == Screen.document): Menu {
-            title: "Actions";
-            for item[index] in AssignmentMenu.items: MenuItem {
-                title: item.title;
-                shortcut: item.shortcut;
-                enabled: item.enabled;
-                activated => { AssignmentMenu.activate(index); }
-            }
-        }
-        if AttachmentMenu.visible: Menu {
-            title: "Actions";
-            for item[index] in AttachmentMenu.items: MenuItem {
-                title: item.title;
-                shortcut: item.shortcut;
-                enabled: item.enabled;
-                activated => { AttachmentMenu.activate(index); }
+                activated => { root.activate-action(index); }
             }
         }
     }

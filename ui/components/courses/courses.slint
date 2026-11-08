@@ -6,16 +6,7 @@ import { CourseItem } from "../../types/course-ui.slint";
 import { CoursesBottomBar } from "bottom-bar.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 
-import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
-
 export global CoursesMenu {
-    out property <[ScreenMenuItem]> items: [
-        {
-            title: CoursesUi.show-hidden ? "Hide hidden courses" : "Show hidden courses",
-            shortcut: @keys(H),
-            enabled: true
-        },
-    ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.show-hidden = !CoursesUi.show-hidden; }
     }

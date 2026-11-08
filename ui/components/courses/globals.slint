@@ -1,9 +1,13 @@
 import { CourseItem, MaterialItem, CourseTab } from "../../types/course-ui.slint";
+import { MenubarData } from "../../globals.slint";
 
 export global CoursesUi {
     in-out property <bool> show-hidden: false;
+    changed show-hidden => { MenubarData.refresh(); }
     in-out property <[CourseTab]> tabs;
+    changed tabs => { MenubarData.refresh(); }
     in-out property <int> active-tab: -1;
+    changed active-tab => { MenubarData.refresh(); }
     callback select-tab(int);
     callback close-tab(int);
     in-out property <string> course-id;

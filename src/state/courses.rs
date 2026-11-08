@@ -1,8 +1,9 @@
+use crate::state::state::State;
 use crate::{
     AppWindow, CourseItem, CourseTab, CoursesUi, MaterialItem,
     Screen::{self},
-    UiState, database, filesystem,
-    state::top_bar::refresh_file_view,
+    ScreenMenuItem, UiState, database, filesystem,
+    state::{state::menu_item, top_bar::refresh_file_view},
     types::course::Course,
     ui::{self},
 };
@@ -10,11 +11,8 @@ use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::io;
 
-#[derive(Clone, Default)]
-pub struct CourseState {}
-
-impl CourseState {
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+impl State for CourseState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
         let courses = database::from_sql::<Course>(
         "SELECT * FROM courses ORDER BY course_order, course_title COLLATE NATURAL_ORDER, section_title COLLATE NATURAL_ORDER"
             .to_owned(),
@@ -48,7 +46,24 @@ impl CourseState {
         }
         Ok(())
     }
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        let show_hidden = ui.global::<CoursesUi>().get_show_hidden();
+        vec![menu_item(
+            if show_hidden {
+                "Hide hidden courses"
+            } else {
+                "Show hidden courses"
+            },
+            &["H"],
+            true,
+        )]
+    }
+}
 
+#[derive(Clone, Default)]
+pub struct CourseState {}
+
+impl CourseState {
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<CoursesUi>();
         global.on_drag_data(|index| {

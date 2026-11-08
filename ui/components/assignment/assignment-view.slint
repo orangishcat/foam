@@ -12,37 +12,9 @@ import { SelectableText } from "../selectable-text.slint";
 import { TopBar } from "../materials/top-bar.slint";
 import { AssignmentBottomBar } from "bottom-bar.slint";
 
-import { ScreenMenuItem } from "../../types/screen-menu-item.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
 export global AssignmentMenu {
-    out property <[ScreenMenuItem]> items: [
-        {
-            title: "Close tab",
-            shortcut: @keys(Control + W),
-            enabled: CoursesUi.active-tab >= 0 && CoursesUi.active-tab < CoursesUi.tabs.length
-        },
-        {
-            title: "Copy details",
-            shortcut: @keys(Shift+C),
-            enabled: !AssignmentUi.assignment.id.is-empty
-        },
-        {
-            title: "View attachments",
-            shortcut: @keys(A),
-            enabled: AssignmentUi.assignment.attachments.length > 0
-        },
-        {
-            title: "Open in browser",
-            shortcut: @keys(O),
-            enabled: !AssignmentUi.assignment.id.is-empty
-        },
-        {
-            title: "View submissions",
-            shortcut: @keys(S),
-            enabled: AssignmentUi.assignment.submission-file-count > 0
-        },
-    ];
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
         else if index == 1 { AssignmentUi.copy-details(AssignmentUi.assignment.id); }

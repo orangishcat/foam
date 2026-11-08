@@ -2,14 +2,58 @@ use std::io::{self, Error};
 
 use chrono::{DateTime, Local, Utc};
 use rusqlite::params;
-use slint::{ComponentHandle, ModelRc, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 
+use crate::state::state::State;
 use crate::{
-    AppWindow, AssignmentFile, AssignmentUi, AssignmentWithDetails, Screen, SubmissionRow, UiState,
-    database,
-    state::top_bar::refresh_file_view,
+    AppWindow, AssignmentFile, AssignmentUi, AssignmentWithDetails, CoursesUi, Screen,
+    ScreenMenuItem, SubmissionRow, UiState, database,
+    state::{state::menu_item, top_bar::refresh_file_view},
     types::{assignment::Assignment, attachment::Attachments},
 };
+
+pub(crate) fn assignment_menu_items(ui: &AppWindow) -> Vec<ScreenMenuItem> {
+    let assignment = ui.global::<AssignmentUi>().get_assignment();
+    let courses_ui = ui.global::<CoursesUi>();
+    let active = courses_ui.get_active_tab();
+    let has_tab = active >= 0 && (active as usize) < courses_ui.get_tabs().row_count();
+    let has_assignment = !assignment.id.is_empty();
+    vec![
+        menu_item("Close tab", &["Control", "W"], has_tab),
+        menu_item("Copy details", &["Shift", "C"], has_assignment),
+        menu_item(
+            "View attachments",
+            &["A"],
+            assignment.attachments.row_count() > 0,
+        ),
+        menu_item("Open in browser", &["O"], has_assignment),
+        menu_item(
+            "View submissions",
+            &["S"],
+            assignment.submission_file_count > 0,
+        ),
+    ]
+}
+
+impl State for AssignmentViewState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        let global = ui.global::<AssignmentUi>();
+        let current = global.get_assignment();
+        if !current.id.is_empty() {
+            if let Some(assignment) = load(&current.course_id, &current.id)? {
+                global.set_assignment(assignment);
+                global.set_error("".into());
+            } else {
+                global.set_error(format!("Assignment no longer exists: {}", current.id).into());
+            }
+            refresh_file_view(ui);
+        }
+        Ok(())
+    }
+    fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
+        assignment_menu_items(ui)
+    }
+}
 
 fn date(value: DateTime<Utc>) -> String {
     value
@@ -158,21 +202,6 @@ fn load(course: &str, id: &str) -> io::Result<Option<AssignmentWithDetails>> {
 pub struct AssignmentViewState {}
 
 impl AssignmentViewState {
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        let global = ui.global::<AssignmentUi>();
-        let current = global.get_assignment();
-        if !current.id.is_empty() {
-            if let Some(assignment) = load(&current.course_id, &current.id)? {
-                global.set_assignment(assignment);
-                global.set_error("".into());
-            } else {
-                global.set_error(format!("Assignment no longer exists: {}", current.id).into());
-            }
-            refresh_file_view(ui);
-        }
-        Ok(())
-    }
-
     pub fn init_ui(&self, ui: &AppWindow) {
         let g = ui.global::<AssignmentUi>();
         let weak = ui.as_weak();

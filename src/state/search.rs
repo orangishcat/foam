@@ -10,7 +10,16 @@ use std::{
     time::Duration,
 };
 
+use crate::state::state::State;
 use crate::{AppWindow, SearchResult, SearchUi, database, filesystem};
+
+impl State for SearchState {
+    fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
+        let global = ui.global::<SearchUi>();
+        global.invoke_search(global.get_query());
+        Ok(())
+    }
+}
 
 #[derive(Deserialize)]
 struct ResultRow {
@@ -45,12 +54,6 @@ pub struct SearchState {
 }
 
 impl SearchState {
-    pub fn sync_ui(&self, ui: &AppWindow) -> io::Result<()> {
-        let global = ui.global::<SearchUi>();
-        global.invoke_search(global.get_query());
-        Ok(())
-    }
-
     pub fn init_ui(&self, ui: &AppWindow) {
         let (sender, receiver) = mpsc::channel::<(u64, String)>();
         let generation = self.generation.clone();

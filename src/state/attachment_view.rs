@@ -7,10 +7,24 @@ use wry::{
     dpi::{LogicalPosition, LogicalSize},
 };
 
+use super::state::menu_item;
 use crate::{
-    AppWindow, AssignmentFile, AssignmentUi, AttachmentMenu, filesystem,
+    AppWindow, AssignmentFile, AssignmentUi, AttachmentMenu, ScreenMenuItem, filesystem,
     wry::{Source, file_url},
 };
+
+pub fn menu_items(ui: &AppWindow) -> Vec<ScreenMenuItem> {
+    let menu = ui.global::<AttachmentMenu>();
+    let index = menu.get_index();
+    let count = menu.get_count();
+    let kind = menu.get_kind().to_string();
+    vec![
+        menu_item(&format!("Previous {kind}"), &["LeftArrow"], index > 0),
+        menu_item(&format!("Next {kind}"), &["RightArrow"], index + 1 < count),
+        menu_item("Close preview", &["Escape"], true),
+        menu_item("Open in file manager", &["O"], menu.get_file_ready()),
+    ]
+}
 
 struct Preview {
     window: AppWindow,
