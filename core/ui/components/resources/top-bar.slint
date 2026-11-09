@@ -1,0 +1,88 @@
+import { ScrollView } from "std-widgets.slint";
+import { Breadcrumb } from "breadcrumb.slint";
+import {
+    UiState,
+} from "../../globals.slint";
+import { FoldersUi } from "../folders/globals.slint";
+import { DocumentUi } from "../document/globals.slint";
+import { TaskUi } from "../task/globals.slint";
+import { Screen } from "../../types/screen.slint";
+import { FolderTab } from "../../types/folder-ui.slint";
+import { TopBarFrame } from "../top-bar-frame.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+import { ResourceUi } from "globals.slint";
+import { FoldersUi } from "../folders/globals.slint";
+
+export component TopBar inherits TopBarFrame {
+    in property <FolderTab> tab;
+
+    path := ScrollView {
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: always-off;
+        HorizontalLayout {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            spacing: 0.5rem;
+            alignment: start;
+            Breadcrumb {
+                title: "Folders";
+                kind: "folder";
+                activated => { UiState.screen = Screen.folders; }
+            }
+
+            for item in root.tab.breadcrumbs: HorizontalLayout {
+                spacing: 0.5rem;
+                alignment: start;
+                horizontal-stretch: 0;
+                Image {
+                    width: 0.75rem;
+                    y: 0.625rem;
+                    source: @image-url("../../icons/chevron-right.svg");
+                    colorize: UiState.theme.colors.text-secondary;
+                    vertical-alignment: top;
+                }
+
+                Breadcrumb {
+                    title: item.title;
+                    kind: item.kind;
+                    activated => {
+                        if item.kind == "folder" {
+                            FoldersUi.open(item.folder-id);
+                            FoldersUi.open-resource-folder(item.folder-id, "");
+                        }
+                        if item.kind == "folder" {
+                            FoldersUi.open-resource-folder(item.folder-id, item.id);
+                        }
+                        if item.kind == "task" {
+                            TaskUi.open(item.folder-id, item.id);
+                        }
+                        if item.kind == "document" {
+                            DocumentUi.open(item.folder-id, item.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    new-material := HoverableButton {
+        Rectangle {
+            y: 0.35rem;
+            width: parent.width;
+            height: parent.height - 0.7rem;
+            background: parent.has-hover ? UiState.theme.colors.surface-hover : transparent;
+            border-radius: 0.25rem;
+        }
+
+        Text {
+            text: "+ New";
+            color: UiState.theme.colors.text-secondary;
+            vertical-alignment: center;
+            font-size: 0.75rem;
+        }
+        clicked => {
+            ResourceUi.create-visible = true;
+            ResourceUi.create-error = "";
+        }
+    }
+}

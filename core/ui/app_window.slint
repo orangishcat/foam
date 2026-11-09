@@ -1,0 +1,427 @@
+import { Calendar, CalendarMenu } from "components/calendar/calendar.slint";
+import { AccountOnboarding } from "components/onboarding.slint";
+import {
+    AttachmentDialog,
+    AttachmentMenu,
+} from "components/attachment-dialog.slint";
+export { AttachmentMenu } from "components/attachment-dialog.slint";
+import { Screen } from "types/screen.slint";
+import { Folders, FoldersMenu } from "components/folders/folders.slint";
+import { Resources, ResourcesMenu } from "components/resources/resources.slint";
+export { ResourcesMenu } from "components/resources/resources.slint";
+import { Sidebar } from "components/sidebar.slint";
+import { WindowControls } from "components/window-controls.slint";
+import { Settings } from "components/settings/settings.slint";
+import { DocumentView } from "components/document/document-view.slint";
+import { UiState, WindowChrome, MenubarData } from "globals.slint";
+import { OnboardingUi } from "components/onboarding/globals.slint";
+import { SettingsUi } from "components/settings/globals.slint";
+import { CalendarUi } from "components/calendar/globals.slint";
+import { NotificationUi } from "components/notifications/globals.slint";
+import { FoldersUi } from "components/folders/globals.slint";
+import { ResourceUi } from "components/resources/globals.slint";
+import { TaskUi } from "components/task/globals.slint";
+import { DocumentUi } from "components/document/globals.slint";
+import { SearchUi, SearchResult } from "components/search/globals.slint";
+export { OnboardingUi } from "components/onboarding/globals.slint";
+export { SettingsUi } from "components/settings/globals.slint";
+export { CalendarUi } from "components/calendar/globals.slint";
+export { NotificationUi } from "components/notifications/globals.slint";
+export { FoldersUi } from "components/folders/globals.slint";
+export { ResourceUi } from "components/resources/globals.slint";
+export { TaskUi } from "components/task/globals.slint";
+export { DocumentUi } from "components/document/globals.slint";
+export {
+    SearchUi,
+    SearchResult,
+} from "components/search/globals.slint";
+export { WindowChrome, UiState, MenubarData } from "globals.slint";
+export { ScreenMenuItem } from "types/screen-menu-item.slint";
+import "fonts/MozillaText.ttf";
+import {
+    Notifications,
+    NotificationsMenu,
+} from "components/notifications/notifications.slint";
+import {
+    TaskView,
+    TaskMenu,
+} from "components/task/task-view.slint";
+import { Search } from "components/search/search.slint";
+import { HoverableButton } from "components/hoverable-button.slint";
+import { ScreenMenuItem } from "types/screen-menu-item.slint";
+import { Palette, MagicPalette, ComboBoxItem } from "@vivi/magic.slint";
+export { MagicPalette, ComboBoxItem }
+
+export component AppWindow inherits Window {
+    title: "foam";
+    default-font-family: "Mozilla Text";
+    default-font-size: UiState.font-size * 1px;
+    preferred-width: 68.75rem;
+    preferred-height: 43.75rem;
+    no-frame: WindowChrome.client-side;
+    resize-border-width: WindowChrome.client-side && !root.maximized && !root.full-screen ? 5px : 0px;
+
+    // vivi-theme clones the user's theme so @vivi components pick up foam's palette.
+    // Must be set together with UiState.theme; see src/state/settings.rs::apply_theme.
+    in-out property <MagicPalette> vivi-theme <=> Palette.current_palette;
+
+    background: UiState.theme.colors.background;
+    in property <bool> custom-titlebar: false;
+    in property <bool> window-active: true;
+    in-out property <int> sidebar-focus-request: -1;
+    private property <bool> notifications-visible: UiState.screen == Screen.notifs;
+    changed notifications-visible => {
+        if self.notifications-visible { NotificationUi.opened(); }
+        else { NotificationUi.closed(); }
+    }
+    callback screen-changed();
+    private property <Screen> active-screen: UiState.screen;
+    changed active-screen => { root.screen-changed(); MenubarData.refresh(); }
+    callback navigate-sidebar(int);
+    out property <length> onboarding-x: onboarding.viewer-x;
+    out property <length> onboarding-y: onboarding.viewer-y;
+    out property <length> onboarding-width: onboarding.viewer-width;
+    out property <length> onboarding-height: onboarding.viewer-height;
+    callback update-onboarding-webview();
+    callback edit-webview(int);
+    callback focus-onboarding-input();
+    changed onboarding-x => { root.update-onboarding-webview(); }
+    changed onboarding-y => { root.update-onboarding-webview(); }
+    changed onboarding-width => { root.update-onboarding-webview(); }
+    changed onboarding-height => { root.update-onboarding-webview(); }
+    callback step-sidebar(int);
+    out property <length> attachment-x: attachment.viewer-x;
+    out property <length> attachment-y: attachment.viewer-y;
+    out property <length> attachment-width: attachment.viewer-width;
+    out property <length> attachment-height: attachment.viewer-height;
+    callback update-attachment-webview();
+    changed attachment-x => { root.update-attachment-webview(); }
+    changed attachment-y => { root.update-attachment-webview(); }
+    changed attachment-width => { root.update-attachment-webview(); }
+    changed attachment-height => { root.update-attachment-webview(); }
+    out property <length> document-x: document.viewer-x;
+    out property <length> document-y: document.viewer-y;
+    out property <length> document-width: document.viewer-width;
+    out property <length> document-height: document.viewer-height;
+    private property <bool> document-visible: UiState.screen == Screen.document;
+    callback update-document-webview();
+    changed document-x => { root.update-document-webview(); }
+    changed document-y => { root.update-document-webview(); }
+    changed document-width => { root.update-document-webview(); }
+    changed document-height => { root.update-document-webview(); }
+    changed document-visible => { root.update-document-webview(); }
+
+    private property <bool> has-dialog: AttachmentMenu.visible || UiState.screen == Screen.onboarding;
+    private property <bool> compact-menu: UiState.shortcut-modifier != "⌘";
+    private property <[ScreenMenuItem]> action-items: MenubarData.items;
+    callback activate-action(int);
+    activate-action(index) => {
+        if AttachmentMenu.visible { AttachmentMenu.activate(index); }
+        else if UiState.screen == Screen.calendar { CalendarMenu.activate(index); }
+        else if UiState.screen == Screen.notifs { NotificationsMenu.activate(index); }
+        else if UiState.screen == Screen.folders { FoldersMenu.activate(index); }
+        else if UiState.screen == Screen.resources { ResourcesMenu.activate(index); }
+        else if UiState.screen == Screen.task || UiState.screen == Screen.document { TaskMenu.activate(index); }
+    }
+
+    // since slint forces the menu bar to be in the main app window, there might not be a
+    // better way to do this
+    if !WindowChrome.client-side || !has-dialog || AttachmentMenu.visible: MenuBar {
+        visible: !root.compact-menu;
+        if UiState.screen == Screen.onboarding && UiState.shortcut-modifier == "⌘": Menu {
+            title: "Edit";
+            MenuItem {
+                title: "Cut";
+                shortcut: @keys(Control + X);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(0); }
+                    else { root.edit-webview(0); }
+                }
+            }
+
+            MenuItem {
+                title: "Copy";
+                shortcut: @keys(Control + C);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(1); }
+                    else { root.edit-webview(1); }
+                }
+            }
+
+            MenuItem {
+                title: "Paste";
+                shortcut: @keys(Control + V);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(2); }
+                    else { root.edit-webview(2); }
+                }
+            }
+
+            MenuItem {
+                title: "Select All";
+                shortcut: @keys(Control + A);
+                activated => {
+                    if onboarding.input-has-focus { onboarding.edit-input(3); }
+                    else { root.edit-webview(3); }
+                }
+            }
+        }
+        if !has-dialog: Menu {
+            title: "Tabs";
+            MenuItem {
+                title: "Calendar";
+                shortcut: @keys(Control + Digit1);
+                activated => { root.navigate-sidebar(0); }
+            }
+
+            MenuItem {
+                title: "Notifications";
+                shortcut: @keys(Control + Digit2);
+                activated => { root.navigate-sidebar(1); }
+            }
+
+            MenuItem {
+                title: "Folders";
+                shortcut: @keys(Control + Digit3);
+                activated => { root.navigate-sidebar(2); }
+            }
+
+            MenuItem {
+                title: "Search";
+                shortcut: @keys(Control + Digit4);
+                activated => { root.navigate-sidebar(3); }
+            }
+
+            if FoldersUi.tabs.length > 0: MenuSeparator { }
+
+            // i don't think there's a better way to do this either because the @keys must be hardcoded
+            if FoldersUi.tabs.length > 0: MenuItem {
+                title: "Tab 1";
+                shortcut: @keys(Control + Digit5);
+                enabled: FoldersUi.tabs.length > 0;
+                activated => { root.navigate-sidebar(4); }
+            }
+            if FoldersUi.tabs.length > 1: MenuItem {
+                title: "Tab 2";
+                shortcut: @keys(Control + Digit6);
+                enabled: FoldersUi.tabs.length > 1;
+                activated => { root.navigate-sidebar(5); }
+            }
+            if FoldersUi.tabs.length > 2: MenuItem {
+                title: "Tab 3";
+                shortcut: @keys(Control + Digit7);
+                enabled: FoldersUi.tabs.length > 2;
+                activated => { root.navigate-sidebar(6); }
+            }
+            if FoldersUi.tabs.length > 3: MenuItem {
+                title: "Tab 4";
+                shortcut: @keys(Control + Digit8);
+                enabled: FoldersUi.tabs.length > 3;
+                activated => { root.navigate-sidebar(7); }
+            }
+            if FoldersUi.tabs.length > 4: MenuItem {
+                title: "Tab 5";
+                shortcut: @keys(Control + Digit9);
+                enabled: FoldersUi.tabs.length > 4;
+                activated => { root.navigate-sidebar(8); }
+            }
+            MenuSeparator { }
+
+            MenuItem {
+                title: "Previous sidebar item";
+                shortcut: @keys(Control + Alt + UpArrow);
+                activated => { root.step-sidebar(-1); }
+            }
+
+            MenuItem {
+                title: "Next sidebar item";
+                shortcut: @keys(Control + Alt + DownArrow);
+                activated => { root.step-sidebar(1); }
+            }
+        }
+
+        if (!has-dialog && MenubarData.items.length > 0) || AttachmentMenu.visible: Menu {
+            title: "Actions";
+            for item[index] in MenubarData.items: MenuItem {
+                title: item.title;
+                shortcut: item.shortcut;
+                enabled: item.enabled;
+                activated => { root.activate-action(index); }
+            }
+        }
+    }
+
+    VerticalLayout {
+        spacing: 0rem;
+        Rectangle {
+            vertical-stretch: 1;
+            if UiState.screen == Screen.calendar: Calendar {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
+            if UiState.screen == Screen.notifs: Notifications {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
+            if UiState.screen == Screen.folders: Folders {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+            if UiState.screen == Screen.search: Search {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+            for tab[index] in FoldersUi.tabs: TaskView {
+                tab: tab;
+                visible: UiState.screen == Screen.task && FoldersUi.active-tab == index;
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+            for tab[index] in FoldersUi.tabs: Resources {
+                tab: tab;
+                visible: UiState.screen == Screen.resources && FoldersUi.active-tab == index;
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+            if UiState.screen == Screen.settings: Settings {
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
+            onboarding := AccountOnboarding {
+                input-focused => { root.focus-onboarding-input(); }
+                visible: UiState.screen == Screen.onboarding;
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+
+            navigation := Sidebar {
+                focus-request: root.sidebar-focus-request;
+                x: 0rem;
+                y: UiState.top-bar-height;
+                height: parent.height - UiState.top-bar-height - UiState.bottom-bar-height;
+            }
+
+            document := DocumentView {
+                visible: UiState.screen == Screen.document;
+                tab: FoldersUi.active-tab >= 0 ? FoldersUi.tabs[FoldersUi.active-tab] : { };
+                width: parent.width;
+                height: parent.height;
+                sidebar-width: navigation.width;
+                custom-titlebar: root.custom-titlebar;
+            }
+        }
+    }
+
+    attachment := AttachmentDialog {
+        visible: AttachmentMenu.visible;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    if WindowChrome.client-side && AttachmentMenu.visible: WindowMoveArea {
+        x: 0px;
+        y: 0px;
+        height: UiState.top-bar-height;
+        TouchArea {
+            double-clicked => { WindowChrome.toggle-maximized(); }
+        }
+    }
+
+    // Share the Linux/Windows menu button, including during onboarding.
+    if root.compact-menu: HoverableButton {
+        x: 0.5rem;
+        y: 0px;
+        width: 2rem;
+        height: UiState.top-bar-height;
+        text: "Menu";
+        accessible-role: button;
+        accessible-label: "Menu";
+        clicked => { app-menu.show({ x: 0px, y: self.height }); }
+
+        Rectangle {
+            background: parent.has-hover || parent.pressed ? UiState.theme.colors.text-secondary.with-alpha(0.1) : transparent;
+            border-width: parent.has-focus ? 1px : 0px;
+            border-color: UiState.theme.colors.secondary;
+            Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 1rem;
+                height: 1rem;
+                source: @image-url("icons/menu.svg");
+                colorize: UiState.theme.colors.text-secondary;
+            }
+        }
+
+        app-menu := ContextMenuArea {
+            Menu {
+                if !AttachmentMenu.visible: Menu {
+                    title: "Tabs";
+                    for title[index] in ["Calendar", "Notifications", "Folders", "Search"]: MenuItem {
+                        title: title;
+                        enabled: UiState.screen != Screen.onboarding;
+                        activated => { root.navigate-sidebar(index); }
+                    }
+                    if FoldersUi.tabs.length > 0: MenuSeparator { }
+                    for index in min(5, FoldersUi.tabs.length): MenuItem {
+                        title: "Tab " + (index + 1);
+                        enabled: UiState.screen != Screen.onboarding;
+                        activated => { root.navigate-sidebar(index + 4); }
+                    }
+                    MenuSeparator { }
+
+                    MenuItem {
+                        title: "Previous sidebar item";
+                        enabled: UiState.screen != Screen.onboarding;
+                        activated => { root.step-sidebar(-1); }
+                    }
+
+                    MenuItem {
+                        title: "Next sidebar item";
+                        enabled: UiState.screen != Screen.onboarding;
+                        activated => { root.step-sidebar(1); }
+                    }
+                }
+                if root.action-items.length > 0: Menu {
+                    title: "Actions";
+                    for item[index] in root.action-items: MenuItem {
+                        title: item.title;
+                        enabled: item.enabled;
+                        activated => { root.activate-action(index); }
+                    }
+                }
+            }
+        }
+    }
+
+    // Native macOS controls also stay above the content and attachment overlay.
+    if WindowChrome.client-side: WindowControls {
+        x: parent.width - self.width;
+        y: 0px;
+        height: UiState.top-bar-height;
+        active: root.window-active;
+        maximized: root.maximized;
+        full-screen: root.full-screen;
+        close => { root.close(); }
+        minimize => { root.minimized = true; }
+        toggle-maximized => { WindowChrome.toggle-maximized(); }
+    }
+}

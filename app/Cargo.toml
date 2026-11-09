@@ -1,0 +1,27 @@
+[package]
+name = "foam-app"
+version = "0.1.0-alpha.2"
+edition = "2024"
+
+# The launcher binary. Foam core lives in the `foam` library package; the
+# native builtin plugins (Schoology) are wired here through the
+# `NativeAccounts` startup seam. Building without the schoology feature
+# (`cargo build -p foam-app --no-default-features`) produces a binary with
+# no account plugins.
+
+[[bin]]
+name = "foam"
+path = "src/main.rs"
+
+[features]
+schoology-plugin = ["dep:schoology"]
+default = ["schoology-plugin"]
+
+[dependencies]
+foam = { path = "../core" }
+schoology = { path = "../plugins/schoology", optional = true }
+
+[package.metadata.packager]
+version = "0.1.0"
+icons = ["../core/icon.icns", "../core/icon.png"]
+formats = ["all"]

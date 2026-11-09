@@ -1,0 +1,164 @@
+import { Theme } from "../../palette.slint";
+import {
+    ScrollView,
+    HorizontalBox,
+    VerticalBox,
+    ListView,
+} from "std-widgets.slint";
+import {
+    UiState,
+} from "../../globals.slint";
+import { NotificationUi } from "globals.slint";
+import { TaskUi } from "../task/globals.slint";
+import { DocumentUi } from "../document/globals.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+import { NotificationType } from "../../types/notification-ui.slint";
+import { NotificationsBottomBar } from "bottom-bar.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+
+export global NotificationsMenu {
+    public function activate(index: int) {
+        if index == 0 { NotificationUi.mark-all-as-read(); }
+        if index == 1 { NotificationUi.open-selected(); }
+        else if index == 2 { NotificationUi.toggle-selected-read(); }
+        else if index == 3 { NotificationUi.unselect(); }
+    }
+}
+
+export component Notifications inherits FocusScope {
+    in property <length> sidebar-width: 0rem;
+    in property <bool> custom-titlebar: false;
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    init => { root.focus(); }
+    Rectangle {
+        background: UiState.theme.colors.background;
+    }
+
+    VerticalLayout {
+        spacing: 0rem;
+        ScreenTopBar {
+            custom-titlebar: root.custom-titlebar;
+            title: "Notifications";
+            icon: @image-url("../../icons/bell.svg");
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                VerticalBox {
+                    padding-left: 2rem;
+                    padding-right: 2rem;
+                    scroll := ScrollView {
+                        changed viewport-y => {
+                                // Trigger load-more once scrolled to (or near) the bottom.
+                                if self.viewport-height > self.visible-height
+                                && self.viewport-y + self.viewport-height
+                                <= self.visible-height + 2rem {
+                                NotificationUi.load-more();
+                            }
+                        }
+                        VerticalLayout {
+                            padding-top: 1rem;
+                            padding-bottom: 1rem;
+                            for notif in NotificationUi.notifications: Rectangle {
+                                height: inner.height + 0.625rem;
+                                inner := Rectangle {
+                                    border-radius: 0.3125rem;
+                                    border-width: 0.0625rem;
+                                    height: min(7.5rem, max(1.875rem, self.preferred-height));
+                                    border-color: UiState.theme.colors.border;
+                                    background: NotificationUi.selected-notification.id == notif.id
+                                        ? UiState.theme.colors.border-strong : action.has-hover || action.has-focus
+                                        ? UiState.theme.colors.surface-hover : UiState.theme.colors.elevate-2;
+
+                                    preferred-height: title.preferred-height + folder.preferred-height
+                                        + content.padding-top + content.padding-bottom + 2rem;
+                                    clip: true;
+
+                                    HorizontalLayout {
+                                        padding: 0.1245rem;
+                                        alignment: start;
+                                        spacing: 0.75rem;
+
+                                        padding-left: 0.75rem;
+                                        padding-right: 0.75rem;
+                                        Rectangle {
+                                            width: 0.625rem;
+                                            height: 0.625rem;
+                                            border-radius: 0.3125rem;
+                                            background: notif.unread ? UiState.theme.colors.secondary : transparent;
+                                            cross-axis-self-alignment: center;
+                                        }
+
+                                        if notif.n_type == NotificationType.new-task: Image {
+                                            source: @image-url("../../icons/file-plus.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new-document: Image {
+                                            source: @image-url("../../icons/file-text.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new-grade: Image {
+                                            source: @image-url("../../icons/circle-check-big.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.new_link: Image {
+                                            source: @image-url("../../icons/link.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.n_type == NotificationType.unknown: Image {
+                                            source: @image-url("../../icons/square-plus.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        content := VerticalLayout {
+                                            spacing: 0.25rem;
+                                            title := Text {
+                                                text: notif.title;
+                                                color: UiState.theme.colors.text-base;
+                                                font-size: 1.125rem;
+                                                font-weight: 700;
+                                                vertical-alignment: bottom;
+                                                wrap: word-wrap;
+                                            }
+
+                                            folder := Text {
+                                                color: UiState.theme.colors.text-muted;
+                                                font-size: 0.75rem;
+                                                text: notif.subtitle + (notif.subtitle.is-empty ? "" : " • ") + notif.folder
+                                                    + (notif.source == "builtin" || notif.source.is-empty ? "" : " • " + notif.source);
+                                                vertical-alignment: top;
+                                                wrap: word-wrap;
+                                            }
+                                        }
+                                    }
+
+                                    action := HoverableButton {
+                                        text: notif.title;
+                                        clicked => {
+                                            NotificationUi.selected-notification = notif;
+                                        }
+                                        double-clicked => {
+                                            NotificationUi.selected-notification = notif;
+                                            NotificationUi.open-selected();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        NotificationsBottomBar { }
+    }
+}

@@ -1,0 +1,15 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { FoldersUi } from "globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component FoldersBottomBar inherits BottomBarFrame {
+    HorizontalLayout {
+        alignment: center;
+        show-hidden-action := SelectedItemAction {
+            hotkey-name: "H";
+            hotkey: @keys(H);
+            action-name: FoldersUi.show-hidden ? "Hide hidden folders" : "Show hidden folders";
+            action => { FoldersUi.show-hidden = !FoldersUi.show-hidden; }
+        }
+    }
+}

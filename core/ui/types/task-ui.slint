@@ -1,0 +1,20 @@
+export struct TaskFile { title: string, details: string, url: string, extension: string }
+
+export struct TaskPluginDetail {
+    plugin: string,
+    label: string,
+    value: string,
+    is-table: bool,
+}
+
+export struct TaskWithDetails {
+    id: string,
+    title: string,
+    folder-id: string,
+    folder-name: string,
+    due: string,
+    description: string,
+    completion: string,
+    attachments: [TaskFile],
+    plugin-details: [TaskPluginDetail],
+}

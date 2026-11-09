@@ -1,0 +1,263 @@
+import { VerticalBox, ScrollView } from "std-widgets.slint";
+import { HoverableButton } from "hoverable-button.slint";
+import { ProgressRing } from "progress-ring.slint";
+import { Screen } from "../types/screen.slint";
+import { UiState, SidebarPin } from "../globals.slint";
+import { FoldersUi } from "folders/globals.slint";
+import { NotificationUi } from "notifications/globals.slint";
+import { Resources } from "resources/resources.slint";
+
+component NavigationItem inherits Rectangle {    in property <string> label;
+    in property <image> icon;
+    in property <int> item-index;
+    in property <string> shortcut;
+    in property <int> focus-request: -1;
+    changed focus-request => { if root.focus-request == root.item-index { action.focus(); } }
+
+    in property <Screen> change-to;
+    in property <float> progress: 0;
+    in property <color> progress-color: #78aaff;
+    in property <int> unread-count: 0;
+
+    height: 2.75rem;
+    border-radius: 0.375rem;
+    background: UiState.screen == change-to ? UiState.theme.colors.elevate-2 : (action.has-hover || action.has-focus ? UiState.theme.colors.surface-hover : transparent);
+
+    action := HoverableButton {
+        enabled: UiState.screen != Screen.onboarding;
+        text: root.label;
+        changed has-focus => {
+            if self.has-focus { UiState.focused-sidebar-item = root.item-index; }
+            else if UiState.focused-sidebar-item == root.item-index { UiState.focused-sidebar-item = -1; }
+        }
+        clicked => { UiState.screen = change-to; }
+        Tooltip {
+            VerticalLayout {
+                padding: 0.25rem;
+                Text {
+                    font-size: 0.75rem;
+                    text: root.label;
+                    color: UiState.theme.colors.text-base;
+                }
+
+                if !root.shortcut.is-empty: Text {
+                    font-size: 0.75rem;
+                    text: UiState.shortcut-modifier + "+" + root.shortcut;
+                    color: UiState.theme.colors.text-secondary;
+                }
+            }
+        }
+    }
+
+    if progress > 0: ProgressRing {
+        progress: root.progress;
+        progress-color: root.progress-color;
+    }
+
+    Image {
+        source: icon;
+        colorize: UiState.theme.colors.text-secondary;
+    }
+
+    if root.unread-count > 0: Rectangle {
+        width: count.preferred-width + 0.5rem;
+        height: self.width;
+        x: parent.width - self.width * 1.5;
+        y: parent.height - self.height * 1.5;
+        border-radius: self.width / 2;
+        background: UiState.theme.colors.primary;
+        count := Text {
+            text: root.unread-count;
+            color: UiState.theme.colors.text-base;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component PluginPinItem inherits Rectangle {
+    in property <SidebarPin> pin;
+
+    height: 2.75rem;
+    border-radius: 0.375rem;
+    background: action.has-hover || action.has-focus
+        ? UiState.theme.colors.surface-hover : transparent;
+
+    action := HoverableButton {
+        text: pin.title;
+        clicked => { UiState.plugin-pin-clicked(pin); }
+    }
+
+    Image {
+        source: pin.icon;
+        colorize: UiState.theme.colors.text-secondary;
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in property <int> focus-request: -1;
+    in property <bool> minimized: true;
+
+    width: minimized ? 3.75rem : 15rem;
+    background: UiState.theme.colors.sidebar;
+
+    VerticalLayout {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-bottom: 0.25rem;
+        spacing: 0.625rem;
+
+        Rectangle {
+            height: 0rem;
+        }
+
+        NavigationItem {
+            label: "Calendar";
+            item-index: 0;
+            focus-request: root.focus-request;
+            shortcut: "1";
+            icon: @image-url("../icons/calendar-days.svg");
+            change-to: calendar;
+        }
+
+        NavigationItem {
+            label: "Notifications";
+            item-index: 1;
+            focus-request: root.focus-request;
+            shortcut: "2";
+            icon: @image-url("../icons/bell.svg");
+            progress: NotificationUi.progress;
+            progress-color: NotificationUi.progress-color;
+            unread-count: NotificationUi.unread-count;
+            change-to: notifs;
+        }
+
+        NavigationItem {
+            label: "Folders";
+            item-index: 2;
+            focus-request: root.focus-request;
+            shortcut: "3";
+            icon: @image-url("../icons/book-text.svg");
+            change-to: folders;
+        }
+
+        NavigationItem {
+            label: "Search";
+            item-index: 3;
+            focus-request: root.focus-request;
+            shortcut: "4";
+            icon: @image-url("../icons/search.svg");
+            change-to: search;
+        }
+
+        Rectangle {
+            border-width: 0.0625rem;
+            border-color: UiState.theme.colors.elevate-2;
+            height: 0.0625rem;
+            visible: UiState.plugin-pins.length > 0;
+        }
+
+        for pin in UiState.plugin-pins: PluginPinItem {
+            pin: pin;
+        }
+
+        Rectangle {
+            border-width: 0.0625rem;
+            border-color: UiState.theme.colors.elevate-2;
+            height: 0.0625rem;
+        }
+
+        tabs := ScrollView {
+            vertical-stretch: 1;
+            horizontal-scrollbar-policy: always-off;
+            VerticalLayout {
+                spacing: 0.5rem;
+                alignment: start;
+                for tab[index] in FoldersUi.tabs: Rectangle {
+                    property <int> focus-request: root.focus-request;
+                    changed focus-request => { if self.focus-request == index + 4 { tab-action.focus(); } }
+                    width: tabs.visible-width;
+                    height: 2.75rem;
+                    border-radius: 0.375rem;
+                    background: (UiState.screen == Screen.resources || UiState.screen == Screen.task) && FoldersUi.active-tab == index
+                        ? UiState.theme.colors.elevate-2
+                        : tab-action.has-hover || tab-action.has-focus ? UiState.theme.colors.surface-hover : transparent;
+                    accessible-role: button;
+                    accessible-label: tab.title;
+                    Rectangle {
+                        width: 1.875rem;
+                        height: 1.875rem;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 0.9375rem;
+                        background: UiState.theme.colors.border-subtle;
+                        clip: true;
+                        Image {
+                            source: tab.image;
+                            visible: !UiState.shift-held || !tab-action.has-hover;
+                            width: parent.width;
+                            height: parent.height;
+                        }
+
+                        if tab.image.width == 0 && (!UiState.shift-held || !tab-action.has-hover): Text {
+                            font-size: 0.75rem;
+                            text: tab.title;
+                            width: parent.width - 0.5rem;
+                            x: 0.25rem;
+                            height: parent.height;
+                            overflow: elide;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            color: UiState.theme.colors.text-base;
+                        }
+                        if UiState.shift-held && tab-action.has-hover: Image {
+                            source: @image-url("../icons/x.svg");
+                            colorize: UiState.theme.colors.primary-strong;
+                            width: parent.width;
+                            height: parent.height;
+                        }
+                    }
+
+                    tab-action := HoverableButton {
+                        enabled: UiState.screen != Screen.onboarding;
+                        text: tab.title;
+                        changed has-focus => {
+                            if self.has-focus { UiState.focused-sidebar-item = index + 4; }
+                            else if UiState.focused-sidebar-item == index + 4 { UiState.focused-sidebar-item = -1; }
+                        }
+                        clicked => {
+                            if UiState.shift-held { FoldersUi.close-tab(index); }
+                            else { FoldersUi.select-tab(index); }
+                        }
+                        Tooltip {
+                            VerticalLayout {
+                                padding: 0.25rem;
+                                Text {
+                                    font-size: 0.75rem;
+                                    text: tab.title;
+                                    color: UiState.theme.colors.text-base;
+                                }
+
+                                if index < 5: Text {
+                                    font-size: 0.75rem;
+                                    text: UiState.shortcut-modifier + "+" + (index + 5);
+                                    color: UiState.theme.colors.text-muted;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        NavigationItem {
+            label: "Settings";
+            item-index: FoldersUi.tabs.length + 4;
+            focus-request: root.focus-request;
+            icon: @image-url("../icons/settings.svg");
+            change-to: settings;
+        }
+    }
+}

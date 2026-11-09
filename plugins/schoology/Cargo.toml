@@ -1,0 +1,31 @@
+[package]
+name = "schoology"
+version = "0.1.0"
+edition = "2024"
+description = "Native builtin Schoology account plugin for foam"
+
+[lib]
+name = "schoology"
+path = "src/lib.rs"
+
+[dependencies]
+foam = { path = "../../core" }
+anyhow = "1.0.104"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+ical = "0.11"
+oauth = { version = "0.6", package = "oauth1-request" }
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls-tls",
+    "cookies",
+] }
+rusqlite = { version = "0.40.2", features = ["collation", "hooks"] }
+scraper = "0.27.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+slint = { version = "1.18.1", features = ["unstable-winit-030"] }
+wry = "0.57.0"

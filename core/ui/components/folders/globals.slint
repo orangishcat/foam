@@ -1,0 +1,30 @@
+import { FolderItem, ResourceItem, FolderTab } from "../../types/folder-ui.slint";
+import { MenubarData } from "../../globals.slint";
+
+export global FoldersUi {
+    in-out property <bool> show-hidden: false;
+    changed show-hidden => { MenubarData.refresh(); }
+    in-out property <[FolderTab]> tabs;
+    changed tabs => { MenubarData.refresh(); }
+    in-out property <int> active-tab: -1;
+    changed active-tab => { MenubarData.refresh(); }
+    callback select-tab(int);
+    callback close-tab(int);
+    in-out property <string> folder-id;
+    in-out property <string> resource-folder-id;
+    in-out property <string> resource-folder-title: "Folders";
+    in-out property <string> parent-title: "Folders";
+    in-out property <string> browser-error;
+    in-out property <[ResourceItem]> resources;
+    in-out property <[ResourceItem]> parent-resources;
+    callback open(string);
+    callback open-with-image(string, image);
+    callback open-resource-folder(string, string);
+    in-out property <[FolderItem]> folders;
+    in-out property <int> period-character-count: 1;
+    callback reorder(int, int);
+    callback toggle-hidden(string);
+    callback set-period(string, string) -> string;
+    pure callback drag-data(int) -> data-transfer;
+    pure callback drag-index(data-transfer) -> int;
+}

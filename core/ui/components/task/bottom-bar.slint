@@ -1,0 +1,15 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { TaskUi } from "globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component TaskBottomBar inherits BottomBarFrame {
+    HorizontalLayout {
+        alignment: center;
+        if !TaskUi.task.id.is-empty: SelectedItemAction {
+            hotkey-name: "O";
+            hotkey: @keys(O);
+            action-name: "Open in browser";
+            action => { TaskUi.open-selected-in-browser(); }
+        }
+    }
+}

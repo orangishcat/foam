@@ -1,0 +1,81 @@
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { ResourceUi } from "globals.slint";
+import { FoldersUi } from "../folders/globals.slint";
+import { UiState } from "../../globals.slint";
+
+// Overlay form for creating a document/link material inside the folder view's
+// current resource folder (`FoldersUi.resource-folder-id`, root when empty).
+// `create-resource(kind-index, title, url, resource-folder)` inserts a
+// `builtin` resources row through the Rust side. kind-index: 0 = document,
+// 1 = link.
+export component CreateMaterialDialog inherits Rectangle {
+    visible: ResourceUi.create-visible;
+    background: UiState.theme.colors.background.with-alpha(0.75);
+    TouchArea { }
+
+    panel := Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 24rem;
+        height: form.preferred-height + 2rem;
+        background: UiState.theme.colors.background;
+        border-radius: 0.625rem;
+        border-width: 0.0625rem;
+        border-color: UiState.theme.colors.border;
+        TouchArea { }
+
+        form := VerticalLayout {
+            padding: 1rem;
+            spacing: 0.75rem;
+
+            Text {
+                text: "New material"
+                    + (FoldersUi.resource-folder-id.is-empty
+                        ? "" : " in " + FoldersUi.resource-folder-title);
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: UiState.theme.colors.text-base;
+            }
+
+            kind-combo := ComboBox {
+                model: ["document", "link"];
+                current-index: 0;
+            }
+
+            title-input := LineEdit {
+                placeholder-text: "Title";
+            }
+
+            url-input := LineEdit {
+                placeholder-text: "URL";
+            }
+
+            if !ResourceUi.create-error.is-empty: Text {
+                text: ResourceUi.create-error;
+                color: UiState.theme.colors.primary-strong;
+                font-size: 0.875rem;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 0.75rem;
+                Button {
+                    text: "Cancel";
+                    clicked => {
+                        ResourceUi.create-visible = false;
+                        ResourceUi.create-error = "";
+                    }
+                }
+                Button {
+                    text: "Create";
+                    clicked => {
+                        ResourceUi.create-resource(
+                            kind-combo.current-index, title-input.text, url-input.text,
+                            FoldersUi.resource-folder-id);
+                    }
+                }
+            }
+        }
+    }
+}

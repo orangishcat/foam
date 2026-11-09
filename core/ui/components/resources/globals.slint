@@ -1,0 +1,29 @@
+import { ResourceItem } from "../../types/folder-ui.slint";
+import { FoldersUi } from "../folders/globals.slint";
+import { MenubarData } from "../../globals.slint";
+import { TaskUi } from "../task/globals.slint";
+import { DocumentUi } from "../document/globals.slint";
+
+export global ResourceUi {
+    callback open-browser(ResourceItem);
+    // kind-index: 0 = document, 1 = link; inserts a builtin resources row.
+    callback create-resource(int, string, string, string);
+    in-out property <bool> create-visible;
+    in-out property <string> create-error;
+    changed create-visible => { MenubarData.refresh(); }
+    public function open(item: ResourceItem) {
+        if item.kind == "folder" {
+            FoldersUi.open-resource-folder(item.folder-id, "");
+        }
+        if item.kind == "folder" {
+            FoldersUi.open-resource-folder(item.folder-id, item.id);
+        }
+        if item.kind == "task" {
+            TaskUi.open(item.folder-id, item.id);
+        }
+        if item.kind == "document" { DocumentUi.open(item.folder-id, item.id); }
+    }
+    public function open-in-browser(item: ResourceItem) {
+        open-browser(item);
+    }
+}

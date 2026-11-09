@@ -1,0 +1,32 @@
+import { TaskItem, TaskCol } from "../../types/calendar-ui.slint";
+import { TaskUi } from "../task/globals.slint";
+import { MenubarData } from "../../globals.slint";
+
+export global CalendarMenu {
+    public function activate(index: int) {
+        if index == 0 { CalendarUi.open-selected(); }
+        else if index == 1 { CalendarUi.unselect(); }
+        else if index == 2 { CalendarUi.refresh(); }
+    }
+}
+
+export global CalendarUi {
+    in-out property <[TaskCol]> task-view;
+    in-out property <TaskItem> selected-task;
+    changed selected-task => { MenubarData.refresh(); }
+    in-out property <int> sel-row;
+    in-out property <int> sel-col;
+    // create-event dialog
+    in-out property <bool> create-visible;
+    in-out property <[string]> folder-options;
+    in-out property <string> create-error;
+    callback create-event(string, string, string, int);
+    callback view-item();
+    callback refresh();
+    public function open-selected() {
+        TaskUi.open(selected-task.folder-id, selected-task.id);
+    }
+    public function unselect() {
+        selected-task = { };
+    }
+}

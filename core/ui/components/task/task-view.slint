@@ -1,0 +1,208 @@
+import { ScrollView, VerticalBox, Button } from "std-widgets.slint";
+import { TaskUi } from "globals.slint";
+import { UiState } from "../../globals.slint";
+import { FoldersUi } from "../folders/globals.slint";
+import { FolderTab } from "../../types/folder-ui.slint";
+import { Sidebar } from "../resources/sidebar.slint";
+import {
+    Breadcrumb,
+} from "../resources/breadcrumb.slint";
+import { Screen } from "../../types/screen.slint";
+import { SelectableText } from "../selectable-text.slint";
+import { TopBar } from "../resources/top-bar.slint";
+import { TaskBottomBar } from "bottom-bar.slint";
+
+import { HoverableButton } from "../hoverable-button.slint";
+
+export global TaskMenu {
+    public function activate(index: int) {
+        if index == 0 { FoldersUi.close-tab(FoldersUi.active-tab); }
+        else if index == 1 { TaskUi.copy-details(TaskUi.task.id); }
+        else if index == 2 { TaskUi.view-attachments(0); }
+        else if index == 3 { TaskUi.open-selected-in-browser(); }
+    }
+}
+
+export component TaskView inherits Rectangle {
+    in property <length> sidebar-width: 0rem;
+    in property <bool> custom-titlebar: false;
+    in property <FolderTab> tab;
+    background: UiState.theme.colors.background;
+
+    VerticalLayout {
+        spacing: 0rem;
+        TopBar {
+            tab: root.tab;
+            custom-titlebar: root.custom-titlebar;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                HorizontalLayout {
+                    spacing: 0rem;
+                    Sidebar {
+                        tab: root.tab;
+                        items: root.tab.resources;
+                        selected-id: TaskUi.task.id;
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        VerticalLayout {
+                            padding: 1rem;
+                            spacing: 0.875rem;
+
+                            VerticalLayout {
+                                padding-left: 0.1245rem;
+                                padding-top: 0.5rem;
+                                spacing: 1rem;
+
+                                SelectableText {
+                                    text: TaskUi.task.title;
+                                    font-size: 1.5rem;
+                                    font-weight: 700;
+                                    color: UiState.theme.colors.text-base;
+                                }
+
+                                if !TaskUi.error.is-empty: SelectableText {
+                                    text: TaskUi.error;
+                                    color: UiState.theme.colors.primary-strong;
+                                    font-size: 1.125rem;
+                                }
+
+                                HorizontalLayout {
+                                    padding-left: 0.1245rem;
+                                    SelectableText {
+                                        text: TaskUi.task.due + " • ID " + TaskUi.task.id;
+                                        color: UiState.theme.colors.text-secondary;
+                                        font-size: 0.875rem;
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                    }
+
+                                    SelectableText {
+                                        text: TaskUi.task.completion;
+                                        color: UiState.theme.colors.text-secondary;
+                                        font-size: 0.875rem;
+                                    }
+                                }
+                            }
+
+                            ScrollView {
+                                horizontal-scrollbar-policy: always-off;
+                                VerticalLayout {
+                                    alignment: start;
+                                    spacing: 0.75rem;
+                                    padding-right: 0.75rem;
+                                    if !TaskUi.task.description.is-empty: VerticalLayout {
+                                        Rectangle {
+                                            background: UiState.theme.colors.elevate-1;
+                                            border-radius: 0.5rem;
+                                            height: description-content.preferred-height;
+
+                                            description-content := VerticalLayout {
+                                                padding: 0.75rem;
+                                                SelectableText {
+                                                    text: TaskUi.task.description;
+                                                    color: UiState.theme.colors.text-strong;
+                                                    font-size: 1rem;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // plugin-supplied detail fields (task_detail_put)
+                                    for detail in TaskUi.task.plugin-details: VerticalLayout {
+                                        Rectangle {
+                                            background: UiState.theme.colors.elevate-1;
+                                            border-radius: 0.5rem;
+                                            height: plugin-content.preferred-height;
+
+                                            plugin-content := VerticalLayout {
+                                                padding: 0.75rem;
+                                                spacing: 0.25rem;
+                                                Text {
+                                                    text: detail.label + (detail.label.is-empty ? "" : " ") + (detail.plugin.is-empty ? "" : "• " + detail.plugin);
+                                                    color: UiState.theme.colors.text-muted;
+                                                    font-size: 0.75rem;
+                                                }
+
+                                                SelectableText {
+                                                    text: detail.value;
+                                                    color: UiState.theme.colors.text-strong;
+                                                    font-size: detail.is-table ? 0.875rem : 1rem;
+                                                    wrap: word-wrap;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 12.5rem;
+                        background: {
+                            let c = UiState.theme.colors.background.to-oklch();
+                            oklch(c.lightness - 0.02, c.chroma, c.hue, c.alpha)
+                        };
+                        VerticalLayout {
+                            spacing: 1.5rem;
+                            VerticalLayout {
+                                padding: 1rem;
+                                spacing: 0.75rem;
+                                SelectableText {
+                                    text: "Attachments";
+                                    font-size: 1.125rem;
+                                    font-weight: 700;
+                                    color: UiState.theme.colors.text-base;
+                                }
+
+                                if TaskUi.task.attachments.length > 0: VerticalLayout {
+                                    spacing: 0.375rem;
+
+                                    for file[index] in TaskUi.task.attachments: att-btn := HoverableButton {
+                                        clicked => { TaskUi.view-attachments(index); }
+                                        Rectangle {
+                                            background: att-btn.has-hover ? UiState.theme.colors.elevate-2 : UiState.theme.colors.elevate-1;
+                                            border-radius: 0.3125rem;
+                                            VerticalLayout {
+                                                padding: 0.5rem;
+                                                Text {
+                                                    font-size: 0.75rem;
+                                                    text: file.title;
+                                                    color: UiState.theme.colors.text-strong;
+                                                }
+
+                                                if !file.details.is-empty: Text {
+                                                    font-size: 0.75rem;
+                                                    text: file.details;
+                                                    color: UiState.theme.colors.text-muted;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if TaskUi.task.attachments.length == 0: SelectableText {
+                                    text: "No attachments";
+                                    color: UiState.theme.colors.text-muted;
+                                    font-size: 0.875rem;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        TaskBottomBar { }
+    }
+}

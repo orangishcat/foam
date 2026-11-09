@@ -1,0 +1,12 @@
+export struct TaskItem {
+    id: string,
+    title: string,
+    folder-id: string,
+    folder-name: string,
+    overdue: bool
+}
+
+export struct TaskCol {
+    title: string,
+    tasks: [TaskItem],
+}

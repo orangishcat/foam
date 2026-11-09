@@ -1,0 +1,34 @@
+import { FolderTab } from "../../types/folder-ui.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { ResourceUi } from "globals.slint";
+export component ResourcesBottomBar inherits BottomBarFrame {
+    in-out property <FolderTab> tab;
+    in-out property <int> selected-index;
+
+    if selected-index >= 0 && selected-index < tab.resources.length: Rectangle {
+        HorizontalLayout {
+            alignment: center;
+            view-item := SelectedItemAction {
+                hotkey-name: "V";
+                hotkey: @keys(V);
+                action-name: "View item";
+                action => { ResourceUi.open(tab.resources[selected-index]); }
+            }
+
+            open-browser := SelectedItemAction {
+                hotkey-name: "O";
+                hotkey: @keys(O);
+                action-name: "Open in browser";
+                action => { ResourceUi.open-in-browser(tab.resources[selected-index]); }
+            }
+
+            unselect := SelectedItemAction {
+                hotkey-name: "Esc";
+                hotkey: @keys(Escape);
+                action-name: "Unselect item";
+                action => { selected-index = -1; }
+            }
+        }
+    }
+}

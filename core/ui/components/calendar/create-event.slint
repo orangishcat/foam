@@ -1,0 +1,87 @@
+import { Button, ComboBox, LineEdit, TextEdit } from "std-widgets.slint";
+import { CalendarUi } from "globals.slint";
+import { UiState } from "../../globals.slint";
+
+// Simple overlay form: title + optional due datetime + folder selector,
+// creating a `builtin` task through `CalendarUi.create-event`.
+export component CreateEventDialog inherits Rectangle {
+    visible: CalendarUi.create-visible;
+    background: UiState.theme.colors.background.with-alpha(0.75);
+    TouchArea { }
+
+    panel := Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 26rem;
+        height: form.preferred-height + 2rem;
+        background: UiState.theme.colors.background;
+        border-radius: 0.625rem;
+        border-width: 0.0625rem;
+        border-color: UiState.theme.colors.border;
+        TouchArea { }
+
+        form := VerticalLayout {
+            padding: 1rem;
+            spacing: 0.75rem;
+
+            Text {
+                text: "New event";
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: UiState.theme.colors.text-base;
+            }
+
+            Text {
+                text: "Folder";
+                color: UiState.theme.colors.text-secondary;
+                font-size: 0.875rem;
+            }
+
+            folder-combo := ComboBox {
+                model: CalendarUi.folder-options;
+                current-index: 0;
+                enabled: CalendarUi.folder-options.length > 0;
+            }
+
+            title-input := LineEdit {
+                placeholder-text: "Title";
+            }
+
+            description := TextEdit {
+                height: 6rem;
+                placeholder-text: "Description (optional)";
+            }
+
+            due-input := LineEdit {
+                placeholder-text: "Due — YYYY-MM-DD HH:MM (blank for none)";
+            }
+
+            if !CalendarUi.create-error.is-empty: Text {
+                text: CalendarUi.create-error;
+                color: UiState.theme.colors.primary-strong;
+                font-size: 0.875rem;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 0.75rem;
+                Button {
+                    text: "Cancel";
+                    clicked => {
+                        CalendarUi.create-visible = false;
+                        CalendarUi.create-error = "";
+                    }
+                }
+                Button {
+                    text: "Create";
+                    clicked => {
+                        CalendarUi.create-event(
+                            title-input.text, description.text, due-input.text,
+                            folder-combo.current-index);
+                    }
+                }
+            }
+        }
+    }
+}

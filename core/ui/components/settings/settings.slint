@@ -1,0 +1,133 @@
+import { Slider, ScrollView } from "std-widgets.slint";
+import { ComboBox } from "@vivi/magic.slint";
+import { UiState } from "../../globals.slint";
+import { SettingsUi } from "globals.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { IntInput } from "number-input.slint";
+
+export component Settings inherits Rectangle {
+    in property <length> sidebar-width;
+    in property <bool> custom-titlebar;
+    VerticalLayout {
+        spacing: 0rem;
+        ScreenTopBar {
+            title: "Settings";
+            icon: @image-url("../../icons/settings.svg");
+            custom-titlebar: root.custom-titlebar;
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            vertical-stretch: 1;
+            ScrollView {
+                horizontal-scrollbar-policy: always-off;
+                width: min(40rem, parent.width);
+                VerticalLayout {
+                    padding: 1.5rem;
+                    alignment: start;
+                    VerticalLayout {
+                        spacing: 0.25rem;
+                        padding-bottom: 1rem;
+                        Text {
+                            text: "Appearance";
+                            font-size: 1rem;
+                            color: UiState.theme.colors.text-muted;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: UiState.theme.colors.elevate-2;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "Theme";
+                            font-size: 1.25rem;
+                            color: UiState.theme.colors.text-secondary;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        ComboBox {
+                            model: SettingsUi.themes;
+                            width: 8rem;
+                            current-index: SettingsUi.selected-theme;
+                            selected => { SettingsUi.select-theme(self.current-index); }
+                        }
+                    }
+
+                    Text {
+                        visible: SettingsUi.save-error != "";
+                        text: SettingsUi.save-error;
+                        color: UiState.theme.colors.primary-strong;
+                        wrap: word-wrap;
+                    }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "UI Scaling";
+                            font-size: 1.25rem;
+                            color: UiState.theme.colors.text-secondary;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        IntInput {
+                            value <=> UiState.font-size;
+                            edited(value) => {
+                                SettingsUi.set-font-size(round(value));
+                            }
+                            Text {
+                                text: "px";
+                                color: UiState.theme.colors.text-base;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        height: 1rem;
+                    }
+
+                    VerticalLayout {
+                        spacing: 0.25rem;
+                        padding-bottom: 1rem;
+                        Text {
+                            text: "Accounts";
+                            font-size: 1rem;
+                            color: UiState.theme.colors.text-muted;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: UiState.theme.colors.elevate-2;
+                        }
+                    }
+
+                    if SettingsUi.accounts.length == 0: Text {
+                        text: "No accounts installed.";
+                        font-size: 1rem;
+                        color: UiState.theme.colors.text-secondary;
+                    }
+
+                    for account[index] in SettingsUi.accounts: HorizontalLayout {
+                        Text {
+                            text: account;
+                            font-size: 1rem;
+                            color: UiState.theme.colors.text-base;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                    }
+                                }
+            }
+        }
+
+        BottomBarFrame { }
+    }
+}

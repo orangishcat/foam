@@ -1,0 +1,16 @@
+import { TaskWithDetails } from "../../types/task-ui.slint";
+import { MenubarData } from "../../globals.slint";
+
+export global TaskUi {
+    in-out property <TaskWithDetails> task;
+    changed task => { MenubarData.refresh(); }
+    in-out property <string> error;
+    callback open(string, string);
+    callback copy-details(string);
+    callback view-attachments(int);
+    callback open-browser(string);
+
+    public function open-selected-in-browser() {
+        open-browser(task.id);
+    }
+}

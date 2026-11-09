@@ -1,0 +1,32 @@
+export struct FolderItem {
+    id: string,
+    title: string,
+    section: string,
+    code: string,
+    period: string,
+    hidden: bool,
+    icon: image,
+}
+
+export struct ResourceItem {
+    folder-id: string,
+    id: string,
+    title: string,
+    kind: string,
+    icon-color: color,
+}
+
+export struct FolderTab {
+    breadcrumbs: [ResourceItem],
+    folder-id: string,
+    title: string,
+    image: image,
+    resource-folder-id: string,
+    task-id: string,
+    document-id: string,
+    resource-folder-title: string,
+    parent-title: string,
+    browser-error: string,
+    resources: [ResourceItem],
+    parent-resources: [ResourceItem],
+}

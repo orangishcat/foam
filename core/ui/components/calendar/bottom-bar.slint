@@ -1,0 +1,25 @@
+import { SelectedItemAction } from "../selected-item-action.slint";
+import { CalendarUi } from "globals.slint";
+import { UiState } from "../../globals.slint";
+import { BottomBarFrame } from "../bottom-bar-frame.slint";
+
+export component CalendarBottomBar inherits BottomBarFrame {
+    if !CalendarUi.selected-task.folder-id.is-empty: Rectangle {
+        HorizontalLayout {
+            alignment: center;
+            view-item := SelectedItemAction {
+                hotkey-name: "V";
+                hotkey: @keys(V);
+                action-name: "View item";
+                action => { CalendarUi.open-selected(); }
+            }
+
+            unselect := SelectedItemAction {
+                hotkey-name: "Esc";
+                hotkey: @keys(Escape);
+                action-name: "Unselect item";
+                action => { CalendarUi.unselect(); }
+            }
+        }
+    }
+}

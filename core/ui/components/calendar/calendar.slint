@@ -1,0 +1,170 @@
+import {
+    HorizontalBox,
+    VerticalBox,
+    ScrollView,
+    ListView,
+} from "std-widgets.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+import { Theme } from "../../palette.slint";
+import { CalendarUi } from "globals.slint";
+import { TaskUi } from "../task/globals.slint";
+import { UiState } from "../../globals.slint";
+import { CalendarBottomBar } from "bottom-bar.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+import { CreateEventDialog } from "create-event.slint";
+
+export global CalendarMenu {
+    public function activate(index: int) {
+        if index == 0 { CalendarUi.open-selected(); }
+        else if index == 1 { CalendarUi.unselect(); }
+        else if index == 2 { CalendarUi.refresh(); }
+    }
+}
+
+export component Calendar inherits FocusScope {
+    in property <length> sidebar-width: 0rem;
+    in property <bool> custom-titlebar: false;
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    init => { root.focus(); }
+
+    Rectangle {
+        background: UiState.theme.colors.background;
+    }
+
+    vertical-stretch: 1;
+
+    VerticalLayout {
+        spacing: 0rem;
+        vertical-stretch: 1;
+        ScreenTopBar {
+            custom-titlebar: root.custom-titlebar;
+            title: "Calendar";
+            icon: @image-url("../../icons/calendar-days.svg");
+
+            new-event-btn := HoverableButton {
+                clicked => {
+                    CalendarUi.create-visible = true;
+                    CalendarUi.create-error = "";
+                }
+                Rectangle {
+                    y: 0.35rem;
+                    height: parent.height - 0.7rem;
+                    background: new-event-btn.has-hover ? UiState.theme.colors.surface-hover : transparent;
+                    border-radius: 0.25rem;
+                }
+
+                HorizontalLayout {
+                    padding-left: 0.5rem;
+                    padding-right: 0.5rem;
+                    spacing: 0.25rem;
+                    VerticalLayout {
+                        alignment: center;
+                        icon := Image {
+                            source: @image-url("../../icons/plus.svg");
+                            colorize: UiState.theme.colors.text-secondary;
+                            width: 0.75rem;
+                            height: 0.75rem;
+                        }
+                    }
+
+                    text := Text {
+                        text: "New event";
+                        font-size: 0.75rem;
+                        vertical-alignment: center;
+                        color: UiState.theme.colors.text-secondary;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                HorizontalBox {
+                    for col[x] in CalendarUi.task-view: VerticalBox {
+                        alignment: stretch;
+                        vertical-stretch: 1;
+
+                        Text {
+                            font-size: 0.75rem;
+                            text: col.title;
+                            color: UiState.theme.colors.text-base;
+                            horizontal-alignment: center;
+                        }
+
+                        Rectangle {
+                            background: UiState.theme.colors.elevate-1;
+                            ListView {
+                                vertical-stretch: 1;
+                                horizontal-scrollbar-policy: always-off;
+                                content-width: self.visible-width;
+                                for task[y] in col.tasks: Rectangle {
+                                    height: inner.height + 0.5rem;
+                                    item-button := HoverableButton {
+                                        text: task.title;
+                                        clicked => {
+                                            CalendarUi.selected-task = task;
+                                            CalendarUi.sel-col = x;
+                                            CalendarUi.sel-row = y;
+                                        }
+                                        double-clicked => {
+                                            CalendarUi.selected-task = task;
+                                            CalendarUi.open-selected();
+                                        }
+                                    }
+
+                                    inner := Rectangle {
+                                        background: {
+                                            let c = (task.overdue ? UiState.theme.overrides.calendar-overdue :
+                                                UiState.theme.overrides.calendar-pending).to-oklch();
+                                            let selected = CalendarUi.selected-task.id == task.id;
+
+                                            oklch(
+                                            c.lightness + (item-button.has-hover || item-button.has-focus ? 0.1 : 0) + (selected ? 0.2 : 0),
+                                            c.chroma + (item-button.has-hover || item-button.has-focus ? 0.02 : 0) + (selected ? 0.06 : 0),
+                                            c.hue,
+                                            c.alpha)
+                                        };
+                                        animate background { duration: 50ms; }
+                                        border-radius: 0.3125rem;
+                                        height: min(7.5rem, max(2.5rem, self.preferred-height));
+                                    // Text measurements include font size, weight, and wrapping.
+                                    preferred-height: title.preferred-height + folder.preferred-height
+                                            + content.padding-top + content.padding-bottom + 1rem;
+                                        clip: true;
+
+                                        content := VerticalBox {
+                                            spacing: 0.125rem;
+                                            title := Text {
+                                                font-size: 0.75rem;
+                                                text: task.title;
+                                                color: UiState.theme.colors.text-base;
+                                                font-weight: 700;
+                                                wrap: word-wrap;
+                                            }
+
+                                            folder := Text {
+                                                font-size: 0.75rem;
+                                                color: UiState.theme.colors.text-muted;
+                                                text: task.folder-name;
+                                                wrap: word-wrap;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        CalendarBottomBar { }
+
+        CreateEventDialog { }
+    }
+}

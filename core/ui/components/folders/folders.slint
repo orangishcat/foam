@@ -1,0 +1,289 @@
+import { ScrollView } from "std-widgets.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+import { UiState } from "../../globals.slint";
+import { FoldersUi } from "globals.slint";
+import { FolderItem } from "../../types/folder-ui.slint";
+import { FoldersBottomBar } from "bottom-bar.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+
+export global FoldersMenu {
+    public function activate(index: int) {
+        if index == 0 { FoldersUi.show-hidden = !FoldersUi.show-hidden; }
+    }
+}
+
+export component Folders inherits FocusScope {
+    in property <length> sidebar-width: 0rem;
+    in property <bool> custom-titlebar: false;
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    private property <bool> show-hidden <=> FoldersUi.show-hidden;
+    init => {
+        FoldersUi.show-hidden = false;
+        root.focus();
+    }
+
+    private property <int> drag-from: -1;
+    private property <int> drag-to: -1;
+    private property <length> drag-pointer-y: 0rem;
+    private property <FolderItem> dragged-folder;
+    private property <length> period-tab-width: 1rem + FoldersUi.period-character-count * 0.6875rem;
+
+    VerticalLayout {
+        spacing: 0rem;
+        ScreenTopBar {
+            custom-titlebar: root.custom-titlebar;
+            title: "Folders";
+            icon: @image-url("../../icons/book-text.svg");
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            Rectangle {
+                x: root.sidebar-width;
+                width: parent.width - root.sidebar-width;
+                height: parent.height;
+                Rectangle {
+                    list := ScrollView {
+                        x: 2rem;
+                        y: 2rem;
+                        width: parent.width - 4rem;
+                        height: parent.height - 4rem;
+                        horizontal-scrollbar-policy: always-off;
+                        mouse-drag-pan-enabled: false;
+
+                        VerticalLayout {
+                            spacing: 0rem;
+                            for folder[i] in FoldersUi.folders: Rectangle {
+                                visible: root.show-hidden || !folder.hidden;
+                                width: list.visible-width;
+                                height: root.show-hidden || !folder.hidden ? 5.5rem : 0rem;
+                                background: transparent;
+
+                                folder-action := HoverableButton {
+                                    text: folder.title;
+                                    clicked => { FoldersUi.open-with-image(folder.id, folder.icon); }
+                                    HorizontalLayout {
+                                        spacing: 0.5rem;
+                                        Rectangle {
+                                            width: root.period-tab-width;
+                                            height: 4.625rem;
+                                            border-radius: 0.5rem;
+                                            border-width: 0.0625rem;
+                                            border-color: UiState.theme.colors.border-strong;
+
+                                            period-input := TextInput {
+                                                x: 0.5rem;
+                                                y: 0.5rem;
+                                                width: parent.width - 1rem;
+                                                height: parent.height - 1rem;
+                                                text: folder.period;
+                                                color: UiState.theme.colors.text-secondary;
+                                                font-family: "monospace";
+                                                font-size: 1rem;
+                                                horizontal-alignment: center;
+                                                vertical-alignment: center;
+                                                single-line: true;
+                                                edited => {
+                                                    self.text = FoldersUi.set-period(folder.id, self.text);
+                                                }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            y: root.drag-from >= 0 && i > root.drag-from && i <= root.drag-to ? -5.125rem
+                                                : root.drag-from >= 0 && i < root.drag-from && i >= root.drag-to ? 5.125rem
+                                                : 0rem;
+                                            height: 4.625rem;
+                                            border-radius: 0.5rem;
+                                            border-width: 0.0625rem;
+                                            border-color: UiState.theme.colors.border-strong;
+                                            background: folder-action.has-hover || folder-action.has-focus ? UiState.theme.colors.surface-hover :
+                                                folder.hidden ? UiState.theme.colors.elevate-1 : UiState.theme.colors.elevate-2;
+                                            opacity: root.drag-from == i ? 0 : 1;
+
+                                            HorizontalLayout {
+                                                padding: 1rem;
+                                                spacing: 1rem;
+
+                                                Rectangle {
+                                                    width: 5.25rem;
+                                                    height: 2.625rem;
+                                                    border-radius: 0.5rem;
+                                                    clip: true;
+                                                    opacity: folder.hidden ? 0.4 : 1;
+                                                    Image {
+                                                        width: parent.width;
+                                                        height: parent.height;
+                                                        source: folder.icon;
+                                                        image-fit: ImageFit.contain;
+                                                    }
+
+                                                    if folder.icon.width == 0: Image {
+                                                        width: parent.width;
+                                                        height: parent.height;
+                                                        source: @image-url("../../icons/book-text.svg");
+                                                    }
+                                                }
+
+                                                VerticalLayout {
+                                                    spacing: 0.25rem;
+                                                    Text {
+                                                        text: folder.title;
+                                                        font-size: 1.125rem;
+                                                        font-weight: 700;
+                                                        color: folder.hidden ? UiState.theme.colors.text-muted : UiState.theme.colors.text-base;
+                                                        overflow: elide;
+                                                    }
+
+                                                    HorizontalLayout {
+                                                        spacing: 0.25rem;
+                                                        alignment: start;
+                                                        Text {
+                                                            font-size: 0.75rem;
+                                                            text: folder.section + " • ID " + folder.id;
+                                                            color: folder.hidden ? UiState.theme.colors.text-subtle : UiState.theme.colors.text-secondary;
+                                                            overflow: elide;
+                                                        }
+
+                                                        if folder.hidden: Text {
+                                                            font-size: 0.75rem;
+                                                            text: "•";
+                                                            color: UiState.theme.colors.text-subtle;
+                                                            overflow: elide;
+                                                        }
+                                                        if folder.hidden: Text {
+                                                            font-size: 0.75rem;
+                                                            text: "Hidden";
+                                                            color: UiState.theme.colors.primary-hover;
+                                                            overflow: elide;
+                                                        }
+                                                    }
+                                                }
+
+                                                HorizontalLayout {
+                                                    spacing: 1rem;
+                                                    opacity: folder-action.has-hover || folder-action.has-focus || period-input.has-focus || hide-action.has-focus ? 1 : 0;
+                                                    drag-layout := Rectangle {
+                                                        width: 2rem;
+                                                        border-radius: 0.625rem;
+                                                        background: {
+                                                            let color = UiState.theme.colors.border.to-oklch();
+                                                            drag-touch.has-hover ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                                        };
+                                                        drag-touch := TouchArea {
+                                                            mouse-cursor: grab;
+                                                            Image {
+                                                                source: @image-url("../../icons/grip-horizontal.svg");
+                                                                colorize: UiState.theme.colors.border;
+                                                                vertical-alignment: center;
+                                                                horizontal-alignment: center;
+                                                            }
+
+                                                            drag-area := DragArea {
+                                                                width: parent.width;
+                                                                height: parent.height;
+                                                                data: FoldersUi.drag-data(i);
+                                                                allow-move: true;
+                                                                drag-finished(_action) => {
+                                                                    root.drag-from = -1;
+                                                                    root.drag-to = -1;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    hide-rectangle := Rectangle {
+                                                        width: 2rem;
+                                                        border-radius: 0.625rem;
+                                                        background: {
+                                                            let color = UiState.theme.colors.border.to-oklch();
+                                                            hide-action.has-hover || hide-action.has-focus ? oklch(color.lightness, color.chroma, color.hue, 0.6) : transparent
+                                                        };
+
+                                                        hide-action := HoverableButton {
+                                                            text: folder.hidden ? "Show " + folder.title : "Hide " + folder.title;
+                                                            clicked => { FoldersUi.toggle-hidden(folder.id); }
+                                                        }
+
+                                                        Image {
+                                                            width: 100%;
+                                                            height: 100%;
+                                                            source: folder.hidden ? @image-url("../../icons/eye.svg") : @image-url("../../icons/eye-off.svg");
+                                                            image-fit: contain;
+                                                            colorize: UiState.theme.colors.border;
+                                                            vertical-alignment: center;
+                                                            horizontal-alignment: center;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    drop-area := DropArea {
+                        x: list.x;
+                        y: list.y;
+                        width: list.visible-width;
+                        height: list.height;
+                        can-drop(event) => {
+                            let source = FoldersUi.drag-index(event.data);
+                            if (source < 0 || source >= FoldersUi.folders.length) {
+                                return DragAction.none;
+                            }
+                            root.drag-from = source;
+                            root.dragged-folder = FoldersUi.folders[source];
+                            root.drag-pointer-y = event.position.y;
+                            root.drag-to = Math.max(0, Math.min(FoldersUi.folders.length - 1,
+                        Math.round((event.position.y - list.viewport-y - 2.3125rem) / 5.125rem)));
+                            return DragAction.move;
+                        }
+                        dropped(event) => {
+                            if (root.drag-from >= 0) {
+                                FoldersUi.reorder(root.drag-from, root.drag-to);
+                            }
+                            root.drag-from = -1;
+                            root.drag-to = -1;
+                            return DragAction.move;
+                        }
+                    }
+
+                    Rectangle {
+                        visible: root.drag-from >= 0;
+                        x: list.x;
+                        y: list.y + root.drag-pointer-y - 2.3125rem;
+                        width: list.visible-width;
+                        height: 4.625rem;
+                        border-radius: 0.5rem;
+                        border-width: 0.0625rem;
+                        border-color: UiState.theme.colors.border-strong;
+                        background: UiState.theme.colors.elevate-2;
+                        opacity: 0.65;
+
+                        HorizontalLayout {
+                            padding: 1rem;
+                            spacing: 1rem;
+
+                            VerticalLayout {
+                                spacing: 0.25rem;
+                                Text {
+                                    text: root.dragged-folder.title;
+                                    font-size: 1.125rem;
+                                    font-weight: 700;
+                                    color: UiState.theme.colors.text-base;
+                                    overflow: elide;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        FoldersBottomBar { }
+    }
+}

@@ -1,0 +1,42 @@
+import { Screen } from "types/screen.slint";
+import { Theme, ColorPalette } from "palette.slint";
+import { ScreenMenuItem } from "types/screen-menu-item.slint";
+
+export struct SidebarPin {
+    kind: string,
+    id: string,
+    title: string,
+    icon: image,
+}
+
+export global WindowChrome {
+    // whether the traffic lights are slint rendered (macos false, windows and linux true)
+    in-out property <bool> client-side: false;
+    callback toggle-maximized();
+}
+
+export global UiState {
+    in-out property <int> font-size;
+    in-out property <bool> shift-held: false;
+    in-out property <string> shortcut-modifier: "Ctrl";
+    in-out property <int> focused-sidebar-item: -1;
+    in-out property <Screen> screen: Screen.calendar;
+    in-out property <ColorPalette> theme: Theme.dark;
+    in-out property <string> top-right-text: "";
+    out property <ColorPalette> default-dark-theme: Theme.dark;
+    out property <ColorPalette> default-light-theme: Theme.light;
+    out property <length> top-bar-height: font-size * 2px;
+    out property <length> bottom-bar-height: font-size * 1.75px;
+
+    // plugin-provided pinned sidebar items, rendered under a divider below
+    // the builtin pinned items (descriptor {kind, id, title, icon})
+    in-out property <[SidebarPin]> plugin-pins;
+    // invoked when a plugin pin is selected; rust side resolves `kind` +
+    // `id` (currently a seam for Phase 3/4 plugin dispatch)
+    callback plugin-pin-clicked(SidebarPin);
+}
+
+export global MenubarData {
+    in property <[ScreenMenuItem]> items;
+    callback refresh();
+}
