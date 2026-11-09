@@ -49,6 +49,8 @@ import {
 import { Search } from "components/search/search.slint";
 import { HoverableButton } from "components/hoverable-button.slint";
 import { ScreenMenuItem } from "types/screen-menu-item.slint";
+import { Palette, MagicPalette, ComboBoxItem } from "@vivi/magic.slint";
+export { MagicPalette, ComboBoxItem }
 
 export component AppWindow inherits Window {
     title: "foam";
@@ -58,6 +60,10 @@ export component AppWindow inherits Window {
     preferred-height: 43.75rem;
     no-frame: WindowChrome.client-side;
     resize-border-width: WindowChrome.client-side && !root.maximized && !root.full-screen ? 5px : 0px;
+
+    // vivi-theme clones the user's theme so @vivi components pick up foam's palette.
+    // Must be set together with UiState.theme; see src/state/settings.rs::apply_theme.
+    in-out property <MagicPalette> vivi-theme <=> Palette.current_palette;
 
     background: UiState.theme.colors.background;
     in property <bool> custom-titlebar: false;

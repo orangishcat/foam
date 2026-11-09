@@ -7,6 +7,29 @@ use crate::{
     theme::load_themes,
 };
 use anyhow;
+use crate::{ColorPalette, MagicPalette};
+
+/// Applies a user theme to both foam's UiState and the palette that @vivi components read.
+pub fn apply_theme(ui: &AppWindow, theme: &ColorPalette) {
+    ui.global::<UiState>().set_theme(theme.clone());
+    ui.set_vivi_theme(MagicPalette {
+        background: theme.colors.background.into(),
+        foreground: theme.colors.text_base.into(),
+        placeholder_foreground: theme.colors.text_muted.into(),
+        alternate_background: theme.colors.surface_1.into(),
+        control_background: theme.colors.elevate_2.into(),
+        control_foreground: theme.colors.text_strong.into(),
+        accent_background: theme.colors.primary.into(),
+        accent_foreground: theme.colors.surface_0.into(),
+        destructive_background: theme.colors.primary_status.into(),
+        destructive_foreground: theme.colors.surface_0.into(),
+        border: theme.colors.border.into(),
+        focus_border: theme.colors.secondary_strong.into(),
+        state_pressed: theme.colors.surface_hover.into(),
+        state_hovered: theme.colors.surface_hover.into(),
+        selection_background: theme.colors.border.into(),
+    });
+}
 
 #[derive(Clone, Default)]
 pub struct SettingsState {}
@@ -55,11 +78,14 @@ impl SettingsState {
             .position(|theme| theme.name == selected_name)
             .unwrap_or(0);
         global.set_theme(themes[selected].palette.clone());
+        apply_theme(ui, &themes[selected].palette);
         let settings = ui.global::<SettingsUi>();
         settings.set_themes(ModelRc::new(VecModel::from(
             themes
                 .iter()
-                .map(|theme| theme.name.to_shared_string())
+                .map(|theme| crate::ComboBoxItem {
+                    text: theme.name.to_shared_string(),
+                })
                 .collect::<Vec<_>>(),
         )));
         settings.set_selected_theme(selected as i32);
@@ -71,6 +97,7 @@ impl SettingsState {
                 return;
             };
             ui.global::<UiState>().set_theme(theme.palette.clone());
+            apply_theme(&ui, &theme.palette);
             let mut config = config_write();
             config.selected_theme = theme.name.clone();
             let error = config

@@ -1,4 +1,4 @@
-import { Button } from "std-widgets.slint";
+import { FilledButton } from "@vivi/magic.slint";
 import { LineEdit } from "line-edit.slint";
 import { UiState } from "../globals.slint";
 import { OnboardingUi } from "onboarding/globals.slint";
@@ -224,13 +224,13 @@ export component SchoologyOnboarding inherits Rectangle {
 
                 HorizontalLayout {
                     spacing: 1rem;
-                    Button {
+                    FilledButton {
                         text: "Previous";
                         enabled: !OnboardingUi.busy;
                         clicked => { OnboardingUi.previous(); }
                     }
 
-                    Button {
+                    FilledButton {
                         text: OnboardingUi.busy ? "Checking…" : "Next";
                         enabled: !OnboardingUi.busy;
                         clicked => { OnboardingUi.next(); }

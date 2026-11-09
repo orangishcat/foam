@@ -1,6 +1,5 @@
-import { Button } from "std-widgets.slint";
+import { ButtonBase } from "@vivi/foundation.slint";
 
-// touch area supports hover and button supports focus; this combines both to support both
 export component HoverableButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
@@ -11,12 +10,12 @@ export component HoverableButton inherits Rectangle {
     callback double-clicked();
     forward-focus: button;
 
-    button := Button {
+    button := ButtonBase {
         width: 100%;
         height: 100%;
         opacity: 0;
-        text: root.text;
         enabled: root.enabled;
+        accessible-label: root.text;
         clicked => { root.clicked(); }
     }
 

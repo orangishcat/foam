@@ -2,7 +2,7 @@ import { UiState, MenubarData } from "../../globals.slint";
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
-import { Button } from "std-widgets.slint";
+import { FilledButton } from "@vivi/magic.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 
 export global AttachmentMenu {
@@ -168,13 +168,13 @@ export component AttachmentDialog inherits Rectangle {
                     alignment: center;
                     spacing: 0.75rem;
                     vertical-stretch: 0;
-                    Button {
+                    FilledButton {
                         text: "Open in external app";
                         enabled: AttachmentMenu.file-ready;
                         clicked => { AttachmentMenu.open-external(); }
                     }
 
-                    Button {
+                    FilledButton {
                         text: "Open in file manager (O)";
                         enabled: AttachmentMenu.file-ready;
                         clicked => { AttachmentMenu.reveal-file(); }

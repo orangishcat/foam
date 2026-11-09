@@ -1756,6 +1756,7 @@ dependencies = [
  "slint",
  "slint-build",
  "slint-interpreter",
+ "vivi_ui",
  "wry",
  "x11-dl",
 ]
@@ -6936,6 +6937,11 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vivi_ui"
+version = "0.3.0"
+source = "git+https://codeberg.org/vivi-ui/vivi#f778648928c38d7184df686f6ebd9ff2c1d53c11"
 
 [[package]]
 name = "vtable"

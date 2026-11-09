@@ -41,7 +41,8 @@ natord = "1.0.9"
 anyhow = "1.0.104"
 
 [build-dependencies]
-slint-build = "1.16.1"
+slint-build = "1.18.1"
+vivi_ui = { git = "https://codeberg.org/vivi-ui/vivi" }
 
 [profile.dev]
 opt-level = 1
