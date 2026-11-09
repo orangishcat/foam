@@ -6,8 +6,8 @@ use crate::{
     config::{config, config_write},
     theme::load_themes,
 };
-use anyhow;
 use crate::{ColorPalette, MagicPalette};
+use anyhow;
 
 /// Applies a user theme to both foam's UiState and the palette that @vivi components read.
 pub fn apply_theme(ui: &AppWindow, theme: &ColorPalette) {

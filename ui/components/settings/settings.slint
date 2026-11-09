@@ -54,6 +54,7 @@ export component Settings inherits Rectangle {
 
                         ComboBox {
                             model: SettingsUi.themes;
+                            width: 8rem;
                             current-index: SettingsUi.selected-theme;
                             selected => { SettingsUi.select-theme(self.current-index); }
                         }
