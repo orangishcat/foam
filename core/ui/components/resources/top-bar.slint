@@ -64,25 +64,4 @@ export component TopBar inherits TopBarFrame {
             }
         }
     }
-
-    new-material := HoverableButton {
-        Rectangle {
-            y: 0.35rem;
-            width: parent.width;
-            height: parent.height - 0.7rem;
-            background: parent.has-hover ? UiState.theme.colors.surface-hover : transparent;
-            border-radius: 0.25rem;
-        }
-
-        Text {
-            text: "+ New";
-            color: UiState.theme.colors.text-secondary;
-            vertical-alignment: center;
-            font-size: 0.75rem;
-        }
-        clicked => {
-            ResourceUi.create-visible = true;
-            ResourceUi.create-error = "";
-        }
-    }
 }
