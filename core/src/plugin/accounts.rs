@@ -54,3 +54,29 @@ pub fn entries() -> Vec<AccountEntry> {
     }));
     accounts
 }
+
+/// Dispatch notification actions to the plugin named in the notification's
+/// source field. Builtin items stay in the core UI path.
+pub fn open_notification(ui: &crate::AppWindow, source: &str, id: &str) -> bool {
+    let Some(plugin_id) = source.strip_prefix("plugin:") else {
+        return false;
+    };
+    if plugin_id == "schoology"
+        && let Some(open) = crate::app::native_accounts().map(|accounts| accounts.open_notification)
+    {
+        return open(ui, id);
+    }
+    log::warn!("No notification handler registered for source {source}");
+    false
+}
+
+/// Get a plugin-provided icon key for its opaque notification event. Unknown
+/// or absent icons are handled by the core UI's generic plugin icon.
+pub fn notification_icon(source: &str, event: &str) -> Option<String> {
+    let plugin_id = source.strip_prefix("plugin:")?;
+    if plugin_id == "schoology" {
+        return crate::app::native_accounts()
+            .and_then(|accounts| (accounts.notification_icon)(event));
+    }
+    None
+}

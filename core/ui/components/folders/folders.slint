@@ -141,7 +141,7 @@ export component Folders inherits FocusScope {
                                                         alignment: start;
                                                         Text {
                                                             font-size: 0.75rem;
-                                                            text: folder.section + " • ID " + folder.id;
+                                                            text: folder.section == "" ? "ID " + folder.id : folder.section + " • ID " + folder.id;
                                                             color: folder.hidden ? UiState.theme.colors.text-subtle : UiState.theme.colors.text-secondary;
                                                             overflow: elide;
                                                         }

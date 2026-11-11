@@ -150,11 +150,11 @@ fn known_unknown_action_codes_default_to_deny() {
 
 #[test]
 fn task_details_round_trip() {
-    host::store_task_detail("schoology", "42", "{\"grades\": {}}");
+    host::store_task_detail("schoology", "42", "{\"source_details\": {}}");
     host::store_task_detail("other", "42", "{\"extra\": 7}");
     let details = host::task_details("42");
     assert_eq!(details.len(), 2);
-    assert!(details.contains(&("schoology".into(), "{\"grades\": {}}".into())));
+    assert!(details.contains(&("schoology".into(), "{\"source_details\": {}}".into())));
     assert!(details.contains(&("other".into(), "{\"extra\": 7}".into())));
     assert_eq!(host::task_details("43").len(), 0);
 }

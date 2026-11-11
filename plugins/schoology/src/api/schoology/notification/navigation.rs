@@ -7,16 +7,17 @@ use super::super::RequestResult;
 use crate::api::schoology::types::notification::{NotificationsResponse, SchoologyNotification};
 use foam::types::{
     resource::ResourceType,
-    notification::{Notification, NotificationEvent},
+    notification::Notification,
 };
+use super::SchoologyNotificationType;
 
 const ROUTE: &str = "/iapi2/site-navigation/notifications";
 
 impl SchoologyNotification {
     fn into_notifications(self, now: DateTime<Local>) -> Vec<Notification> {
         let event = match self.kind.as_str() {
-            "course_materials_add" => NotificationEvent::ResourcePosted,
-            "grade_add" | "grade_update" => NotificationEvent::GradeUpdated,
+            "course_materials_add" => SchoologyNotificationType::ResourcePosted,
+            "grade_add" | "grade_update" => SchoologyNotificationType::GradeUpdated,
             _ => return Vec::new(),
         };
         let section = self
@@ -33,7 +34,7 @@ impl SchoologyNotification {
 
         for arg in self.args.iter().filter(|arg| {
             arg.kind == "s_content_grade_item"
-                || (event == NotificationEvent::ResourcePosted
+                || (event == SchoologyNotificationType::ResourcePosted
                     && arg.kind == "s_content_generic_post")
         }) {
             if !seen.insert((&arg.kind, &arg.id.0)) {
@@ -41,7 +42,7 @@ impl SchoologyNotification {
             }
             result.push(Notification {
                 is_unread: true,
-                event,
+                event: event.as_str().to_owned(),
                 title: decode_title(&arg.title),
                 subtitle: "".into(),
                 created,

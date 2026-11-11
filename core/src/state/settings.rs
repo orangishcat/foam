@@ -60,6 +60,28 @@ impl State for SettingsState {
                 .unwrap_or_default();
             ui.global::<SettingsUi>().set_save_error(error.into());
         });
+        // Resync data: clear the account plugin's full-fetch markers, then
+        // run a fast+slow sync so everything is re-scraped now (mirrors the
+        // calendar's manual refresh path).
+        let weak = ui.as_weak();
+        ui.global::<SettingsUi>().on_resync_data(move || {
+            let Some(ui) = weak.upgrade() else { return };
+            let Some(native) = crate::app::native_accounts() else { return };
+            if let Err(err) = (native.resync_data)() {
+                log::warn!("Resync preparation failed: {err}");
+            }
+            let result = crate::account::active_account().and_then(|account| {
+                crate::thread_manager::spawn_thread("Resync data", move || {
+                    account.fast_sync().and_then(|()| account.slow_sync()).inspect_err(|err| {
+                        log::warn!("Resync failed: {err}");
+                    }).ok();
+                    crate::ui::sync_ui();
+                })
+                .map_err(|e| anyhow::anyhow!("{e}"))
+            });
+            ui.global::<SettingsUi>()
+                .set_save_error(result.err().map(|e| format!("{e}")).unwrap_or_default().into());
+        });
         Ok(())
     }
 }

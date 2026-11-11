@@ -131,7 +131,15 @@ pub fn asset_as_slint_img(
 
 fn load_slint_image(path: &PathBuf) -> anyhow::Result<slint::Image> {
     let bytes = std::fs::read(path)?;
-    Ok(slint::Image::load_from_data(&bytes, None)?)
+    // Pass the file extension as the format hint: SVG data is only
+    // recognized by content sniffing when it starts with an XML
+    // declaration, but schoology's default course logo starts with `<svg`.
+    let format = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .filter(|extension| !extension.is_empty())
+        .map(|extension| extension.to_ascii_lowercase());
+    Ok(slint::Image::load_from_data(&bytes, format.as_deref())?)
 }
 
 pub fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> anyhow::Result<T>

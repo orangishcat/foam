@@ -130,11 +130,17 @@ fn from_file(path: &Path) -> anyhow::Result<Option<PluginManifest>> {
         .and_then(|stem| stem.to_str())
         .ok_or_else(|| anyhow::anyhow!("invalid plugin manifest filename {path:?}"))?
         .to_owned();
+    // Native account configs can share this directory but are not Extism
+    // manifests. A JSON file is a plugin manifest only when its sibling wasm
+    // module is installed; skip it before deserializing its unrelated schema.
+    if !wasm_path(&id).exists() {
+        return Ok(None);
+    }
     let mut manifest: ManifestFile = crate::filesystem::read_json(path)?;
     // the filename, not the json contents, owns the plugin id
     manifest.id.clone_from(&id);
     manifest.valid()?;
-    if !manifest.enabled || !wasm_path(&manifest.id).exists() {
+    if !manifest.enabled {
         return Ok(None);
     }
     Ok(Some(PluginManifest {

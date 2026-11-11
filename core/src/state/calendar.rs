@@ -23,8 +23,9 @@ const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sa
 pub(crate) fn calendar_query() -> String {
     // Tasks without a due date are excluded; every source shows up.
     format!(
-        "SELECT a.*, COALESCE(f.title, 'Unknown') AS folder_title FROM tasks a
+        "SELECT a.*, COALESCE(ts.completed, 0) AS completed, COALESCE(f.title, 'Unknown') AS folder_title FROM tasks a
              LEFT JOIN folders f ON a.folder_id = f.folder_id
+             LEFT JOIN task_state ts ON ts.folder_id = a.folder_id AND ts.task_id = a.id
              WHERE due IS NOT NULL"
     )
 }
@@ -35,15 +36,19 @@ pub struct CalendarState {}
 impl crate::state::state::State for CalendarState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
         let tasks_on_calendar =
-            database::from_sql_map::<(Task, String)>(calendar_query(), params![], |row| {
-                Ok((serde_rusqlite::from_row(row)?, row.get("folder_title")?))
+            database::from_sql_map::<(Task, String, bool)>(calendar_query(), params![], |row| {
+                Ok((
+                    serde_rusqlite::from_row(row)?,
+                    row.get("folder_title")?,
+                    row.get("completed")?,
+                ))
             })?
             .into_iter()
-            .fold(BTreeMap::new(), |mut groups, (task, folder_title)| {
+            .fold(BTreeMap::new(), |mut groups, (task, folder_title, completed)| {
                 groups
                     .entry(due_date_bucket(&task))
                     .or_insert_with(Vec::new)
-                    .push((task, folder_title));
+                    .push((task, folder_title, completed));
                 groups
             });
 
@@ -52,16 +57,17 @@ impl crate::state::state::State for CalendarState {
                 .get(&bucket)
                 .cloned()
                 .unwrap_or_default();
-            task_vec.sort_by_key(|(a, _)| a.due);
+            task_vec.sort_by_key(|(a, _, _)| a.due);
             ModelRc::new(VecModel::from(
                 task_vec
                     .iter()
-                    .map(|(a, folder_name)| crate::TaskItem {
+                    .map(|(a, folder_name, completed)| crate::TaskItem {
                         id: a.id.to_shared_string(),
                         title: a.title.clone().into(),
                         folder_id: a.folder_id.clone().into(),
                         folder_name: folder_name.to_shared_string(),
                         overdue: a.is_past_due(),
+                        completed: *completed,
                     })
                     .collect::<Vec<crate::TaskItem>>(),
             ))
@@ -108,6 +114,24 @@ impl crate::state::state::State for CalendarState {
                     log::warn!("Creating event failed: {err}");
                     global.set_create_error(format!("{err}").into());
                 }
+            }
+        });
+        let weak = ui.as_weak();
+        g.on_toggle_completed(move |folder_id, task_id| {
+            let result = database::execute(
+                "INSERT INTO task_state (folder_id, task_id, completed) VALUES (?1, ?2, 1)
+                 ON CONFLICT(folder_id, task_id) DO UPDATE SET completed = NOT task_state.completed"
+                    .to_owned(),
+                params![folder_id.to_string(), task_id.to_string()],
+            );
+            match result {
+                Ok(_) => {
+                    if let Some(ui) = weak.upgrade() {
+                        ui.global::<CalendarUi>().set_selected_task(Default::default());
+                        ui::sync_ui();
+                    }
+                }
+                Err(error) => log::warn!("Toggling task completion failed: {error}"),
             }
         });
         g.on_refresh(|| {
@@ -230,4 +254,53 @@ fn create_event(
     transaction.commit()?;
     log::info!("Created event {id} in folder {folder_id}");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn calendar_loads_native_completion_state() {
+        let connection = rusqlite::Connection::open_in_memory().expect("open test database");
+        connection
+            .execute_batch(include_str!("../sql/schema.sql"))
+            .expect("create test schema");
+        connection
+            .execute(
+                "INSERT INTO folders (folder_id, title, data) VALUES ('f', 'Folder', '{}')",
+                [],
+            )
+            .expect("create folder");
+        connection
+            .execute(
+                "INSERT INTO resources (folder_id, resource_id, type, parent_id, title, data)
+                 VALUES ('f', 't', 'task', '', 'Task', '{}')",
+                [],
+            )
+            .expect("create task resource");
+        connection
+            .execute(
+                "INSERT INTO tasks (folder_id, id, title, description, due, attachments)
+                 VALUES ('f', 't', 'Task', '', '2026-11-09T12:00:00Z', '{}')",
+                [],
+            )
+            .expect("create task");
+        connection
+            .execute(
+                "INSERT INTO task_state (folder_id, task_id, completed) VALUES ('f', 't', 1)",
+                [],
+            )
+            .expect("mark task completed");
+
+        let mut statement = connection
+            .prepare(&calendar_query())
+            .expect("prepare calendar query");
+        let mut rows = statement.query([]).expect("query calendar task");
+        let row = rows.next().expect("read row").expect("task exists");
+        let task = serde_rusqlite::from_row::<Task>(row).expect("deserialize task");
+        assert_eq!(task.title, "Task");
+        assert_eq!(row.get::<_, String>("folder_title").unwrap(), "Folder");
+        assert!(row.get::<_, bool>("completed").unwrap());
+    }
 }

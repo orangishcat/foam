@@ -14,6 +14,13 @@ export component CalendarBottomBar inherits BottomBarFrame {
                 action => { CalendarUi.open-selected(); }
             }
 
+            mark-done := SelectedItemAction {
+                hotkey-name: "D";
+                hotkey: @keys(D);
+                action-name: CalendarUi.selected-task.completed ? "Mark as not done" : "Mark as done";
+                action => { CalendarUi.toggle-selected-completed(); }
+            }
+
             unselect := SelectedItemAction {
                 hotkey-name: "Esc";
                 hotkey: @keys(Escape);

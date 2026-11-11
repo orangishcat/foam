@@ -6,7 +6,7 @@ use crate::api::{
     types::{LooseString, LooseUsize},
     schoology::RequestResult,
 };
-use foam::types::folder_info::FolderInfo;
+use foam::types::folder_info::FolderData;
 
 const PAGE_LIMIT: usize = 50;
 
@@ -23,7 +23,7 @@ struct FoldersResponse {
     total: LooseUsize,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 struct SchoologyCourse {
     #[serde(rename = "id")]
@@ -45,7 +45,7 @@ struct SchoologyCourse {
     links: Links,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 struct Links {
     #[serde(rename = "self")]
@@ -61,7 +61,9 @@ impl SchoologyAccountConfig {
 
     /// Fetch every configured-user section and coerce it, including its complete
     /// resource tree, into unified folder models.
-    pub fn scrape_folders(&self) -> RequestResult<Vec<FolderInfo>> {
+    pub fn scrape_folders(&self) -> RequestResult<Vec<FolderData>> {
+        crate::api::schoology::plugin_data::ensure_table()?;
+        crate::api::schoology::plugin_data::ensure_scrape_version()?;
         let folders = self.scrape_materials()?;
         // Grades were stored on the plugin's own table at course-scrape time
         // historically; restore that behaviour through the plugin storage.
@@ -70,7 +72,7 @@ impl SchoologyAccountConfig {
     }
 
     /// Fetch sections and their resource trees.
-    pub fn scrape_materials(&self) -> RequestResult<Vec<FolderInfo>> {
+    pub fn scrape_materials(&self) -> RequestResult<Vec<FolderData>> {
         let mut sections = Vec::new();
         let mut start = 0;
         loop {
@@ -94,41 +96,31 @@ impl SchoologyAccountConfig {
             start += page_len;
         }
 
-        sections
-            .into_iter()
-            .map(|section| {
-                let hierarchy = self.course(&section.nid.0, "0")?;
-                let folder = FolderInfo {
-                    folder_id: section.nid.0,
-                    aliases: Vec::new(),
-                    title: section.course_title,
-                    course_code: section.course_code,
-                    course_url: section.links.self_url,
-                    section_title: section.section_title,
-                    section_code: section.section_code,
-                    active: section.active != 0,
-                    description: section.description,
-                    logo_img_src: section.logo_img_src,
-                    location: section.location,
-                    period: None,
-                    hidden: false,
-                    folder_order: 0,
-                    meeting_days: section
-                        .meeting_days
-                        .into_iter()
-                        .filter_map(|day| match day {
-                            Value::Number(n) => n.as_i64().and_then(|n| i8::try_from(n).ok()),
-                            Value::String(s) => s.parse().ok(),
-                            _ => None,
-                        })
-                        .collect(),
-                    start_time: section.start_time,
-                    end_time: section.end_time,
-                    weight: section.weight.0,
-                };
-                foam::types::folder_info::store_folder(&folder, &hierarchy)?;
-                Ok(folder)
-            })
-            .collect()
+        let mut completed = crate::api::schoology::plugin_data::completed_scrape_folders()?;
+        let mut scraped = Vec::new();
+        for section in sections {
+            let folder_id = section.nid.0.clone();
+            if completed.contains(&folder_id) {
+                continue;
+            }
+            // Full Schoology-owned section metadata for the plugin's own
+            // materials table; core keeps only the generic folder data.
+            let material = serde_json::to_value(&section)?;
+            let hierarchy = self.course(&folder_id, "0")?;
+            let folder = FolderData {
+                folder_id: folder_id.clone(),
+                title: section.course_title,
+                custom_icon: section.logo_img_src,
+                description: section.description,
+                ..Default::default()
+            };
+            crate::api::schoology::plugin_data::store_material("course", &folder_id, &material)?;
+            foam::types::folder_info::store_folder(&folder, &hierarchy)?;
+            crate::api::schoology::plugin_data::mark_scrape_folder_completed(&folder_id)?;
+            completed.insert(folder_id);
+            scraped.push(folder);
+        }
+        crate::api::schoology::plugin_data::finish_scrape()?;
+        Ok(scraped)
     }
 }

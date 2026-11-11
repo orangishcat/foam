@@ -4,7 +4,7 @@ use crate::{
     Screen::{self},
     ScreenMenuItem, UiState, database, filesystem,
     state::{state::menu_item, top_bar::refresh_file_view},
-    types::folder_info::FolderInfo,
+    types::folder_info,
     ui::{self},
 };
 use anyhow;
@@ -14,18 +14,14 @@ use std::io;
 
 impl State for FolderState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
-        let folders = database::from_sql::<FolderInfo>(
-        "SELECT folder_id, title, data FROM folders ORDER BY json_extract(data, '$.folder_order'), title COLLATE NATURAL_ORDER, json_extract(data, '$.section_title') COLLATE NATURAL_ORDER"
-            .to_owned(),
-        &[],
-    )?;
+        let folders = folder_info::folders()?;
         let items = folders
             .iter()
             .map(|folder| FolderItem {
                 id: (&folder.folder_id).into(),
                 title: (&folder.title).into(),
-                section: (&folder.section_title).into(),
-                code: (&folder.section_code).into(),
+                section: "".into(),
+                code: "".into(),
                 period: folder.period.clone().unwrap_or("".to_string()).into(),
                 hidden: folder.hidden,
                 icon: Default::default(),
@@ -43,7 +39,7 @@ impl State for FolderState {
         global.set_folders(ModelRc::new(VecModel::from(items)));
         refresh_file_view(ui);
         for folder in folders.into_iter() {
-            Self::folder_item_image(folder.folder_id, folder.logo_img_src);
+            Self::folder_item_image(folder.folder_id, folder.custom_icon.clone());
         }
         Ok(())
     }
@@ -111,7 +107,10 @@ impl FolderState {
         });
         global.on_toggle_hidden(move |id| {
             database::execute(
-                "UPDATE folders SET hidden = NOT hidden WHERE folder_id = ?".to_owned(),
+                "UPDATE folders SET data = json_set(
+                    data, '$.hidden', NOT coalesce(json_extract(data, '$.hidden'), 0)
+                ) WHERE folder_id = ?"
+                    .to_owned(),
                 params![id.to_string()],
             )
             .inspect(|_| log::debug!("Toggled hidden state for folder with id {}", id))
@@ -175,11 +174,12 @@ impl FolderState {
     pub(crate) fn folder_tab_image(folder: String) {
         (|| -> anyhow::Result<Option<slint::Image>> {
             let Some(url) = database::from_sql_map(
-                "SELECT json_extract(data, '$.logo_img_src') FROM folders WHERE folder_id = ?".into(),
+                "SELECT custom_icon FROM folders WHERE folder_id = ?".into(),
                 params![folder],
-                |row| Ok(row.get::<_, String>(0)?),
+                |row| Ok(row.get::<_, Option<String>>(0)?),
             )?
             .into_iter()
+            .flatten()
             .next()
             .filter(|url| !url.trim().is_empty()) else {
                 return Ok(None);
@@ -365,7 +365,7 @@ impl FolderState {
                 folder_id: folder.id,
                 id: "".into(),
                 title: folder.title,
-                kind: "folder".into(),
+                kind: "course".into(),
                 icon_color: slint::Color::default(),
             })
             .collect()

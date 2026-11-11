@@ -97,8 +97,15 @@ fn files(attachments: &Attachments) -> ModelRc<TaskFile> {
                     String::new()
                 })
                     .into(),
-                url: file.download_path.clone().into(),
-                extension: if file.extension.is_empty() {
+                url: (if file.preview_url.is_empty() {
+                    &file.download_path
+                } else {
+                    &file.preview_url
+                })
+                .into(),
+                extension: if !file.preview_extension.is_empty() {
+                    file.preview_extension.as_str().into()
+                } else if file.extension.is_empty() {
                     std::path::Path::new(&file.filename)
                         .extension()
                         .and_then(|ext| ext.to_str())
@@ -152,7 +159,10 @@ fn load(folder: &str, id: &str) -> anyhow::Result<Option<TaskWithDetails>> {
             })
             .into(),
             attachments: files(&task.attachments),
-            plugin_details: ModelRc::new(VecModel::from(plugin_details(&task.id))).into(),
+            plugin_details: ModelRc::new(
+                VecModel::from(plugin_details(&task.source, &task.id)),
+            )
+            .into(),
         }
     }))
 }
@@ -244,9 +254,11 @@ impl TaskViewState {
 ///
 /// With `render: "table"`, a value may carry multiple rows separated by
 /// newlines with `|` as the cell separator; the view renders it verbatim.
-fn plugin_details(task_id: &str) -> Vec<crate::TaskPluginDetail> {
+fn plugin_details(source: &str, task_id: &str) -> Vec<crate::TaskPluginDetail> {
+    let owner = source.strip_prefix("plugin:").unwrap_or_default();
     crate::plugin::host::task_details(task_id)
         .into_iter()
+        .filter(|(plugin, _)| plugin == owner)
         .filter_map(|(plugin, json)| {
             let value = serde_json::from_str::<serde_json::Value>(&json).ok()?;
             let (fields, is_table) = match value {

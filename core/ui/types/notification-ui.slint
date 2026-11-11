@@ -1,4 +1,4 @@
-export enum NotificationType { new_task, new_document, new_grade, new_link, unknown }
+export enum NotificationType { new_task, new_document, new_link, unknown }
 
 export struct Notification {
     id: string,
@@ -6,6 +6,7 @@ export struct Notification {
     title: string,
     subtitle: string,
     n_type: NotificationType,
+    icon: string,
     icon_color: color,
     folder: string,
     folder_id: string,

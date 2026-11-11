@@ -13,9 +13,9 @@ use crate::{
     database,
     state::state::state,
     thread_manager,
-    types::{
-        resource::ResourceType,
-        notification::{Notification, NotificationEvent},
+        types::{
+            resource::ResourceType,
+            notification::Notification,
     },
     ui,
 };
@@ -41,13 +41,13 @@ impl State for NotificationState {
                     folder_id: (&n.folder_id.clone().unwrap_or_default()).into(),
                     resource_id: (&n.resource_id).into(),
                     source: (if n.source.is_empty() { "builtin" } else { &n.source }).into(),
-                    n_type: match (n.event, n.resource_type) {
-                        (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
-                        (_, Some(ResourceType::Task | ResourceType::Assessment)) => {
+                    icon: notification_icon(n),
+                    n_type: match n.resource_type {
+                        Some(ResourceType::Task | ResourceType::Assessment) => {
                             crate::NotificationType::NewTask
                         }
-                        (_, Some(ResourceType::Document)) => crate::NotificationType::NewDocument,
-                        (_, Some(ResourceType::Link)) => crate::NotificationType::NewLink,
+                        Some(ResourceType::Document) => crate::NotificationType::NewDocument,
+                        Some(ResourceType::Link) => crate::NotificationType::NewLink,
                         _ => crate::NotificationType::Unknown,
                     },
                     icon_color: match n.resource_type {
@@ -85,6 +85,21 @@ impl State for NotificationState {
             menu_item("Unselect item", &["Escape"], enabled),
         ]
     }
+}
+
+fn notification_icon(notification: &Notification) -> slint::SharedString {
+    if notification.source.is_empty() || notification.source == "builtin" {
+        return match notification.resource_type {
+            Some(ResourceType::Task | ResourceType::Assessment) => "task".into(),
+            Some(ResourceType::Document) => "document".into(),
+            Some(ResourceType::Link) => "link".into(),
+            _ => "plugin".into(),
+        };
+    }
+    crate::plugin::accounts::notification_icon(&notification.source, &notification.event)
+        .filter(|icon| !icon.is_empty())
+        .unwrap_or_else(|| "plugin".to_owned())
+        .into()
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -178,6 +193,13 @@ impl NotificationState {
 
     pub fn init_ui(&self, ui: &AppWindow) {
         let global = ui.global::<crate::NotificationUi>();
+        let weak = ui.as_weak();
+        global.on_dispatch_source_notification(move |source, id| {
+            let Some(ui) = weak.upgrade() else { return };
+            if !crate::plugin::accounts::open_notification(&ui, &source, &id) {
+                log::warn!("No plugin handled notification {id} from {source}");
+            }
+        });
         global.on_opened(|| {
             {
                 let notif = &mut state().notif;

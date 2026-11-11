@@ -46,7 +46,7 @@ export component TopBar inherits TopBarFrame {
                     title: item.title;
                     kind: item.kind;
                     activated => {
-                        if item.kind == "folder" {
+                        if item.kind == "course" {
                             FoldersUi.open(item.folder-id);
                             FoldersUi.open-resource-folder(item.folder-id, "");
                         }

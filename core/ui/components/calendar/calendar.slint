@@ -141,7 +141,7 @@ export component Calendar inherits FocusScope {
                                             spacing: 0.125rem;
                                             title := Text {
                                                 font-size: 0.75rem;
-                                                text: task.title;
+                                                text: task.completed ? "✓ " + task.title : task.title;
                                                 color: UiState.theme.colors.text-base;
                                                 font-weight: 700;
                                                 wrap: word-wrap;
@@ -164,7 +164,7 @@ export component Calendar inherits FocusScope {
         }
 
         CalendarBottomBar { }
-
-        CreateEventDialog { }
     }
+
+    CreateEventDialog { }
 }

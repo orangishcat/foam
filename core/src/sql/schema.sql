@@ -33,6 +33,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     FOREIGN KEY (folder_id, type, id)
         REFERENCES resources(folder_id, type, resource_id) ON DELETE CASCADE
 );
+-- Completion is native Foam task state, not source/plugin-specific data.
+CREATE TABLE IF NOT EXISTS task_state (
+    folder_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    completed INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (folder_id, task_id),
+    FOREIGN KEY (folder_id, task_id) REFERENCES tasks(folder_id, id) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT NOT NULL,
     is_unread INTEGER NOT NULL DEFAULT 1,
@@ -119,31 +127,40 @@ END;
 -- fts5 search index trigger: update index when table `resources` changes
 CREATE TRIGGER IF NOT EXISTS resource_add AFTER INSERT ON resources
 WHEN new.type != 'task' BEGIN
+    -- Subfolder-type resource rows must not take the 'folder' item_type of
+    -- the folders-table rows, so their mapping gets its own item_type and
+    -- search can target the inner folder directly (folder_id + item_id).
     INSERT OR IGNORE INTO search_mapping(item_type, item_id, folder_id)
-    VALUES (new.type, new.resource_id, new.folder_id);
+    VALUES (CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END, new.resource_id, new.folder_id);
     INSERT OR REPLACE INTO search_index(rowid, title, content, item_type, item_id)
     SELECT id, new.title, coalesce(json_extract(new.data, '$.resource.description'),
-        json_extract(new.data, '$.resource.body'), json_extract(new.data, '$.resource.url'), ''), 'document', new.resource_id
+        json_extract(new.data, '$.resource.body'), json_extract(new.data, '$.resource.url'), ''),
+        CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END, new.resource_id
     FROM search_mapping
-    WHERE item_type = new.type AND item_id = new.resource_id AND folder_id = new.folder_id;
+    WHERE item_type = CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END
+        AND item_id = new.resource_id AND folder_id = new.folder_id;
 END;
 CREATE TRIGGER IF NOT EXISTS resource_update
 AFTER UPDATE OF title, data, folder_id, resource_id, type ON resources BEGIN
     DELETE FROM search_index WHERE rowid IN (
         SELECT id FROM search_mapping
-        WHERE item_type = old.type AND item_id = old.resource_id AND folder_id = old.folder_id
+        WHERE item_type = CASE old.type WHEN 'folder' THEN 'subfolder' ELSE old.type END
+            AND item_id = old.resource_id AND folder_id = old.folder_id
             AND old.type != 'task'
     );
     DELETE FROM search_mapping
-    WHERE item_type = old.type AND item_id = old.resource_id AND folder_id = old.folder_id
+    WHERE item_type = CASE old.type WHEN 'folder' THEN 'subfolder' ELSE old.type END
+        AND item_id = old.resource_id AND folder_id = old.folder_id
         AND old.type != 'task';
     INSERT OR IGNORE INTO search_mapping(item_type, item_id, folder_id)
-    SELECT new.type, new.resource_id, new.folder_id WHERE new.type != 'task';
+    SELECT CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END, new.resource_id, new.folder_id WHERE new.type != 'task';
     INSERT OR REPLACE INTO search_index(rowid, title, content, item_type, item_id)
     SELECT id, new.title, coalesce(json_extract(new.data, '$.resource.description'),
-        json_extract(new.data, '$.resource.body'), json_extract(new.data, '$.resource.url'), ''), 'document', new.resource_id
+        json_extract(new.data, '$.resource.body'), json_extract(new.data, '$.resource.url'), ''),
+        CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END, new.resource_id
     FROM search_mapping
-    WHERE item_type = new.type AND item_id = new.resource_id AND folder_id = new.folder_id
+    WHERE item_type = CASE new.type WHEN 'folder' THEN 'subfolder' ELSE new.type END
+        AND item_id = new.resource_id AND folder_id = new.folder_id
         AND new.type != 'task';
 END;
 CREATE TRIGGER IF NOT EXISTS resource_delete AFTER DELETE ON resources

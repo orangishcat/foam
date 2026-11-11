@@ -13,6 +13,24 @@ use crate::{
 };
 use anyhow;
 
+/// Persists a document's inline HTML body as a cached `.html` file under the
+/// attachments dir so the embedded viewer can load it with `Source::Local`.
+fn write_body_html(id: &str, body: &str) -> anyhow::Result<std::path::PathBuf> {
+    use sha2::Digest;
+    let hash = format!("{:x}", sha2::Sha256::digest(format!("{id}\u{0}{body}")));
+    let mut path = crate::config::config()
+        .data_dir()
+        .join("attachments")
+        .join(&hash[..2]);
+    std::fs::create_dir_all(&path)?;
+    path.push(hash);
+    path.set_extension("html");
+    if !path.exists() {
+        std::fs::write(&path, body)?;
+    }
+    Ok(path)
+}
+
 #[derive(Clone, Default)]
 pub struct DocumentViewerState {}
 
@@ -58,11 +76,24 @@ impl DocumentViewerState {
             .iter()
             .find(|file| !file.download_path.is_empty());
         let url = attachment
-            .map(|file| file.download_path.clone())
-            .unwrap_or(document.url);
-        if url.trim().is_empty() {
-            return Err(io::Error::other("Document has no resource URL").into());
-        }
+            .map(|file| {
+                if file.preview_url.is_empty() {
+                    file.download_path.clone()
+                } else {
+                    file.preview_url.clone()
+                }
+            })
+            .unwrap_or(document.url.clone());
+        // Page-style documents have no download URL; their content is inline
+        // HTML in `body`, written as a local file for the viewer.
+        let body_path = if url.trim().is_empty() {
+            if document.body.trim().is_empty() {
+                return Err(io::Error::other("Document has no resource URL").into());
+            }
+            Some(write_body_html(&document.id, &document.body)?)
+        } else {
+            None
+        };
         let folder_id = canon_folder_id.as_str();
         let index = FolderState::ensure_folder_tab(ui, folder_id, None)?;
         let folders = ui.global::<FoldersUi>();
@@ -86,6 +117,10 @@ impl DocumentViewerState {
         ui.global::<UiState>().set_screen(Screen::Document);
         refresh_file_view(ui);
         let generation = wry::reset();
+        if let Some(path) = body_path {
+            ready(ui, generation, Source::Local(path));
+            return Ok(());
+        }
         if attachment.is_some_and(|file| {
             file.filesize > 0 && file.filesize as u64 > crate::config::config().max_attachment_bytes
         }) {
@@ -95,7 +130,9 @@ impl DocumentViewerState {
         let remote = url.clone();
         let extension = attachment
             .map(|file| {
-                if !file.extension.is_empty() {
+                if !file.preview_extension.is_empty() {
+                    file.preview_extension.clone()
+                } else if !file.extension.is_empty() {
                     file.extension.clone()
                 } else {
                     std::path::Path::new(&file.filename)

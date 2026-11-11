@@ -21,6 +21,7 @@ export global CalendarUi {
     in-out property <[string]> folder-options;
     in-out property <string> create-error;
     callback create-event(string, string, string, int);
+    callback toggle-completed(string, string);
     callback view-item();
     callback refresh();
     public function open-selected() {
@@ -28,5 +29,10 @@ export global CalendarUi {
     }
     public function unselect() {
         selected-task = { };
+    }
+    public function toggle-selected-completed() {
+        if !selected-task.folder-id.is-empty {
+            toggle-completed(selected-task.folder-id, selected-task.id);
+        }
     }
 }

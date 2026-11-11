@@ -26,10 +26,11 @@ use serde_json::Value as JsonValue;
 use super::manifest::SearchMapping;
 
 /// Tables foam core owns and plugins may freely write.
-const CORE_TABLES: [&str; 8] = [
+const CORE_TABLES: [&str; 9] = [
     "folders",
     "resources",
     "tasks",
+    "task_state",
     "notifications",
     "search_mapping",
     "search_index",

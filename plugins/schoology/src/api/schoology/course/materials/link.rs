@@ -29,15 +29,18 @@ impl SchoologyAccountConfig {
     ) -> RequestResult<foam::types::link::Link> {
         info!("scraping Schoology link: {url}");
         let response: Link = self.api_get(url)?;
+        // Schoology-specific payload stays on the plugin's own table; core
+        // links keep only id/title/attachments/url.
+        crate::api::schoology::plugin_data::store_material(
+            "link",
+            &response.id.0,
+            &serde_json::to_value(&response)?,
+        )?;
         Ok(foam::types::link::Link {
             id: response.id.0,
             title: response.title,
             url: response.url,
-            course_fid: response.course_fid.0,
-            available: response.available.0 != 0,
-            published: response.published.0 != 0,
             attachments: response.attachments.into(),
-            display_inline: response.display_inline.0 != 0,
         })
     }
 }

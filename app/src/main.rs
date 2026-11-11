@@ -12,6 +12,9 @@ fn native_accounts() -> Option<NativeAccounts> {
         accounts_init: schoology::accounts_init,
         onboarding_init: schoology::onboarding_init,
         onboarding_focus_input: schoology::focus_input,
+        resync_data: schoology::resync_data,
+        open_notification: schoology::open_notification,
+        notification_icon: schoology::notification_icon,
     })
 }
 

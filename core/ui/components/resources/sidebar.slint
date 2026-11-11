@@ -29,7 +29,7 @@ export component Sidebar inherits Rectangle {
                     item: item;
                     double-click: false;
                     selected: item.folder-id == root.tab.folder-id
-                        && (item.kind == "folder" || item.id == root.selected-id);
+                        && (item.kind == "course" || item.id == root.selected-id);
                 }
             }
         }

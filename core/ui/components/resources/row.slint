@@ -16,7 +16,7 @@ export component Row inherits Rectangle {
     in property <bool> selected;
     in property <bool> double-click: true;
 
-    private property <bool> navigable: item.kind == "folder" || item.kind == "folder";
+    private property <bool> navigable: item.kind == "course" || item.kind == "folder";
     height: 2.5rem;
     border-radius: 0.3125rem;
     background: (selected || selected-index == row-index ? UiState.theme.colors.surface-hover

@@ -83,6 +83,11 @@ impl Account for SchoologyAccountConfig {
         // resources, notifications, sync_state, own plugin tables) follows the
         // same policy wasm plugins get from the host fns.
         let _scope = foam::plugin::scoped(super::plugin_data::PLUGIN_ID);
+        // Force a fresh full scrape when the scraped layout version changed
+        // (one-turn dev step in place of a real migration).
+        if let Err(err) = super::plugin_data::ensure_scrape_version() {
+            log::warn!("Checking scrape layout version failed: {err}");
+        }
         let loaded = database::from_sql_map(
             "SELECT data FROM sync_state WHERE key = 'folders_loaded'".to_owned(),
             &[],

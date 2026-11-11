@@ -12,7 +12,8 @@ export global ResourceUi {
     in-out property <string> create-error;
     changed create-visible => { MenubarData.refresh(); }
     public function open(item: ResourceItem) {
-        if item.kind == "folder" {
+        if item.kind == "course" {
+            FoldersUi.open(item.folder-id);
             FoldersUi.open-resource-folder(item.folder-id, "");
         }
         if item.kind == "folder" {

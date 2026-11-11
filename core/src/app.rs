@@ -23,6 +23,13 @@ pub struct NativeAccounts {
     pub onboarding_init: fn(&AppWindow),
     /// Refocus onboarding keyboard input (Windows webview focus dance).
     pub onboarding_focus_input: fn(),
+    /// Clears the account plugin's full-fetch markers so the next sync
+    /// re-scrapes everything (invoked by the Settings "Resync data" button).
+    pub resync_data: fn() -> anyhow::Result<()>,
+    /// Let the source plugin resolve and open one of its notifications.
+    pub open_notification: fn(&AppWindow, &str) -> bool,
+    /// Return a source-plugin icon key for one of its opaque event types.
+    pub notification_icon: fn(&str) -> Option<String>,
 }
 
 static NATIVE_ACCOUNTS: OnceLock<Option<NativeAccounts>> = OnceLock::new();
@@ -71,6 +78,21 @@ pub fn start(native: Option<NativeAccounts>) -> Result<(), Box<dyn std::error::E
     crate::database::init()?;
     crate::plugin::init()?;
     state_ctl().init();
+
+    // Developer/test entry point for the same handler exposed in Settings.
+    // This lets a bounded smoke run exercise an actual resync without relying
+    // on GUI automation to click the Settings button.
+    let args = std::env::args().collect::<Vec<_>>();
+    if args.iter().any(|arg| arg == "--resync" || arg == "--sync") {
+        let native = native_accounts().ok_or("no native account plugin is installed")?;
+        if args.iter().any(|arg| arg == "--resync") {
+            (native.resync_data)()?;
+        }
+        let account = crate::account::active_account()?;
+        account.fast_sync()?;
+        account.slow_sync()?;
+        return Ok(());
+    }
 
     state_ctl().init_ui(&ui);
     state_ctl().sync_ui(&ui);

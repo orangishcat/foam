@@ -5,6 +5,7 @@ import { SettingsUi } from "globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { IntInput } from "number-input.slint";
+import { HoverableButton } from "../hoverable-button.slint";
 
 export component Settings inherits Rectangle {
     in property <length> sidebar-width;
@@ -124,7 +125,31 @@ export component Settings inherits Rectangle {
                             horizontal-stretch: 1;
                         }
                     }
+
+                    if SettingsUi.accounts.length > 0: HorizontalLayout {
+                        padding-top: 0.5rem;
+                        Rectangle {
+                            height: 2rem;
+                            width: 9rem;
+                            border-radius: 0.5rem;
+                            background: UiState.theme.colors.surface-1;
+                            HoverableButton {
+                                width: 100%;
+                                height: 100%;
+                                text: "Resync data";
+                                clicked => { SettingsUi.resync-data(); }
+                                Text {
+                                    text: "Resync data";
+                                    font-size: 1rem;
+                                    color: UiState.theme.colors.text-strong;
+                                    vertical-alignment: center;
+                                    horizontal-alignment: center;
+                                    horizontal-stretch: 1;
                                 }
+                            }
+                        }
+                    }
+                }
             }
         }
 

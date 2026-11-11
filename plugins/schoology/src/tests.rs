@@ -61,6 +61,70 @@ fn schoology_scope_writes_own_and_core_tables() {
 }
 
 #[test]
+fn attachment_roundtrip_keeps_download_path() {
+    // Real wire shape from the tasks.attachments column: nested
+    // files.file with a download_path used to open the file.
+    let raw = r#"{"files":{"file":[{"id":"3509411628","attachment_type":"file","title":"SV_AP_Chinese_Language_Culture_Xu_MAN_1200_26_27.pdf","filename":"SV_AP_Chinese_Language_Culture_Xu_MAN_1200_26_27.pdf","filesize":334158,"md5_checksum":"40cb19b95e0f6f481ed1532979e8cdf3","timestamp":"2026-08-09T22:32:06Z","filemime":"application/pdf","download_path":"https://api.schoology.com/v1/attachment/3509411628/source/40cb19b95e0f6f481ed1532979e8cdf3.pdf","extension":"pdf"}]}}"#;
+    let parsed: foam::types::attachment::Attachments = serde_json::from_str(raw).unwrap();
+    assert!(parsed.files.file[0].download_path.ends_with(".pdf"), "{parsed:?}");
+    // the serialized form round-trips into the same value
+    let round_tripped: foam::types::attachment::Attachments =
+        serde_json::from_str(&serde_json::to_string(&parsed).unwrap()).unwrap();
+    assert!(
+        round_tripped.files.file[0].download_path == parsed.files.file[0].download_path,
+        "{round_tripped:?}"
+    );
+}
+
+#[test]
+fn embedded_video_url_becomes_generic_document_url() {
+    let mut attachments = crate::api::schoology::course::materials::types::Attachments::default();
+    attachments.extra.insert(
+        "videos".into(),
+        serde_json::json!({"video": [{"url": "https://video.example/watch/42"}]}),
+    );
+    let document = crate::api::schoology::course::materials::document::Document {
+        id: crate::api::types::LooseString("42".into()),
+        title: "Video".into(),
+        attachments,
+        ..Default::default()
+    };
+    let generic: foam::types::document::Document = document.into();
+    assert_eq!(generic.url, "https://video.example/watch/42");
+}
+
+#[test]
+fn converted_attachment_uses_pdf_preview_url() {
+    let wire: crate::api::schoology::course::materials::types::FileAttachment =
+        serde_json::from_str(
+            r#"{
+                "id": 7,
+                "filename": "worksheet.docx",
+                "download_path": "https://schoology.example/original.docx",
+                "extension": "docx",
+                "converted_download_path": "https://schoology.example/preview.pdf",
+                "converted_extension": "pdf",
+                "converted_filesize": 123
+            }"#,
+        )
+        .unwrap();
+    let generic: foam::types::attachment::FileAttachment = wire.into();
+    assert_eq!(generic.download_path, "https://schoology.example/original.docx");
+    assert_eq!(generic.preview_url, "https://schoology.example/preview.pdf");
+    assert_eq!(generic.preview_extension, "pdf");
+    assert_eq!(generic.preview_filesize, 123);
+}
+
+#[test]
+fn submission_revision_without_body_is_still_usable() {
+    let revision: crate::api::schoology::types::submission::Revision = serde_json::from_value(
+        serde_json::json!({"revision_id": "7", "uid": "user", "created": 1}),
+    )
+    .unwrap();
+    assert!(revision.body.is_empty());
+}
+
+#[test]
 fn task_detail_publishes_score_fields() {
     let _lock = TEST_LOCK.lock().unwrap_or_else(|error| error.into_inner());
     let assignment = plugin_data::PluginAssignment {

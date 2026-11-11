@@ -80,6 +80,7 @@ export component Search inherits FocusScope {
                                                 width: parent.width;
                                                 height: parent.height;
                                                 source: result.item-type == "folder" ? @image-url("../../icons/book-text.svg")
+                                                    : result.item-type == "subfolder" ? @image-url("../../icons/folder.svg")
                                                     : result.item-type == "task" ? @image-url("../../icons/circle-check-big.svg")
                                                     : @image-url("../../icons/file-text.svg");
                                             }
@@ -119,8 +120,9 @@ export component Search inherits FocusScope {
                                 action := HoverableButton {
                                     text: result.title;
                                     clicked => {
-                                        result.item_type == "task" ? TaskUi.open(result.folder-id, result.item-id)
+                                            result.item_type == "task" ? TaskUi.open(result.folder-id, result.item-id)
                                             : result.item_type == "document" ? DocumentUi.open(result.folder-id, result.item-id)
+                                            : result.item_type == "subfolder" ? FoldersUi.open-resource-folder(result.folder-id, result.item-id)
                                             : FoldersUi.open(result.folder-id);
                                     }
                                 }

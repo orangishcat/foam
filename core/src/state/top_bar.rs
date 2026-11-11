@@ -163,7 +163,7 @@ pub fn breadcrumbs(
         folder_id: folder.into(),
         id: "".into(),
         title,
-        kind: "folder".into(),
+        kind: "course".into(),
         icon_color: Default::default(),
     });
     ancestors.reverse();

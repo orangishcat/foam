@@ -5,20 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use super::resource::ResourceType;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum NotificationEvent {
-    ResourcePosted,
-    GradeUpdated,
-    #[default]
-    Unknown,
-}
-
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Notification {
     pub is_unread: bool,
-    pub event: NotificationEvent,
+    /// Opaque event type owned by the notification's source plugin.
+    pub event: String,
     pub title: String,
     pub subtitle: String,
     pub created: DateTime<Local>, // best effort; if api doesn't expose use local time when fetching the resource

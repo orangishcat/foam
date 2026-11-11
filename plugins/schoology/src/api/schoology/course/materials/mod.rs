@@ -3,7 +3,7 @@ use log::{info, warn};
 
 use super::CourseMaterial;
 use crate::api::schoology::RequestResult;
-use foam::types::resource::Resource;
+use foam::types::resource::{Resource, ResourceType};
 
 pub mod assessment;
 pub mod assignment;
@@ -34,16 +34,31 @@ impl SchoologyAccountConfig {
             return Ok(None);
         };
 
+        let kind_for = |material_type: &str| match material_type {
+            "assignment" => Some(ResourceType::Task),
+            "document" => Some(ResourceType::Document),
+            "link" => Some(ResourceType::Link),
+            "assessment" | "test/quiz" | "quiz" => Some(ResourceType::Assessment),
+            _ => None,
+        };
         Ok(Some(match material_type {
             "assignment" => Resource::Task(self.scrape_assignment(material, url)?),
             "document" => Resource::Document(self.scrape_document(material, url)?),
-            "assessment" | "test/quiz" | "quiz" => {
-                Resource::Assessment(self.scrape_assessment(material, url)?)
-            }
             "link" => Resource::Link(self.scrape_link(material, url)?),
             _ => {
-                warn!("skipping unsupported Schoology material type: {material_type}");
-                return Ok(None);
+                if kind_for(material_type).is_none() {
+                    warn!("skipping unsupported Schoology material type: {material_type}");
+                    return Ok(None);
+                }
+                // Schoology-only kinds (assessment/test-quiz): payload lives
+                // in the plugin's own storage; the core row is a generic
+                // labelled shell the views render as title only.
+                let response = self.scrape_assessment(material, url)?;
+                Resource::Unknown {
+                    id: response.id.0,
+                    title: response.title,
+                    kind: ResourceType::Assessment,
+                }
             }
         }))
     }

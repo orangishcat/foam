@@ -7,6 +7,9 @@ use crate::api::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
+/// Schoology wire type for an assessment/test-quiz. It never lands in core
+/// tables: the payload is stored in `plugin_schoology_materials`, and the
+/// core resource row keeps only the generic label.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Assessment {
@@ -28,16 +31,14 @@ impl SchoologyAccountConfig {
         &self,
         _material: &CourseMaterial,
         url: &str,
-    ) -> RequestResult<foam::types::assessment::Assessment> {
+    ) -> RequestResult<Assessment> {
         info!("scraping Schoology assessment: {url}");
         let response: Assessment = self.api_get(url)?;
-        Ok(foam::types::assessment::Assessment {
-            id: response.id.0,
-            title: response.title,
-            description: response.description,
-            max_points: response.max_points.0,
-            due: response.due.0,
-            completed: response.completed.0 != 0,
-        })
+        crate::api::schoology::plugin_data::store_material(
+            "assessment",
+            &response.id.0,
+            &serde_json::to_value(&response)?,
+        )?;
+        Ok(response)
     }
 }

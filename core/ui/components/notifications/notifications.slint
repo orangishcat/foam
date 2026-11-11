@@ -94,27 +94,34 @@ export component Notifications inherits FocusScope {
                                             cross-axis-self-alignment: center;
                                         }
 
-                                        if notif.n_type == NotificationType.new-task: Image {
+                                        if notif.icon == "task": Image {
                                             source: @image-url("../../icons/file-plus.svg");
                                             colorize: notif.icon-color;
                                             height: 4rem;
                                         }
-                                        if notif.n_type == NotificationType.new-document: Image {
+                                        if notif.icon == "document": Image {
                                             source: @image-url("../../icons/file-text.svg");
                                             colorize: notif.icon-color;
                                             height: 4rem;
                                         }
-                                        if notif.n_type == NotificationType.new-grade: Image {
-                                            source: @image-url("../../icons/circle-check-big.svg");
-                                            colorize: notif.icon-color;
-                                            height: 4rem;
-                                        }
-                                        if notif.n_type == NotificationType.new_link: Image {
+                                        if notif.icon == "link": Image {
                                             source: @image-url("../../icons/link.svg");
                                             colorize: notif.icon-color;
                                             height: 4rem;
                                         }
-                                        if notif.n_type == NotificationType.unknown: Image {
+                                        if notif.icon == "file-plus": Image {
+                                            source: @image-url("../../icons/file-plus.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.icon == "circle-check": Image {
+                                            source: @image-url("../../icons/circle-check-big.svg");
+                                            colorize: notif.icon-color;
+                                            height: 4rem;
+                                        }
+                                        if notif.icon != "task" && notif.icon != "document"
+                                            && notif.icon != "link" && notif.icon != "file-plus"
+                                            && notif.icon != "circle-check": Image {
                                             source: @image-url("../../icons/square-plus.svg");
                                             colorize: notif.icon-color;
                                             height: 4rem;

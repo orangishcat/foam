@@ -7,6 +7,8 @@ pub struct Document {
     pub id: String,
     pub title: String,
     pub url: String,
-    pub course_fid: i64,
+    /// Inline HTML body of Schoology page-style documents; empty for file
+    /// documents, which carry the content as an attachment download.
+    pub body: String,
     pub attachments: Attachments,
 }

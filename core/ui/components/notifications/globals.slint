@@ -6,14 +6,17 @@ import { MenubarData } from "../../globals.slint";
 export global NotificationUi {
     in-out property <Notification> selected-notification;
     changed selected-notification => { MenubarData.refresh(); }
-    out property <bool> can-open-selected: !selected-notification.folder-id.is-empty
-        && !selected-notification.resource-id.is-empty
-        && (selected-notification.n-type == NotificationType.new-task
-        || selected-notification.n-type == NotificationType.new-grade
-        || selected-notification.n-type == NotificationType.new-document);
+    callback dispatch-source-notification(string, string);
+    out property <bool> can-open-selected: !selected-notification.resource-id.is-empty
+        && (selected-notification.source != "builtin"
+        || (!selected-notification.folder-id.is-empty
+            && (selected-notification.n-type == NotificationType.new-task
+            || selected-notification.n-type == NotificationType.new-document)));
     public function open-selected() {
         if can-open-selected {
-            if selected-notification.n-type == NotificationType.new-document {
+            if selected-notification.source != "builtin" {
+                dispatch-source-notification(selected-notification.source, selected-notification.id);
+            } else if selected-notification.n-type == NotificationType.new-document {
                 DocumentUi.open(selected-notification.folder-id, selected-notification.resource-id);
             } else {
                 TaskUi.open(selected-notification.folder-id, selected-notification.resource-id);

@@ -1,4 +1,3 @@
-pub mod assessment;
 pub mod attachment;
 pub mod document;
 pub mod folder;

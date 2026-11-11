@@ -39,8 +39,8 @@ pub(crate) fn resource_id(resource: &Resource) -> &str {
         Resource::Folder(m) => &m.id,
         Resource::Task(m) => &m.id,
         Resource::Document(m) => &m.id,
-        Resource::Assessment(m) => &m.id,
         Resource::Link(m) => &m.id,
+        Resource::Unknown { id, .. } => id,
     }
 }
 

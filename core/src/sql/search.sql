@@ -4,7 +4,7 @@ SELECT
     m.folder_id,
     m.source,
     s.title,
-    COALESCE(json_extract(f.data, '$.logo_img_src'), '') AS logo_img_src,
+    COALESCE(f.custom_icon, '') AS logo_img_src,
     COALESCE(f.title, 'Unknown source') AS folder_title,
     snippet(search_index, 1, '', '', '…', 20) AS preview,
     bm25(search_index, 5.0, 1.0, 0.0, 0.1) AS score

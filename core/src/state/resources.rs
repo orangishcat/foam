@@ -63,7 +63,7 @@ impl ResourcesState {
                 if item.kind == "task" {
                     return Ok(account.task_url(&item.id));
                 }
-                if item.kind == "folder" {
+                if item.kind == "course" || item.kind == "folder" || item.kind == "subfolder" {
                     let mut url = reqwest::Url::parse(&account.task_url(""))?;
                     url.set_path(&format!("/course/{}/materials", item.folder_id));
                     url.query_pairs_mut().append_pair("f", &item.id);
@@ -138,7 +138,6 @@ fn create_resource(
             id: resource_id.clone(),
             title: title.to_owned(),
             url: url.to_owned(),
-            available: true,
             ..Default::default()
         }))?,
         _ => serde_json::to_string(&Resource::Document(Document {

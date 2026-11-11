@@ -23,6 +23,7 @@ pub(crate) struct Revision {
     pub late: LooseInt,
     #[serde(default)]
     pub draft: LooseInt,
+    #[serde(default)]
     pub body: String,
     #[serde(default)]
     pub attachments: Attachments,

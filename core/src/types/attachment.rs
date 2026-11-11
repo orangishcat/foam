@@ -26,4 +26,9 @@ pub struct FileAttachment {
     pub filemime: String,
     pub download_path: String,
     pub extension: String,
+    /// Optional source-provided preview rendition (for example a PDF
+    /// conversion of an office document). Empty means use the original file.
+    pub preview_url: String,
+    pub preview_extension: String,
+    pub preview_filesize: i64,
 }
