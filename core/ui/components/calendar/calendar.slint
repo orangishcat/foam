@@ -16,8 +16,9 @@ import { CreateEventDialog } from "create-event.slint";
 export global CalendarMenu {
     public function activate(index: int) {
         if index == 0 { CalendarUi.open-selected(); }
-        else if index == 1 { CalendarUi.unselect(); }
-        else if index == 2 { CalendarUi.refresh(); }
+        else if index == 1 { CalendarUi.toggle-selected-completed(); }
+        else if index == 2 { CalendarUi.unselect(); }
+        else if index == 3 { CalendarUi.refresh(); }
     }
 }
 
@@ -119,7 +120,8 @@ export component Calendar inherits FocusScope {
 
                                     inner := Rectangle {
                                         background: {
-                                            let c = (task.overdue ? UiState.theme.overrides.calendar-overdue :
+                                            let c = (task.completed ? UiState.theme.overrides.calendar-done :
+                                                task.overdue ? UiState.theme.overrides.calendar-overdue :
                                                 UiState.theme.overrides.calendar-pending).to-oklch();
                                             let selected = CalendarUi.selected-task.id == task.id;
 
@@ -141,7 +143,7 @@ export component Calendar inherits FocusScope {
                                             spacing: 0.125rem;
                                             title := Text {
                                                 font-size: 0.75rem;
-                                                text: task.completed ? "✓ " + task.title : task.title;
+                                                text: task.title;
                                                 color: UiState.theme.colors.text-base;
                                                 font-weight: 700;
                                                 wrap: word-wrap;

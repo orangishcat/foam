@@ -8,7 +8,9 @@ use super::state::menu_item;
 use crate::{
     AppWindow, CalendarUi, ScreenMenuItem, TaskCol,
     account::{self, Account},
-    database, thread_manager, types::task::Task, ui,
+    database, thread_manager,
+    types::task::Task,
+    ui,
 };
 use anyhow;
 
@@ -44,19 +46,19 @@ impl crate::state::state::State for CalendarState {
                 ))
             })?
             .into_iter()
-            .fold(BTreeMap::new(), |mut groups, (task, folder_title, completed)| {
-                groups
-                    .entry(due_date_bucket(&task))
-                    .or_insert_with(Vec::new)
-                    .push((task, folder_title, completed));
-                groups
-            });
+            .fold(
+                BTreeMap::new(),
+                |mut groups, (task, folder_title, completed)| {
+                    groups
+                        .entry(due_date_bucket(&task))
+                        .or_insert_with(Vec::new)
+                        .push((task, folder_title, completed));
+                    groups
+                },
+            );
 
         let sorted_bucket_to_modelrc = |bucket: i64| {
-            let mut task_vec = tasks_on_calendar
-                .get(&bucket)
-                .cloned()
-                .unwrap_or_default();
+            let mut task_vec = tasks_on_calendar.get(&bucket).cloned().unwrap_or_default();
             task_vec.sort_by_key(|(a, _, _)| a.due);
             ModelRc::new(VecModel::from(
                 task_vec
@@ -107,8 +109,7 @@ impl crate::state::state::State for CalendarState {
             match create_event(&title, &description, &due, folder_index) {
                 Ok(()) => {
                     global.set_create_visible(false);
-                    ui.global::<crate::CalendarUi>()
-                        .set_create_error("".into());
+                    ui.global::<crate::CalendarUi>().set_create_error("".into());
                 }
                 Err(err) => {
                     log::warn!("Creating event failed: {err}");
@@ -127,7 +128,8 @@ impl crate::state::state::State for CalendarState {
             match result {
                 Ok(_) => {
                     if let Some(ui) = weak.upgrade() {
-                        ui.global::<CalendarUi>().set_selected_task(Default::default());
+                        ui.global::<CalendarUi>()
+                            .set_selected_task(Default::default());
                         ui::sync_ui();
                     }
                 }
@@ -157,6 +159,7 @@ impl crate::state::state::State for CalendarState {
         let enabled = !selected.folder_id.is_empty();
         vec![
             menu_item("View item", &["V"], enabled),
+            menu_item("Mark as done", &["D"], enabled),
             menu_item("Unselect item", &["Escape"], enabled),
             menu_item("Refresh", &["Control", "R"], true),
         ]
@@ -175,15 +178,17 @@ fn manual_refresh(acc: Box<dyn Account>) -> anyhow::Result<()> {
 /// re-runs the same ordered query so an option index maps back to a folder id.
 fn folder_options(ui: &AppWindow) {
     let options = database::from_sql_map(
-        "SELECT title FROM folders ORDER BY title COLLATE NATURAL_ORDER, folder_id"
-            .to_owned(),
+        "SELECT title FROM folders ORDER BY title COLLATE NATURAL_ORDER, folder_id".to_owned(),
         &[],
         |row| Ok(row.get::<_, String>(0)?),
     )
     .unwrap_or_default();
     ui.global::<crate::CalendarUi>()
         .set_folder_options(ModelRc::new(VecModel::from(
-            options.iter().map(ToSharedString::to_shared_string).collect::<Vec<_>>(),
+            options
+                .iter()
+                .map(ToSharedString::to_shared_string)
+                .collect::<Vec<_>>(),
         )));
 }
 
@@ -229,7 +234,10 @@ fn create_event(
     } else {
         Some(parse_due(due)?)
     };
-    let id = format!("builtin-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default());
+    let id = format!(
+        "builtin-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
     let mut connection = database::connection()?;
     let transaction = connection.transaction()?;
     let root: String = {
@@ -249,7 +257,13 @@ fn create_event(
         "INSERT INTO tasks (folder_id, id, source, title, description, due, attachments)
          VALUES (?1, ?2, 'builtin', ?3, ?4, ?5, '{}')
          ON CONFLICT(folder_id, id) DO NOTHING",
-        params![folder_id, id, title, description, parsed_due.map(|dt| dt.to_rfc3339())],
+        params![
+            folder_id,
+            id,
+            title,
+            description,
+            parsed_due.map(|dt| dt.to_rfc3339())
+        ],
     )?;
     transaction.commit()?;
     log::info!("Created event {id} in folder {folder_id}");
