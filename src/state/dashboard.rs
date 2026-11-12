@@ -1,23 +1,20 @@
 use std::collections::BTreeMap;
 
-use chrono::{Datelike, Days, Local};
+use chrono::{DateTime, Datelike, Days, Local, TimeZone, Utc};
 use rusqlite::params;
 use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
 use super::state::menu_item;
 use crate::{
-    AppWindow, AssignmentCol, DashboardUi, ScreenMenuItem,
+    AppWindow, AssignmentCol, DashboardUi, NewEventUi, ScreenMenuItem,
     account::{self, Account},
     database, thread_manager,
-    types::assignment::Assignment,
     ui,
 };
 use anyhow;
 
-pub fn due_date_bucket(assignment: &Assignment) -> i64 {
-    (assignment.due.with_timezone(&Local).date_naive() - Local::now().date_naive())
-        .num_days()
-        .clamp(-1, 4)
+pub fn due_date_bucket(due: DateTime<Utc>) -> i64 {
+    (due.with_timezone(&Local).date_naive() - Local::now().date_naive()).num_days().clamp(-1, 4)
 }
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
@@ -36,14 +33,37 @@ pub struct DashboardState {}
 
 impl crate::state::state::State for DashboardState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
-        let assignments_on_dashboard =
-            database::from_sql_map::<(Assignment, String)>(dashboard_query(), params![], |row| {
-                Ok((serde_rusqlite::from_row(row)?, row.get("course_title")?))
-            })?
+        let mut assignments_on_dashboard = database::from_sql_map::<(
+            crate::types::assignment::Assignment,
+            String,
+        )>(dashboard_query(), params![], |row| {
+            Ok((serde_rusqlite::from_row(row)?, row.get("course_title")?))
+        })?;
+        // Calendar events (Schoology or user-created) are shown like assignments,
+        // but have no course, completion state, or detail page.
+        let mut upcoming = database::from_sql_map(
+            "SELECT * FROM events WHERE date(due, 'localtime') >= date('now', 'localtime')"
+                .to_owned(),
+            params![],
+            |row| Ok(serde_rusqlite::from_row::<crate::types::event::Event>(row)?),
+        )?;
+        assignments_on_dashboard.extend(upcoming.drain(..).map(|event| {
+            (
+                crate::types::assignment::Assignment {
+                    id: event.id,
+                    title: event.title,
+                    description: event.description,
+                    due: event.due,
+                    ..Default::default()
+                },
+                "Event".to_owned(),
+            )
+        }));
+        let assignments_on_dashboard = assignments_on_dashboard
             .into_iter()
             .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
                 groups
-                    .entry(due_date_bucket(&assignment))
+                    .entry(due_date_bucket(assignment.due))
                     .or_insert_with(Vec::new)
                     .push((assignment, course_title));
                 groups
@@ -103,6 +123,59 @@ impl crate::state::state::State for DashboardState {
             )
             .inspect_err(|err| log::warn!("Error marking assignment {id} as done: {err}"))
             .ok();
+        });
+        let window = ui.as_weak();
+        g.on_new_event(move || {
+            let Some(ui) = window.upgrade() else { return };
+            let dialog = ui.global::<NewEventUi>();
+            let now = Local::now();
+            dialog.set_date(crate::Date {
+                year: now.year(),
+                month: now.month() as i32,
+                day: now.day() as i32,
+            });
+            dialog.set_time(crate::Time { hour: 12, minute: 0, second: 0 });
+            dialog.set_title(Default::default());
+            dialog.set_description(Default::default());
+            dialog.set_visible(true);
+        });
+        let window = ui.as_weak();
+        let dialog = ui.global::<NewEventUi>();
+        dialog.on_create(move |title, description, year, month, day, hour, minute| {
+            if title.trim().is_empty() {
+                return;
+            }
+            let Some(ui) = window.upgrade() else { return };
+            let Some(date) = chrono::NaiveDate::from_ymd_opt(
+                year,
+                month as u32,
+                day as u32,
+            ) else {
+                log::warn!("Ignoring new event with invalid date {year}-{month}-{day}");
+                return;
+            };
+            let Some(naive) = date.and_hms_opt(hour as u32, minute as u32, 0) else {
+                log::warn!("Ignoring new event with invalid time {hour}:{minute}");
+                return;
+            };
+            let Some(due) = Local.from_local_datetime(&naive).single() else {
+                log::warn!("Ignoring new event with ambiguous local time");
+                return;
+            };
+            let event = crate::types::event::Event {
+                id: format!("user-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default()),
+                title: title.to_string(),
+                description: description.to_string(),
+                due: due.with_timezone(&Utc),
+                source: "user".to_owned(),
+            };
+            let result = database::connection()
+                .and_then(|connection| event.insert_on(&connection))
+                .inspect_err(|err| log::warn!("Error creating event: {err}"));
+            if result.is_ok() {
+                ui.global::<NewEventUi>().set_visible(false);
+                ui::sync_ui();
+            }
         });
         g.on_refresh(|| {
             account::active_account()

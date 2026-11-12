@@ -10,6 +10,7 @@ import { DashboardUi } from "globals.slint";
 import { AssignmentUi } from "../assignment/globals.slint";
 import { UiState } from "../../globals.slint";
 import { DashboardBottomBar } from "bottom-bar.slint";
+import { NewEventUi, NewEventDialog } from "new-event-dialog.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 
 export global DashboardMenu {
@@ -43,6 +44,7 @@ export component Dashboard inherits FocusScope {
             icon: @image-url("../../icons/calendar-days.svg");
 
             new-event-btn := HoverableButton {
+                clicked => { DashboardUi.new-event(); }
                 Rectangle {
                     y: 0.35rem;
                     height: parent.height - 0.7rem;
@@ -109,7 +111,9 @@ export component Dashboard inherits FocusScope {
                                         }
                                         double-clicked => {
                                             DashboardUi.selected-assignment = assignment;
-                                            DashboardUi.open-selected();
+                                            if !assignment.course-id.is-empty {
+                                                DashboardUi.open-selected();
+                                            }
                                         }
                                     }
 

@@ -118,7 +118,7 @@ impl Account for SchoologyAccountConfig {
         }
         match self
             .fetch_calendar()
-            .and_then(|(ids, assignments)| Ok(self.apply_calendar(&ids, &assignments)?))
+            .and_then(|(ids, assignments, events)| Ok(self.apply_calendar(&ids, &assignments, &events)?))
         {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),

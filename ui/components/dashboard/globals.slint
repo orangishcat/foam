@@ -11,6 +11,7 @@ export global DashboardUi {
     callback view-item();
     callback refresh();
     callback set-done(bool, string);
+    callback new-event();
     public function open-selected() {
         AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
     }

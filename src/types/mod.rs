@@ -3,6 +3,7 @@ pub mod assignment;
 pub mod attachment;
 pub mod course;
 pub mod document;
+pub mod event;
 pub mod folder;
 pub mod link;
 pub mod material;

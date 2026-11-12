@@ -48,6 +48,13 @@ CREATE TABLE IF NOT EXISTS assignments (
     FOREIGN KEY (course_id, type, id)
         REFERENCES materials(course_id, type, material_id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    due TEXT NOT NULL,
+    source TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT NOT NULL,
     is_unread INTEGER NOT NULL DEFAULT 1,

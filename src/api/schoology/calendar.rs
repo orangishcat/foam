@@ -128,9 +128,36 @@ fn calendar_description(value: &str) -> String {
     DESCRIPTION_LINK.replace(&description, "").into_owned()
 }
 
-fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
+/// An event without an assignment link: it is created entirely from the
+/// calendar body and never needs the Schoology API.
+#[derive(Debug, PartialEq, Eq)]
+pub struct CalendarEvent {
+    pub(crate) id: String,
+    pub(crate) due: DateTime<Utc>,
+    pub(crate) title: Option<String>,
+    pub(crate) description: Option<String>,
+}
+
+fn event_id(properties: &[Property], due: DateTime<Utc>, title: &Option<String>) -> String {
+    // The UID is stable across feed refreshes, so the same event replaces itself
+    // instead of piling up duplicates.
+    if let Some(uid) = value(properties, "UID")
+        .map(str::trim)
+        .filter(|uid| !uid.is_empty())
+    {
+        return format!("schoology-{uid}");
+    }
+    let title = title.clone().unwrap_or_default();
+    format!(
+        "schoology-{}|{title}",
+        due.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+    )
+}
+
+fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>, Vec<CalendarEvent>)> {
     let mut ids: Vec<String> = Vec::new();
     let mut assignments: Vec<CalendarAssignment> = Vec::new();
+    let mut events: Vec<CalendarEvent> = Vec::new();
     let mut seen_calendar = false;
     for calendar in IcalParser::new(io::Cursor::new(body)) {
         let calendar = calendar.map_err(|_| io::Error::other("invalid iCalendar feed"))?;
@@ -144,6 +171,11 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
             {
                 continue;
             }
+            let Some(due) = property(props, "DTSTART").and_then(|p| due_date(p, timezone)) else {
+                log::warn!("Skipping calendar event: unsupported or invalid DTSTART");
+                continue;
+            };
+            let title = value(props, "SUMMARY").map(unescape);
             // Match IDs, never titles: multiple courses can reuse assignment names.
             let id = ["URL", "DESCRIPTION", "SUMMARY", "LOCATION"]
                 .into_iter()
@@ -152,23 +184,27 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
                     let text = text.replace("\\n", "\n").replace("\\N", "\n");
                     ASSIGNMENT_LINK.captures(&text).map(|c| c[1].to_owned())
                 });
-            let Some(id) = id else { continue };
-            let Some(due) = property(props, "DTSTART").and_then(|p| due_date(p, timezone)) else {
-                log::warn!("Skipping calendar assignment {id}: unsupported or invalid DTSTART");
-                continue;
-            };
-            ids.push(id);
-            assignments.push(CalendarAssignment {
-                due,
-                title: value(props, "SUMMARY").map(unescape),
-                description: value(props, "DESCRIPTION").map(calendar_description),
-            });
+            if let Some(id) = id {
+                ids.push(id);
+                assignments.push(CalendarAssignment {
+                    due,
+                    title,
+                    description: value(props, "DESCRIPTION").map(calendar_description),
+                });
+            } else {
+                events.push(CalendarEvent {
+                    id: event_id(props, due, &title),
+                    due,
+                    title,
+                    description: value(props, "DESCRIPTION").map(calendar_description),
+                });
+            }
         }
     }
     if !seen_calendar {
         return Err(io::Error::other("response does not contain an iCalendar calendar").into());
     }
-    Ok((ids, assignments))
+    Ok((ids, assignments, events))
 }
 
 fn assignments_in(folder: &Folder, wanted: &HashSet<String>) -> HashSet<String> {
@@ -190,6 +226,31 @@ pub(crate) const UPDATE_CALENDAR: &str =
      WHERE id = ?4 AND (title IS NOT COALESCE(?1, title) OR due IS NOT ?2 OR description IS NOT COALESCE(?3, description))";
 
 type CalendarUpdate = (Option<String>, String, Option<String>, String);
+
+type EventUpdate = (String, String, String, String, &'static str);
+
+pub(crate) fn event_updates(events: &[CalendarEvent]) -> anyhow::Result<Vec<EventUpdate>> {
+    // A feed may repeat an event. Match by ID and let its last occurrence win.
+    let mut unique: Vec<(&String, &CalendarEvent)> = events
+        .iter()
+        .map(|e| (&e.id, e))
+        .collect::<HashMap<_, _>>()
+        .into_iter()
+        .collect();
+    unique.sort_by(|a, b| a.0.cmp(b.0));
+    Ok(unique
+        .into_iter()
+        .map(|(id, e)| {
+            (
+                id.clone(),
+                e.title.clone().unwrap_or_default(),
+                e.description.clone().unwrap_or_default(),
+                e.due.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
+                "schoology",
+            )
+        })
+        .collect())
+}
 
 pub(crate) fn calendar_updates(
     ids: &[String],
@@ -215,10 +276,12 @@ pub(crate) fn calendar_updates(
 
 impl SchoologyAccountConfig {
     /// The feed URL is a bearer credential; never include it in request errors.
-    pub fn fetch_calendar(&self) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>)> {
+    pub fn fetch_calendar(
+        &self,
+    ) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>, Vec<CalendarEvent>)> {
         let calendar_url = &self.calendar_url;
         if calendar_url.trim().is_empty() {
-            return Ok((Vec::new(), Vec::new()));
+            return Ok((Vec::new(), Vec::new(), Vec::new()));
         }
         crate::thread_manager::check_cancelled()?;
         let url = feed_url(calendar_url)?;
@@ -236,6 +299,7 @@ impl SchoologyAccountConfig {
         &self,
         ids: &[String],
         cal_assignments: &[CalendarAssignment],
+        cal_events: &[CalendarEvent],
     ) -> anyhow::Result<usize> {
         if ids.len() != cal_assignments.len() {
             return Err(
@@ -243,10 +307,16 @@ impl SchoologyAccountConfig {
             );
         }
         self.scrape_missing_calendar(ids)?;
-        database::bulk_execute(
+        let mut updated = database::bulk_execute(
             UPDATE_CALENDAR.to_owned(),
             calendar_updates(ids, cal_assignments)?,
-        )
+        )?;
+        // Calendar events need no course data, so the feed body alone is enough.
+        updated += database::bulk_execute(
+            include_str!("../../sql/event/upsert.sql").to_owned(),
+            event_updates(cal_events)?,
+        )?;
+        Ok(updated)
     }
 
     fn scrape_missing_calendar(&self, ids: &[String]) -> anyhow::Result<()> {

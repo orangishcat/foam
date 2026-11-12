@@ -1,0 +1,152 @@
+import { LineEdit } from "../line-edit.slint";
+import { DatePickerPopup, TimePickerPopup, Date, Time } from "std-widgets.slint";
+import { FilledButton } from "@vivi/magic.slint";
+import { HoverableButton } from "../hoverable-button.slint";
+import { UiState, MenubarData } from "../../globals.slint";
+import { ScreenTopBar } from "../screen-top-bar.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
+
+export global NewEventUi {
+    in-out property <bool> visible;
+    in-out property <string> title;
+    in-out property <string> description;
+    in-out property <Date> date;
+    in-out property <Time> time;
+    // title, description, year, month, day, hour, minute
+    callback create(string, string, int, int, int, int, int);
+    public pure function pad(number: int) -> string {
+        // Slint has no zero-padding helper, so pad each field inline.
+        return (number < 10 ? "0" : "") + number;
+    }
+    public function close() {
+        self.visible = false;
+        MenubarData.refresh();
+    }
+    public function submit() {
+        if root.title.is-empty { return; }
+        root.create(root.title, root.description,
+            root.date.year, root.date.month, root.date.day,
+            root.time.hour, root.time.minute);
+    }
+    changed visible => { MenubarData.refresh(); }
+}
+
+export component NewEventDialog inherits Rectangle {
+    visible: NewEventUi.visible;
+    background: UiState.theme.overrides.attachment-backdrop.with-alpha(0.667);
+    TouchArea {
+        clicked => { NewEventUi.close(); }
+    }
+
+    panel := Rectangle {
+        width: 26rem;
+        height: self.preferred-height;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: UiState.theme.colors.background;
+        border-radius: 0.625rem;
+        clip: true;
+        TouchArea { }
+
+        FocusScope {
+            key-pressed(event) => {
+                if event.text == Key.Escape {
+                    NewEventUi.close();
+                    accept
+                } else {
+                    reject
+                }
+            }
+        }
+
+        VerticalLayout {
+            ScreenTopBar {
+                title: "New event";
+                icon: @image-url("../../icons/calendar-days.svg");
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                SelectedItemAction {
+                    hotkey-name: "⏎";
+                    hotkey: @keys(Return);
+                    action-name: "Create";
+                    action => { NewEventUi.submit(); }
+                }
+
+                SelectedItemAction {
+                    hotkey-name: "Esc";
+                    hotkey: @keys(Escape);
+                    action-name: "Cancel";
+                    action => { NewEventUi.close(); }
+                }
+            }
+
+            VerticalLayout {
+                padding: 1rem;
+                padding-top: 0.75rem;
+                spacing: 0.75rem;
+
+                title-input := LineEdit {
+                    placeholder-text: "Title";
+                    text <=> NewEventUi.title;
+                    accepted => { NewEventUi.submit(); }
+                    init => { self.focus-input(); }
+                }
+
+                LineEdit {
+                    placeholder-text: "Description (optional)";
+                    text <=> NewEventUi.description;
+                    accepted => { NewEventUi.submit(); }
+                }
+
+                HorizontalLayout {
+                    spacing: 0.75rem;
+
+                    HoverableButton {
+                        text: "\{NewEventUi.pad(NewEventUi.date.year)}-\{NewEventUi.pad(NewEventUi.date.month)}-\{NewEventUi.pad(NewEventUi.date.day)}";                        accessible-role: button;
+                        accessible-label: "Pick date";
+                        clicked => { date-picker.show(); }
+
+                        date-picker := DatePickerPopup {
+                            date: NewEventUi.date;
+                            accepted(date) => { NewEventUi.date = date; }
+                            canceled => { }
+                        }
+                    }
+
+                    HoverableButton {
+                        text: "\{NewEventUi.pad(NewEventUi.time.hour)}:\{NewEventUi.pad(NewEventUi.time.minute)}";
+                        accessible-role: button;
+                        accessible-label: "Pick time";
+                        clicked => { time-picker.show(); }
+
+                        time-picker := TimePickerPopup {
+                            time: NewEventUi.time;
+                            use-24-hour-format: true;
+                            accepted(time) => { NewEventUi.time = time; }
+                            canceled => { }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 0.75rem;
+                    alignment: end;
+
+                    FilledButton {
+                        text: "Cancel";
+                        clicked => { NewEventUi.close(); }
+                    }
+
+                    FilledButton {
+                        text: "Create";
+                        enabled: !NewEventUi.title.is-empty;
+                        clicked => { NewEventUi.submit(); }
+                    }
+                }
+            }
+        }
+    }
+}

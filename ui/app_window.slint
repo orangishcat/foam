@@ -1,4 +1,5 @@
 import { Dashboard, DashboardMenu } from "components/dashboard/dashboard.slint";
+import { NewEventUi, NewEventDialog } from "components/dashboard/new-event-dialog.slint";
 import { SchoologyOnboarding } from "components/onboarding.slint";
 import {
     AttachmentDialog,
@@ -26,7 +27,7 @@ import { SearchUi, SearchResult } from "components/search/globals.slint";
 export { OnboardingUi } from "components/onboarding/globals.slint";
 export { SettingsUi } from "components/settings/globals.slint";
 export { DashboardUi } from "components/dashboard/globals.slint";
-export { NotificationUi } from "components/notifications/globals.slint";
+export { NewEventUi } from "components/dashboard/new-event-dialog.slint";export { NotificationUi } from "components/notifications/globals.slint";
 export { CoursesUi } from "components/courses/globals.slint";
 export { MaterialUi } from "components/materials/globals.slint";
 export { AssignmentUi } from "components/assignment/globals.slint";
@@ -37,6 +38,7 @@ export {
 } from "components/search/globals.slint";
 export { WindowChrome, UiState, MenubarData } from "globals.slint";
 export { ScreenMenuItem } from "types/screen-menu-item.slint";
+export { Date, Time } from "std-widgets.slint";
 import "fonts/MozillaText.ttf";
 import {
     Notifications,
@@ -111,7 +113,7 @@ export component AppWindow inherits Window {
     changed document-height => { root.update-document-webview(); }
     changed document-visible => { root.update-document-webview(); }
 
-    private property <bool> has-dialog: AttachmentMenu.visible || UiState.screen == Screen.onboarding;
+    private property <bool> has-dialog: AttachmentMenu.visible || NewEventUi.visible || UiState.screen == Screen.onboarding;
     private property <bool> compact-menu: UiState.shortcut-modifier != "⌘";
     private property <[ScreenMenuItem]> action-items: MenubarData.items;
     callback activate-action(int);
@@ -302,6 +304,11 @@ export component AppWindow inherits Window {
                 height: parent.height;
                 sidebar-width: navigation.width;
                 custom-titlebar: root.custom-titlebar;
+            }
+
+            new-event := NewEventDialog {
+                width: parent.width;
+                height: parent.height;
             }
 
             onboarding := SchoologyOnboarding {
