@@ -93,7 +93,6 @@ jobs:
           cargo packager signer sign \
             --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
             --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
-            --app-version "${{ github.ref_name }}" \
             "${app}.tar.gz"
 
       - name: Prepare updater artifacts (Linux)
@@ -108,7 +107,6 @@ jobs:
           cargo packager signer sign \
             --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
             --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
-            --app-version "${{ github.ref_name }}" \
             "${appimage}.tar.gz"
 
       - name: Prepare updater artifacts (Windows)
@@ -124,7 +122,6 @@ jobs:
           cargo packager signer sign \
             --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
             --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
-            --app-version "${{ github.ref_name }}" \
             "$setup"
 
       - name: Write updater manifest fragment
