@@ -76,7 +76,93 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
         run: cargo packager --release --target ${{ matrix.target }}
+
+      - name: Prepare updater artifacts (macOS)
+        if: runner.os == 'macOS'
+        working-directory: target/${{ matrix.target }}/release
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          app="$(find . -maxdepth 1 -name '*.app' -print -quit)"
+          tar -czf "${app}.tar.gz" "$app"
+          cargo packager signer sign \
+            --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
+            --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
+            --app-version "${{ github.ref_name }}" \
+            "${app}.tar.gz"
+
+      - name: Prepare updater artifacts (Linux)
+        if: runner.os == 'Linux'
+        working-directory: target/${{ matrix.target }}/release
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          appimage="$(find . -maxdepth 1 -name '*.AppImage' -print -quit)"
+          tar -czf "${appimage}.tar.gz" "$appimage"
+          cargo packager signer sign \
+            --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
+            --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
+            --app-version "${{ github.ref_name }}" \
+            "${appimage}.tar.gz"
+
+      - name: Prepare updater artifacts (Windows)
+        if: runner.os == 'Windows'
+        working-directory: target/${{ matrix.target }}/release
+        shell: bash
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # The NSIS installer is the artifact the updater installs directly.
+          setup="$(find . -maxdepth 1 -name '*-setup.exe' -print -quit)"
+          cargo packager signer sign \
+            --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
+            --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
+            --app-version "${{ github.ref_name }}" \
+            "$setup"
+
+      - name: Write updater manifest fragment
+        working-directory: target/${{ matrix.target }}/release
+        shell: bash
+        run: |
+          set -e
+          version="${{ github.ref_name }}"
+          base="https://github.com/orangishcat/foam/releases/download/$version"
+          case "$RUNNER_OS" in
+            macOS)
+              key="darwin-aarch64"
+              [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && key="darwin-x86_64"
+              bundle="$(find . -maxdepth 1 -name '*.app.tar.gz' -print -quit | xargs basename)"
+              format="app"
+              ;;
+            Linux)
+              key="linux-x86_64"
+              bundle="$(find . -maxdepth 1 -name '*.AppImage.tar.gz' -print -quit | xargs basename)"
+              format="appimage"
+              ;;
+            Windows)
+              key="windows-x86_64"
+              bundle="$(find . -maxdepth 1 -name '*-setup.exe' -print -quit | xargs basename)"
+              format="nsis"
+              ;;
+          esac
+          mkdir -p updater-fragments
+          jq -n --arg p "$key" --arg s "$(cat "$bundle.sig")" \
+            --arg u "$base/$bundle" --arg f "$format" \
+            '{platform: $p, signature: $s, url: $u, format: $f}' \
+            > "updater-fragments/$key.json"
+
+      - name: Upload updater manifest fragment
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/updater-fragments/*.json
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -86,8 +172,44 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/*.app
             target/${{ matrix.target }}/release/*.dmg
+            target/${{ matrix.target }}/release/*.tar.gz
+            target/${{ matrix.target }}/release/*.tar.gz.sig
             target/${{ matrix.target }}/release/*.exe
+            target/${{ matrix.target }}/release/*.exe.sig
             target/${{ matrix.target }}/release/*.msi
             target/${{ matrix.target }}/release/*.deb
             target/${{ matrix.target }}/release/*.AppImage
             target/${{ matrix.target }}/release/*.pkg.tar.zst
+
+  latest-json:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download manifest fragments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: updater-*
+          merge-multiple: true
+          path: fragments
+
+      - name: Build latest.json
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          # Version without the leading v: the updater compares it against
+          # the app version, which comes from CARGO_PKG_VERSION.
+          jq -s --arg version "${VERSION#v}" --arg pub_date "$(date -u +%FT%TZ)" '
+            {
+              version: $version,
+              notes: "",
+              pub_date: $pub_date,
+              platforms: (map({ (.platform): {signature, url, format} }) | add)
+            }' fragments/*.json > latest.json
+          cat latest.json
+
+      - name: Upload latest.json to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            latest.json
