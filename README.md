@@ -1,11 +1,14 @@
 # foam
 
-alternate schoology client
+Alternate client for [Schoology LMS](https://www.powerschool.com/products/classroom/learning-management)
 
-| ![Calendar demo](demo-calendar.png) | ![Notifications demo](demo-notification.png) |
-| ----------------------------------- | -------------------------------------------- |
+Uses **API key** and **calendar URL** to import assignments, make sure you have access to both
 
-To install, download the relevant app binary in the latest release based on your platform.
+![Calendar demo](demo/demo-calendar.png)
+
+## Installation
+
+To install, download the relevant app binary in the [latest release](https://github.com/orangishcat/foam/releases/latest) based on your platform.
 
 ## Features
 
@@ -17,9 +20,16 @@ To install, download the relevant app binary in the latest release based on your
 - Fast, responsive materials viewing using the local copy of Schoology materials
 - Adjustable UI size and themes
 
+## More images
+
+|                                                   |                                              |                                          |
+| ------------------------------------------------- | -------------------------------------------- | ---------------------------------------- |
+| ![Notifications demo](demo/demo-notification.png) | ![Courses demo](demo/demo-courses.png)       | ![Search demo](demo/demo-search.png)     |
+| ![Folder demo](demo/demo-folder.png)              | ![Assignment demo](demo/demo-assignment.png) | ![Settings demo](demo/demo-settings.png) |
+
 ## Future expansion
 
-No plans as of right now. If anybody has ideas (e.g. other LMS support) and is willing to contribute, I could consider picking the project back up.
+No plans as of right now. If anybody has ideas (e.g. other LMS support) and is willing to contribute, I could consider resuming development on this project. But for now it serves my needs.
 
 ## Build from source
 
