@@ -5,6 +5,9 @@ export component LineEdit inherits Rectangle {
     in property <string> placeholder-text;
     in property <InputType> input-type <=> input.input-type;
     in property <image> icon;
+    // When set, text wraps at the element's exact width instead of scrolling
+    // horizontally, and the element grows vertically with the wrapped text.
+    in property <bool> wrap: false;
     out property <bool> has-focus: input.has-focus;
     callback edited(string);
     callback accepted;
@@ -85,19 +88,32 @@ export component LineEdit inherits Rectangle {
                     horizontal-stretch: 1;
                     input := TextInput {
                         property <length> scroll-x;
-                        x: min(0px, max(parent.width - self.width - self.text-cursor-width, self.scroll-x));
-                        width: max(parent.width - self.text-cursor-width, self.preferred-width);
-                        height: parent.height;
-                        single-line: true;
+                        property <length> scroll-y;
+                        x: root.wrap ? 0px : min(0px, max(parent.width - self.width - self.text-cursor-width, self.scroll-x));
+                        y: root.wrap ? min(0px, max(parent.height - self.height, self.scroll-y)) : 0px;
+                        width: root.wrap ? parent.width : max(parent.width - self.text-cursor-width, self.preferred-width);
+                        height: root.wrap ? self.preferred-height : parent.height;
+                        single-line: !root.wrap;
+                        wrap: root.wrap ? word-wrap : no-wrap;
                         vertical-alignment: center;
                         color: UiState.theme.colors.text-strong;
                         selection-background-color: UiState.theme.colors.border;
                         selection-foreground-color: UiState.theme.colors.text-strong;
                         cursor-position-changed(position) => {
-                            if position.x + self.scroll-x < 0px {
-                                self.scroll-x = -position.x;
-                            } else if position.x + self.scroll-x > parent.width - self.text-cursor-width {
-                                self.scroll-x = parent.width - position.x - self.text-cursor-width;
+                            if root.wrap {
+                                // Keep the cursor line visible by scrolling vertically;
+                                // text never scrolls horizontally since it wraps at the width.
+                                if position.y + self.scroll-y < 0px {
+                                    self.scroll-y = -position.y;
+                                } else if position.y + self.scroll-y > parent.height {
+                                    self.scroll-y = parent.height - position.y;
+                                }
+                            } else {
+                                if position.x + self.scroll-x < 0px {
+                                    self.scroll-x = -position.x;
+                                } else if position.x + self.scroll-x > parent.width - self.text-cursor-width {
+                                    self.scroll-x = parent.width - position.x - self.text-cursor-width;
+                                }
                             }
                         }
                         edited => { root.edited(self.text); }
@@ -110,7 +126,7 @@ export component LineEdit inherits Rectangle {
                         visible: input.text.is-empty;
                         text: root.placeholder-text;
                         color: UiState.theme.colors.text-muted;
-                        vertical-alignment: center;
+                        vertical-alignment: top;
                         horizontal-alignment: left;
                     }
                 }

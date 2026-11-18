@@ -7,9 +7,9 @@ import {
 } from "std-widgets.slint";
 import { FilledButton } from "@vivi/magic.slint";
 import { HoverableButton } from "../hoverable-button.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
 import { UiState, MenubarData } from "../../globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
-import { SelectedItemAction } from "../selected-item-action.slint";
 
 export global NewEventUi {
     in-out property <bool> visible;
@@ -39,7 +39,6 @@ export global NewEventUi {
 }
 
 export component NewEventDialog inherits Rectangle {
-    visible: NewEventUi.visible;
     background: UiState.theme.overrides.attachment-backdrop.with-alpha(0.667);
     TouchArea {
         clicked => { NewEventUi.close(); }
@@ -60,6 +59,9 @@ export component NewEventDialog inherits Rectangle {
                 if event.text == Key.Escape {
                     NewEventUi.close();
                     accept
+                } else if event.text == Key.Return {
+                    NewEventUi.submit();
+                    accept
                 } else {
                     reject
                 }
@@ -76,7 +78,7 @@ export component NewEventDialog inherits Rectangle {
                 }
 
                 SelectedItemAction {
-                    hotkey-name: "⏎";
+                    hotkey-name: "Enter";
                     hotkey: @keys(Return);
                     action-name: NewEventUi.editing ? "Save" : "Create";
                     action => { NewEventUi.submit(); }
@@ -106,6 +108,7 @@ export component NewEventDialog inherits Rectangle {
                     placeholder-text: "Description (optional)";
                     height: 6rem;
                     text <=> NewEventUi.description;
+                    wrap: true;
                     accepted => { NewEventUi.submit(); }
                 }
 
@@ -197,22 +200,6 @@ export component NewEventDialog inherits Rectangle {
                             accepted(time) => { NewEventUi.time = time; }
                             canceled => {}
                         }
-                    }
-                }
-
-                HorizontalLayout {
-                    spacing: 0.75rem;
-                    alignment: end;
-
-                    FilledButton {
-                        text: "Cancel";
-                        clicked => { NewEventUi.close(); }
-                    }
-
-                    FilledButton {
-                        text: NewEventUi.editing ? "Save" : "Create";
-                        enabled: !NewEventUi.title.is-empty;
-                        clicked => { NewEventUi.submit(); }
                     }
                 }
             }

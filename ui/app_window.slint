@@ -1,5 +1,8 @@
 import { Dashboard, DashboardMenu } from "components/dashboard/dashboard.slint";
-import { NewEventUi, NewEventDialog } from "components/dashboard/new-event-dialog.slint";
+import {
+    NewEventUi,
+    NewEventDialog,
+} from "components/dashboard/new-event-dialog.slint";
 import { SchoologyOnboarding } from "components/onboarding.slint";
 import {
     AttachmentDialog,
@@ -27,7 +30,8 @@ import { SearchUi, SearchResult } from "components/search/globals.slint";
 export { OnboardingUi } from "components/onboarding/globals.slint";
 export { SettingsUi } from "components/settings/globals.slint";
 export { DashboardUi } from "components/dashboard/globals.slint";
-export { NewEventUi } from "components/dashboard/new-event-dialog.slint";export { NotificationUi } from "components/notifications/globals.slint";
+export { NewEventUi } from "components/dashboard/new-event-dialog.slint";
+export { NotificationUi } from "components/notifications/globals.slint";
 export { CoursesUi } from "components/courses/globals.slint";
 export { MaterialUi } from "components/materials/globals.slint";
 export { AssignmentUi } from "components/assignment/globals.slint";
@@ -53,7 +57,6 @@ import { HoverableButton } from "components/hoverable-button.slint";
 import { ScreenMenuItem } from "types/screen-menu-item.slint";
 import { Palette, MagicPalette, ComboBoxItem } from "@vivi/magic.slint";
 export { MagicPalette, ComboBoxItem }
-
 export component AppWindow inherits Window {
     title: "foam";
     default-font-family: "Mozilla Text";
@@ -306,11 +309,6 @@ export component AppWindow inherits Window {
                 custom-titlebar: root.custom-titlebar;
             }
 
-            new-event := NewEventDialog {
-                width: parent.width;
-                height: parent.height;
-            }
-
             onboarding := SchoologyOnboarding {
                 input-focused => { root.focus-onboarding-input(); }
                 visible: UiState.screen == Screen.onboarding;
@@ -339,7 +337,11 @@ export component AppWindow inherits Window {
     }
 
     attachment := AttachmentDialog {
-        visible: AttachmentMenu.visible;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    if NewEventUi.visible: new-event := NewEventDialog {
         width: parent.width;
         height: parent.height;
     }

@@ -35,6 +35,7 @@ export global AttachmentMenu {
 }
 
 export component AttachmentDialog inherits Rectangle {
+    visible: AttachmentMenu.visible;
     background: UiState.theme.overrides.attachment-backdrop.with-alpha(0.667);
     out property <length> viewer-x: panel.x;
     out property <length> viewer-y: panel.y + UiState.top-bar-height;
