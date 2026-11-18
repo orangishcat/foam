@@ -105,9 +105,15 @@ export component Dashboard inherits FocusScope {
                                     item-button := HoverableButton {
                                         text: assignment.title;
                                         clicked => {
-                                            DashboardUi.selected-assignment = assignment;
-                                            DashboardUi.sel-col = x;
-                                            DashboardUi.sel-row = y;
+                                            // Events have no course and no detail page;
+                                            // clicking one opens it in the event dialog.
+                                            if assignment.course-id.is-empty {
+                                                DashboardUi.edit-event(assignment);
+                                            } else {
+                                                DashboardUi.selected-assignment = assignment;
+                                                DashboardUi.sel-col = x;
+                                                DashboardUi.sel-row = y;
+                                            }
                                         }
                                         double-clicked => {
                                             DashboardUi.selected-assignment = assignment;

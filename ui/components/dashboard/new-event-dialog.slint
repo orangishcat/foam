@@ -1,5 +1,10 @@
 import { LineEdit } from "../line-edit.slint";
-import { DatePickerPopup, TimePickerPopup, Date, Time } from "std-widgets.slint";
+import {
+    DatePickerPopup,
+    TimePickerPopup,
+    Date,
+    Time,
+} from "std-widgets.slint";
 import { FilledButton } from "@vivi/magic.slint";
 import { HoverableButton } from "../hoverable-button.slint";
 import { UiState, MenubarData } from "../../globals.slint";
@@ -12,6 +17,8 @@ export global NewEventUi {
     in-out property <string> description;
     in-out property <Date> date;
     in-out property <Time> time;
+    in-out property <string> editing-id;
+    out property <bool> editing: !editing-id.is-empty;
     // title, description, year, month, day, hour, minute
     callback create(string, string, int, int, int, int, int);
     public pure function pad(number: int) -> string {
@@ -39,7 +46,7 @@ export component NewEventDialog inherits Rectangle {
     }
 
     panel := Rectangle {
-        width: 26rem;
+        width: 30rem;
         height: self.preferred-height;
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
@@ -61,7 +68,7 @@ export component NewEventDialog inherits Rectangle {
 
         VerticalLayout {
             ScreenTopBar {
-                title: "New event";
+                title: NewEventUi.editing ? "Edit event" : "New event";
                 icon: @image-url("../../icons/calendar-days.svg");
 
                 Rectangle {
@@ -71,7 +78,7 @@ export component NewEventDialog inherits Rectangle {
                 SelectedItemAction {
                     hotkey-name: "⏎";
                     hotkey: @keys(Return);
-                    action-name: "Create";
+                    action-name: NewEventUi.editing ? "Save" : "Create";
                     action => { NewEventUi.submit(); }
                 }
 
@@ -97,6 +104,7 @@ export component NewEventDialog inherits Rectangle {
 
                 LineEdit {
                     placeholder-text: "Description (optional)";
+                    height: 6rem;
                     text <=> NewEventUi.description;
                     accepted => { NewEventUi.submit(); }
                 }
@@ -105,28 +113,89 @@ export component NewEventDialog inherits Rectangle {
                     spacing: 0.75rem;
 
                     HoverableButton {
-                        text: "\{NewEventUi.pad(NewEventUi.date.year)}-\{NewEventUi.pad(NewEventUi.date.month)}-\{NewEventUi.pad(NewEventUi.date.day)}";                        accessible-role: button;
+                        horizontal-stretch: 1;
+                        accessible-role: button;
                         accessible-label: "Pick date";
                         clicked => { date-picker.show(); }
+
+                        Rectangle {
+                            background: parent.has-hover ? UiState.theme.colors.surface-hover : UiState.theme.colors.surface-4;
+                            border-color: UiState.theme.colors.border;
+                            border-width: 0.0625rem;
+                            border-radius: 0.25rem;
+                        }
+
+                        HorizontalLayout {
+                            padding: 0.5rem;
+                            spacing: 0.5rem;
+
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    source: @image-url("../../icons/calendar-days.svg");
+                                    colorize: UiState.theme.colors.text-secondary;
+                                    width: 1rem;
+                                    height: 1rem;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            Text {
+                                text: "\{NewEventUi.pad(NewEventUi.date.year)}-\{NewEventUi.pad(NewEventUi.date.month)}-\{NewEventUi.pad(NewEventUi.date.day)}";
+                                font-size: 1rem;
+                                vertical-alignment: center;
+                                color: UiState.theme.colors.text-secondary;
+                            }
+                        }
 
                         date-picker := DatePickerPopup {
                             date: NewEventUi.date;
                             accepted(date) => { NewEventUi.date = date; }
-                            canceled => { }
+                            canceled => {}
                         }
                     }
 
                     HoverableButton {
-                        text: "\{NewEventUi.pad(NewEventUi.time.hour)}:\{NewEventUi.pad(NewEventUi.time.minute)}";
+                        horizontal-stretch: 1;
                         accessible-role: button;
                         accessible-label: "Pick time";
                         clicked => { time-picker.show(); }
+
+                        Rectangle {
+                            background: parent.has-hover ? UiState.theme.colors.surface-hover : UiState.theme.colors.surface-4;
+                            border-width: 0.0625rem;
+                            border-color: UiState.theme.colors.border;
+                            border-radius: 0.25rem;
+                        }
+
+                        HorizontalLayout {
+                            padding: 0.5rem;
+                            spacing: 0.5rem;
+
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    source: @image-url("../../icons/clock.svg");
+                                    colorize: UiState.theme.colors.text-secondary;
+                                    width: 1rem;
+                                    height: 1rem;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            Text {
+                                text: "\{NewEventUi.pad(NewEventUi.time.hour)}:\{NewEventUi.pad(NewEventUi.time.minute)}";
+                                font-size: 1rem;
+                                vertical-alignment: center;
+                                color: UiState.theme.colors.text-secondary;
+                            }
+                        }
 
                         time-picker := TimePickerPopup {
                             time: NewEventUi.time;
                             use-24-hour-format: true;
                             accepted(time) => { NewEventUi.time = time; }
-                            canceled => { }
+                            canceled => {}
                         }
                     }
                 }
@@ -141,7 +210,7 @@ export component NewEventDialog inherits Rectangle {
                     }
 
                     FilledButton {
-                        text: "Create";
+                        text: NewEventUi.editing ? "Save" : "Create";
                         enabled: !NewEventUi.title.is-empty;
                         clicked => { NewEventUi.submit(); }
                     }

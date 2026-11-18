@@ -18,10 +18,11 @@ pub struct Event {
 }
 
 impl Event {
-    pub(crate) fn insert_on(&self, connection: &rusqlite::Connection) -> anyhow::Result<()> {
+    /// Inserts the event, or updates the existing row when the id already exists.
+    pub(crate) fn upsert_on(&self, connection: &rusqlite::Connection) -> anyhow::Result<()> {
         let serialized = serde_rusqlite::to_params_named(self)?;
         connection.execute(
-            include_str!("../sql/event/write.sql"),
+            include_str!("../sql/event/upsert.sql"),
             serialized.to_slice().as_slice(),
         )?;
         Ok(())

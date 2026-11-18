@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Datelike, Days, Local, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Days, Local, TimeZone, Timelike, Utc};
 use rusqlite::params;
 use slint::{ComponentHandle, ModelRc, ToSharedString, VecModel};
 
@@ -8,13 +8,14 @@ use super::state::menu_item;
 use crate::{
     AppWindow, AssignmentCol, DashboardUi, NewEventUi, ScreenMenuItem,
     account::{self, Account},
-    database, thread_manager,
-    ui,
+    database, thread_manager, ui,
 };
 use anyhow;
 
 pub fn due_date_bucket(due: DateTime<Utc>) -> i64 {
-    (due.with_timezone(&Local).date_naive() - Local::now().date_naive()).num_days().clamp(-1, 4)
+    (due.with_timezone(&Local).date_naive() - Local::now().date_naive())
+        .num_days()
+        .clamp(-1, 4)
 }
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
@@ -59,15 +60,16 @@ impl crate::state::state::State for DashboardState {
                 "Event".to_owned(),
             )
         }));
-        let assignments_on_dashboard = assignments_on_dashboard
-            .into_iter()
-            .fold(BTreeMap::new(), |mut groups, (assignment, course_title)| {
+        let assignments_on_dashboard = assignments_on_dashboard.into_iter().fold(
+            BTreeMap::new(),
+            |mut groups, (assignment, course_title)| {
                 groups
                     .entry(due_date_bucket(assignment.due))
                     .or_insert_with(Vec::new)
                     .push((assignment, course_title));
                 groups
-            });
+            },
+        );
 
         let sorted_bucket_to_modelrc = |bucket: i64| {
             let mut assign_vec = assignments_on_dashboard
@@ -134,9 +136,44 @@ impl crate::state::state::State for DashboardState {
                 month: now.month() as i32,
                 day: now.day() as i32,
             });
-            dialog.set_time(crate::Time { hour: 12, minute: 0, second: 0 });
+            dialog.set_time(crate::Time {
+                hour: 12,
+                minute: 0,
+                second: 0,
+            });
             dialog.set_title(Default::default());
             dialog.set_description(Default::default());
+            dialog.set_editing_id(Default::default());
+            dialog.set_visible(true);
+        });
+        let window = ui.as_weak();
+        g.on_edit_event(move |assignment| {
+            let Some(ui) = window.upgrade() else { return };
+            let id = assignment.id.to_string();
+            let event = database::from_sql_map(
+                "SELECT * FROM events WHERE id = ?".to_owned(),
+                params![id],
+                |row| Ok(serde_rusqlite::from_row::<crate::types::event::Event>(row)?),
+            )
+            .inspect_err(|err| log::warn!("Error loading event {id} for editing: {err}"))
+            .ok()
+            .and_then(|mut events| events.pop());
+            let Some(event) = event else { return };
+            let due = event.due.with_timezone(&Local);
+            let dialog = ui.global::<NewEventUi>();
+            dialog.set_editing_id(event.id.clone().into());
+            dialog.set_title(event.title.clone().into());
+            dialog.set_description(event.description.into());
+            dialog.set_date(crate::Date {
+                year: due.year(),
+                month: due.month() as i32,
+                day: due.day() as i32,
+            });
+            dialog.set_time(crate::Time {
+                hour: due.hour() as i32,
+                minute: due.minute() as i32,
+                second: 0,
+            });
             dialog.set_visible(true);
         });
         let window = ui.as_weak();
@@ -146,32 +183,37 @@ impl crate::state::state::State for DashboardState {
                 return;
             }
             let Some(ui) = window.upgrade() else { return };
-            let Some(date) = chrono::NaiveDate::from_ymd_opt(
-                year,
-                month as u32,
-                day as u32,
-            ) else {
-                log::warn!("Ignoring new event with invalid date {year}-{month}-{day}");
+            let Some(date) = chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32) else {
+                log::warn!("Ignoring event with invalid date {year}-{month}-{day}");
                 return;
             };
             let Some(naive) = date.and_hms_opt(hour as u32, minute as u32, 0) else {
-                log::warn!("Ignoring new event with invalid time {hour}:{minute}");
+                log::warn!("Ignoring event with invalid time {hour}:{minute}");
                 return;
             };
             let Some(due) = Local.from_local_datetime(&naive).single() else {
-                log::warn!("Ignoring new event with ambiguous local time");
+                log::warn!("Ignoring event with ambiguous local time");
                 return;
             };
+            let editing_id = ui.global::<NewEventUi>().get_editing_id().to_string();
+            let id = if editing_id.is_empty() {
+                format!(
+                    "user-{}",
+                    Utc::now().timestamp_nanos_opt().unwrap_or_default()
+                )
+            } else {
+                editing_id
+            };
             let event = crate::types::event::Event {
-                id: format!("user-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default()),
+                id,
                 title: title.to_string(),
                 description: description.to_string(),
                 due: due.with_timezone(&Utc),
                 source: "user".to_owned(),
             };
             let result = database::connection()
-                .and_then(|connection| event.insert_on(&connection))
-                .inspect_err(|err| log::warn!("Error creating event: {err}"));
+                .and_then(|connection| event.upsert_on(&connection))
+                .inspect_err(|err| log::warn!("Error saving event: {err}"));
             if result.is_ok() {
                 ui.global::<NewEventUi>().set_visible(false);
                 ui::sync_ui();

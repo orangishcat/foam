@@ -10,9 +10,9 @@ Uses **API key** and **calendar URL** to import assignments, make sure you have 
 
 To install, download the relevant app binary in the [latest release](https://github.com/orangishcat/foam/releases/latest) based on your platform.
 
-**MacOS only**: After opening the disk image and adding to Applications, you must unquarantine the application. Otherwise you might get an error saying the application is damaged.
+**MacOS only**: After opening the disk image and adding to Applications, you must unquarantine the application. Otherwise you might get an error saying the application is damaged. To do so, run these commands in your terminal once Foam is in your Applications folder:
 
-```
+```bash
 cd /Applications
 xattr -r -d com.apple.quarantine foam.app
 ```
