@@ -47,7 +47,7 @@ export component NewEventDialog inherits Rectangle {
     }
 
     panel := Rectangle {
-        width: 30rem;
+        width: 36rem;
         height: self.preferred-height;
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
@@ -114,14 +114,6 @@ export component NewEventDialog inherits Rectangle {
                     text <=> NewEventUi.title;
                     accepted => { NewEventUi.submit(); }
                     init => { self.focus-input(); }
-                }
-
-                LineEdit {
-                    placeholder-text: "Description (optional)";
-                    height: 6rem;
-                    text <=> NewEventUi.description;
-                    wrap: true;
-                    accepted => { NewEventUi.submit(); }
                 }
 
                 HorizontalLayout {
@@ -213,6 +205,14 @@ export component NewEventDialog inherits Rectangle {
                             canceled => {}
                         }
                     }
+                }
+
+                LineEdit {
+                    placeholder-text: "Description (optional)";
+                    height: 12rem;
+                    text <=> NewEventUi.description;
+                    wrap: true;
+                    accepted => { NewEventUi.submit(); }
                 }
             }
         }
