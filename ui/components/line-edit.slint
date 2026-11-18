@@ -1,4 +1,5 @@
 import { UiState } from "../globals.slint";
+import { ScrollView } from "std-widgets.slint";
 
 export component LineEdit inherits Rectangle {
     in-out property <string> text <=> input.text;
@@ -86,38 +87,48 @@ export component LineEdit inherits Rectangle {
                     clip: true;
                     min-width: 1px;
                     horizontal-stretch: 1;
-                    input := TextInput {
-                        property <length> scroll-x;
-                        property <length> scroll-y;
-                        x: root.wrap ? 0px : min(0px, max(parent.width - self.width - self.text-cursor-width, self.scroll-x));
-                        y: root.wrap ? min(0px, max(parent.height - self.height, self.scroll-y)) : 0px;
-                        width: root.wrap ? parent.width : max(parent.width - self.text-cursor-width, self.preferred-width);
-                        height: root.wrap ? self.preferred-height : parent.height;
-                        single-line: !root.wrap;
-                        wrap: root.wrap ? word-wrap : no-wrap;
-                        vertical-alignment: center;
-                        color: UiState.theme.colors.text-strong;
-                        selection-background-color: UiState.theme.colors.border;
-                        selection-foreground-color: UiState.theme.colors.text-strong;
-                        cursor-position-changed(position) => {
-                            if root.wrap {
-                                // Keep the cursor line visible by scrolling vertically;
-                                // text never scrolls horizontally since it wraps at the width.
-                                if position.y + self.scroll-y < 0px {
-                                    self.scroll-y = -position.y;
-                                } else if position.y + self.scroll-y > parent.height {
-                                    self.scroll-y = parent.height - position.y;
-                                }
-                            } else {
-                                if position.x + self.scroll-x < 0px {
-                                    self.scroll-x = -position.x;
-                                } else if position.x + self.scroll-x > parent.width - self.text-cursor-width {
-                                    self.scroll-x = parent.width - position.x - self.text-cursor-width;
+                    scroll := ScrollView {
+                        min-width: 0px;
+                        min-height: 0px;
+                        width: parent.width;
+                        height: parent.height;
+                        // Text never scrolls horizontally: the single-line input shifts
+                        // internally via scroll-x, the wrapped input wraps at the width.
+                        horizontal-scrollbar-policy: always-off;
+                        vertical-scrollbar-policy: root.wrap ? as-needed : always-off;
+                        content-width: self.visible-width;
+                        content-height: root.wrap ? max(self.visible-height, input.preferred-height) : self.visible-height;
+
+                        input := TextInput {
+                            property <length> scroll-x;
+                            x: root.wrap ? 0px : min(0px, max(parent.width - self.width - self.text-cursor-width, self.scroll-x));
+                            width: root.wrap ? parent.width : max(parent.width - self.text-cursor-width, self.preferred-width);
+                            height: root.wrap ? self.preferred-height : parent.height;
+                            single-line: !root.wrap;
+                            wrap: root.wrap ? word-wrap : no-wrap;
+                            vertical-alignment: center;
+                            color: UiState.theme.colors.text-strong;
+                            selection-background-color: UiState.theme.colors.border;
+                            selection-foreground-color: UiState.theme.colors.text-strong;
+                            cursor-position-changed(position) => {
+                                if root.wrap {
+                                    // Keep the cursor line visible by scrolling vertically.
+                                    if position.y + scroll.content-y < 0px {
+                                        scroll.content-y = -position.y;
+                                    } else if position.y + scroll.content-y > scroll.visible-height {
+                                        scroll.content-y = scroll.visible-height - position.y;
+                                    }
+                                } else {
+                                    if position.x + self.scroll-x < 0px {
+                                        self.scroll-x = -position.x;
+                                    } else if position.x + self.scroll-x > parent.width - self.text-cursor-width {
+                                        self.scroll-x = parent.width - position.x - self.text-cursor-width;
+                                    }
                                 }
                             }
+                            edited => { root.edited(self.text); }
+                            accepted => { root.accepted(); }
                         }
-                        edited => { root.edited(self.text); }
-                        accepted => { root.accepted(); }
                     }
 
                     Text {

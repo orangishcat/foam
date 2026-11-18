@@ -10,6 +10,7 @@ import { HoverableButton } from "../hoverable-button.slint";
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { UiState, MenubarData } from "../../globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
+import { SelectedItemAction } from "../selected-item-action.slint";
 
 export global NewEventUi {
     in-out property <bool> visible;
@@ -21,6 +22,7 @@ export global NewEventUi {
     out property <bool> editing: !editing-id.is-empty;
     // title, description, year, month, day, hour, minute
     callback create(string, string, int, int, int, int, int);
+    callback delete();
     public pure function pad(number: int) -> string {
         // Slint has no zero-padding helper, so pad each field inline.
         return (number < 10 ? "0" : "") + number;
@@ -62,6 +64,9 @@ export component NewEventDialog inherits Rectangle {
                 } else if event.text == Key.Return {
                     NewEventUi.submit();
                     accept
+                } else if event.modifiers.control && event.text == Key.Delete {
+                    NewEventUi.delete();
+                    accept
                 } else {
                     reject
                 }
@@ -89,6 +94,13 @@ export component NewEventDialog inherits Rectangle {
                     hotkey: @keys(Escape);
                     action-name: "Cancel";
                     action => { NewEventUi.close(); }
+                }
+
+                if NewEventUi.editing: SelectedItemAction {
+                    hotkey-name: "\{UiState.shortcut-modifier}+Delete";
+                    hotkey: @keys(Control+Delete);
+                    action-name: "Delete";
+                    action => { NewEventUi.delete(); }
                 }
             }
 

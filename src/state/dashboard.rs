@@ -159,6 +159,11 @@ impl crate::state::state::State for DashboardState {
             .ok()
             .and_then(|mut events| events.pop());
             let Some(event) = event else { return };
+            // Only user-created events are editable; Schoology events are
+            // managed by the calendar feed and would be re-synced anyway.
+            if event.source != "user" {
+                return;
+            }
             let due = event.due.with_timezone(&Local);
             let dialog = ui.global::<NewEventUi>();
             dialog.set_editing_id(event.id.clone().into());
@@ -216,6 +221,24 @@ impl crate::state::state::State for DashboardState {
                 .inspect_err(|err| log::warn!("Error saving event: {err}"));
             if result.is_ok() {
                 ui.global::<NewEventUi>().set_visible(false);
+                ui::sync_ui();
+            }
+        });
+        let window = ui.as_weak();
+        ui.global::<NewEventUi>().on_delete(move || {
+            let Some(ui) = window.upgrade() else { return };
+            let dialog = ui.global::<NewEventUi>();
+            let id = dialog.get_editing_id().to_string();
+            if id.is_empty() {
+                return;
+            }
+            let deleted = database::execute(
+                include_str!("../sql/event/delete.sql").to_owned(),
+                params![id],
+            )
+            .inspect_err(|err| log::warn!("Error deleting event {id}: {err}"));
+            if deleted.is_ok_and(|count| count > 0) {
+                dialog.set_visible(false);
                 ui::sync_ui();
             }
         });
