@@ -15,13 +15,14 @@ import { SelectedItemAction } from "../selected-item-action.slint";
 export global NewEventUi {
     in-out property <bool> visible;
     in-out property <string> title;
+    in-out property <string> subtitle;
     in-out property <string> description;
     in-out property <Date> date;
     in-out property <Time> time;
     in-out property <string> editing-id;
     out property <bool> editing: !editing-id.is-empty;
-    // title, description, year, month, day, hour, minute
-    callback create(string, string, int, int, int, int, int);
+    // title, subtitle, description, year, month, day, hour, minute
+    callback create(string, string, string, int, int, int, int, int);
     callback delete();
     public pure function pad(number: int) -> string {
         // Slint has no zero-padding helper, so pad each field inline.
@@ -33,7 +34,7 @@ export global NewEventUi {
     }
     public function submit() {
         if root.title.is-empty { return; }
-        root.create(root.title, root.description,
+        root.create(root.title, root.subtitle, root.description,
             root.date.year, root.date.month, root.date.day,
             root.time.hour, root.time.minute);
     }
@@ -132,6 +133,13 @@ export component NewEventDialog inherits Rectangle {
                     accepted => { NewEventUi.submit(); }
                     key-pressed(event) => { NewEventUi.handle-key(event, false); }
                     init => { self.focus-input(); }
+                }
+
+                LineEdit {
+                    placeholder-text: "Subtitle (optional)";
+                    text <=> NewEventUi.subtitle;
+                    accepted => { NewEventUi.submit(); }
+                    key-pressed(event) => { NewEventUi.handle-key(event, false); }
                 }
 
                 HorizontalLayout {

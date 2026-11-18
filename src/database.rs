@@ -32,6 +32,8 @@ fn create_schema() -> anyhow::Result<()> {
     add_column_if_missing("materials", "last_updated", "TEXT")?;
     add_column_if_missing("notifications", "subtitle", "TEXT NOT NULL DEFAULT \"\"")?;
     add_column_if_missing("notifications", "seq", "INTEGER NOT NULL DEFAULT 0")?;
+    add_column_if_missing("events", "subtitle", "TEXT NOT NULL DEFAULT ''")?;
+    add_column_if_missing("events", "course_id", "TEXT")?;
     Ok(())
 }
 

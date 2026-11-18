@@ -31,6 +31,14 @@ static DESCRIPTION_LINK: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?i)\s+- Link: https?://[^\s<>"']+/assignment/\d+\s*$"#).unwrap()
 });
 
+static COURSE_LINK: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)https?://(?:[a-z0-9-]+\.)*schoology\.com/course/(\d+)"#).unwrap()
+});
+
+static DESCRIPTION_COURSE_LINK: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?i)\s+- Link: https?://(?:[a-z0-9-]+\.)*schoology\.com/course/(\d+)"#).unwrap()
+});
+
 fn feed_url(value: &str) -> RequestResult<reqwest::Url> {
     let value = value.trim();
     let value = if value
@@ -136,6 +144,18 @@ pub struct CalendarEvent {
     pub(crate) due: DateTime<Utc>,
     pub(crate) title: Option<String>,
     pub(crate) description: Option<String>,
+    pub(crate) course_id: Option<String>,
+}
+
+/// The course link is the URL property, falling back to a " - Link:" line in the description.
+fn course_id(properties: &[Property]) -> Option<String> {
+    if let Some(captures) = value(properties, "URL").and_then(|url| COURSE_LINK.captures(url)) {
+        return Some(captures[1].to_owned());
+    }
+    let description = unescape(value(properties, "DESCRIPTION")?);
+    DESCRIPTION_COURSE_LINK
+        .captures(&description)
+        .map(|captures| captures[1].to_owned())
 }
 
 fn event_id(properties: &[Property], due: DateTime<Utc>, title: &Option<String>) -> String {
@@ -197,6 +217,7 @@ fn parse(body: &str) -> RequestResult<(Vec<String>, Vec<CalendarAssignment>, Vec
                     due,
                     title,
                     description: value(props, "DESCRIPTION").map(calendar_description),
+                    course_id: course_id(props),
                 });
             }
         }
@@ -227,7 +248,15 @@ pub(crate) const UPDATE_CALENDAR: &str =
 
 type CalendarUpdate = (Option<String>, String, Option<String>, String);
 
-type EventUpdate = (String, String, String, String, &'static str);
+type EventUpdate = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    &'static str,
+    Option<String>,
+);
 
 pub(crate) fn event_updates(events: &[CalendarEvent]) -> anyhow::Result<Vec<EventUpdate>> {
     // A feed may repeat an event. Match by ID and let its last occurrence win.
@@ -244,9 +273,11 @@ pub(crate) fn event_updates(events: &[CalendarEvent]) -> anyhow::Result<Vec<Even
             (
                 id.clone(),
                 e.title.clone().unwrap_or_default(),
+                String::new(),
                 e.description.clone().unwrap_or_default(),
                 e.due.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
                 "schoology",
+                e.course_id.clone(),
             )
         })
         .collect())

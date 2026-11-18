@@ -34,7 +34,7 @@ pub struct DashboardState {}
 
 impl crate::state::state::State for DashboardState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
-        let mut assignments_on_dashboard = database::from_sql_map::<(
+        let mut upcoming_assignments = database::from_sql_map::<(
             crate::types::assignment::Assignment,
             String,
         )>(dashboard_query(), params![], |row| {
@@ -42,13 +42,24 @@ impl crate::state::state::State for DashboardState {
         })?;
         // Calendar events (Schoology or user-created) are shown like assignments,
         // but have no course, completion state, or detail page.
-        let mut upcoming = database::from_sql_map(
-            "SELECT * FROM events WHERE date(due, 'localtime') >= date('now', 'localtime')"
+        let mut upcoming_events = database::from_sql_map(
+            "SELECT e.*, COALESCE(c.course_title, '') AS course_title FROM events e
+                 LEFT JOIN courses c ON e.course_id = c.course_id
+                 WHERE date(e.due, 'localtime') >= date('now', 'localtime')"
                 .to_owned(),
             params![],
-            |row| Ok(serde_rusqlite::from_row::<crate::types::event::Event>(row)?),
+            |row| {
+                Ok((
+                    serde_rusqlite::from_row::<crate::types::event::Event>(row)?,
+                    row.get::<_, String>("course_title")?,
+                ))
+            },
         )?;
-        assignments_on_dashboard.extend(upcoming.drain(..).map(|event| {
+        upcoming_assignments.extend(upcoming_events.drain(..).map(|(event, course_title)| {
+            let subtitle = [event.subtitle, course_title]
+                .into_iter()
+                .find(|subtitle| !subtitle.is_empty())
+                .unwrap_or_else(|| "Event".to_owned());
             (
                 crate::types::assignment::Assignment {
                     id: event.id,
@@ -57,10 +68,10 @@ impl crate::state::state::State for DashboardState {
                     due: event.due,
                     ..Default::default()
                 },
-                "Event".to_owned(),
+                subtitle,
             )
         }));
-        let assignments_on_dashboard = assignments_on_dashboard.into_iter().fold(
+        let assignments_on_dashboard = upcoming_assignments.into_iter().fold(
             BTreeMap::new(),
             |mut groups, (assignment, course_title)| {
                 groups
@@ -137,11 +148,12 @@ impl crate::state::state::State for DashboardState {
                 day: now.day() as i32,
             });
             dialog.set_time(crate::Time {
-                hour: 12,
+                hour: 8,
                 minute: 0,
                 second: 0,
             });
             dialog.set_title(Default::default());
+            dialog.set_subtitle(Default::default());
             dialog.set_description(Default::default());
             dialog.set_editing_id(Default::default());
             dialog.set_visible(true);
@@ -168,6 +180,7 @@ impl crate::state::state::State for DashboardState {
             let dialog = ui.global::<NewEventUi>();
             dialog.set_editing_id(event.id.clone().into());
             dialog.set_title(event.title.clone().into());
+            dialog.set_subtitle(event.subtitle.into());
             dialog.set_description(event.description.into());
             dialog.set_date(crate::Date {
                 year: due.year(),
@@ -183,47 +196,52 @@ impl crate::state::state::State for DashboardState {
         });
         let window = ui.as_weak();
         let dialog = ui.global::<NewEventUi>();
-        dialog.on_create(move |title, description, year, month, day, hour, minute| {
-            if title.trim().is_empty() {
-                return;
-            }
-            let Some(ui) = window.upgrade() else { return };
-            let Some(date) = chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32) else {
-                log::warn!("Ignoring event with invalid date {year}-{month}-{day}");
-                return;
-            };
-            let Some(naive) = date.and_hms_opt(hour as u32, minute as u32, 0) else {
-                log::warn!("Ignoring event with invalid time {hour}:{minute}");
-                return;
-            };
-            let Some(due) = Local.from_local_datetime(&naive).single() else {
-                log::warn!("Ignoring event with ambiguous local time");
-                return;
-            };
-            let editing_id = ui.global::<NewEventUi>().get_editing_id().to_string();
-            let id = if editing_id.is_empty() {
-                format!(
-                    "user-{}",
-                    Utc::now().timestamp_nanos_opt().unwrap_or_default()
-                )
-            } else {
-                editing_id
-            };
-            let event = crate::types::event::Event {
-                id,
-                title: title.to_string(),
-                description: description.to_string(),
-                due: due.with_timezone(&Utc),
-                source: "user".to_owned(),
-            };
-            let result = database::connection()
-                .and_then(|connection| event.upsert_on(&connection))
-                .inspect_err(|err| log::warn!("Error saving event: {err}"));
-            if result.is_ok() {
-                ui.global::<NewEventUi>().set_visible(false);
-                ui::sync_ui();
-            }
-        });
+        dialog.on_create(
+            move |title, subtitle, description, year, month, day, hour, minute| {
+                if title.trim().is_empty() {
+                    return;
+                }
+                let Some(ui) = window.upgrade() else { return };
+                let Some(date) = chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32)
+                else {
+                    log::warn!("Ignoring event with invalid date {year}-{month}-{day}");
+                    return;
+                };
+                let Some(naive) = date.and_hms_opt(hour as u32, minute as u32, 0) else {
+                    log::warn!("Ignoring event with invalid time {hour}:{minute}");
+                    return;
+                };
+                let Some(due) = Local.from_local_datetime(&naive).single() else {
+                    log::warn!("Ignoring event with ambiguous local time");
+                    return;
+                };
+                let editing_id = ui.global::<NewEventUi>().get_editing_id().to_string();
+                let id = if editing_id.is_empty() {
+                    format!(
+                        "user-{}",
+                        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+                    )
+                } else {
+                    editing_id
+                };
+                let event = crate::types::event::Event {
+                    id,
+                    title: title.to_string(),
+                    subtitle: subtitle.to_string(),
+                    description: description.to_string(),
+                    due: due.with_timezone(&Utc),
+                    source: "user".to_owned(),
+                    course_id: None,
+                };
+                let result = database::connection()
+                    .and_then(|connection| event.upsert_on(&connection))
+                    .inspect_err(|err| log::warn!("Error saving event: {err}"));
+                if result.is_ok() {
+                    ui.global::<NewEventUi>().set_visible(false);
+                    ui::sync_ui();
+                }
+            },
+        );
         let window = ui.as_weak();
         ui.global::<NewEventUi>().on_delete(move || {
             let Some(ui) = window.upgrade() else { return };

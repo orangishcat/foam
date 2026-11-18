@@ -10,11 +10,14 @@ use anyhow;
 pub struct Event {
     pub id: String,
     pub title: String,
+    /// Shown on the dashboard in place of the course title. Empty falls back to the course title.
+    pub subtitle: String,
     pub description: String,
     pub due: DateTime<Utc>,
     /// "schoology" for events scraped from the calendar feed, "user" for user-created events.
     #[serde_as(as = "Same")]
     pub source: String,
+    pub course_id: Option<String>,
 }
 
 impl Event {

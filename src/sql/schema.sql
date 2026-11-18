@@ -53,7 +53,9 @@ CREATE TABLE IF NOT EXISTS events (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     due TEXT NOT NULL,
-    source TEXT NOT NULL
+    source TEXT NOT NULL,
+    subtitle TEXT NOT NULL DEFAULT '',
+    course_id TEXT
 );
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT NOT NULL,
