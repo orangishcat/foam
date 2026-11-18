@@ -37,6 +37,23 @@ export global NewEventUi {
             root.date.year, root.date.month, root.date.day,
             root.time.hour, root.time.minute);
     }
+    // Runs before text editing inside the dialog's text fields, so the
+    // hotkeys keep working while a text box has focus.
+    public function handle-key(event: KeyEvent, multiline: bool) -> EventResult {
+        if event.modifiers.control && event.text == Key.Delete {
+            self.delete();
+            return EventResult.accept;
+        }
+        if event.text == Key.Return {
+            if multiline && event.modifiers.shift {
+                // Shift+Enter inserts a new line instead of submitting.
+                return EventResult.reject;
+            }
+            self.submit();
+            return EventResult.accept;
+        }
+        return EventResult.reject;
+    }
     changed visible => { MenubarData.refresh(); }
 }
 
@@ -83,7 +100,7 @@ export component NewEventDialog inherits Rectangle {
                 }
 
                 SelectedItemAction {
-                    hotkey-name: "Enter";
+                    hotkey-name: "⏎";
                     hotkey: @keys(Return);
                     action-name: NewEventUi.editing ? "Save" : "Create";
                     action => { NewEventUi.submit(); }
@@ -113,6 +130,7 @@ export component NewEventDialog inherits Rectangle {
                     placeholder-text: "Title";
                     text <=> NewEventUi.title;
                     accepted => { NewEventUi.submit(); }
+                    key-pressed(event) => { NewEventUi.handle-key(event, false); }
                     init => { self.focus-input(); }
                 }
 
@@ -208,11 +226,12 @@ export component NewEventDialog inherits Rectangle {
                 }
 
                 LineEdit {
-                    placeholder-text: "Description (optional)";
+                    placeholder-text: "Description (optional), use ⇧+⏎ to create a new line";
                     height: 12rem;
                     text <=> NewEventUi.description;
                     wrap: true;
                     accepted => { NewEventUi.submit(); }
+                    key-pressed(event) => { NewEventUi.handle-key(event, true); }
                 }
             }
         }
