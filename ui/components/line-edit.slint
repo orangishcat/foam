@@ -9,6 +9,7 @@ export component LineEdit inherits Rectangle {
     // When set, text wraps at the element's exact width instead of scrolling
     // horizontally, and the element grows vertically with the wrapped text.
     in property <bool> wrap: false;
+    in property <bool> read-only: false;
     out property <bool> has-focus: input.has-focus;
     callback edited(string);
     callback accepted;
@@ -107,6 +108,7 @@ export component LineEdit inherits Rectangle {
                             width: root.wrap ? parent.width : max(parent.width - self.text-cursor-width, self.preferred-width);
                             height: root.wrap ? max(scroll.visible-height, self.preferred-height) : parent.height;
                             single-line: !root.wrap;
+                            read-only: root.read-only;
                             wrap: root.wrap ? word-wrap : no-wrap;
                             vertical-alignment: root.wrap ? TextVerticalAlignment.top : TextVerticalAlignment.center;
                             color: UiState.theme.colors.text-strong;

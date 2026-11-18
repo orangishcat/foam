@@ -17,8 +17,9 @@ export global DashboardMenu {
     public function activate(index: int) {
         if index == 0 { DashboardUi.open-selected(); }
         else if index == 1 { DashboardUi.toggle-selected-done(); }
-        else if index == 2 { DashboardUi.unselect(); }
-        else if index == 3 { DashboardUi.refresh(); }
+        else if index == 2 { DashboardUi.open-selected-in-browser(); }
+        else if index == 3 { DashboardUi.unselect(); }
+        else if index == 4 { DashboardUi.refresh(); }
     }
 }
 
@@ -105,21 +106,13 @@ export component Dashboard inherits FocusScope {
                                     item-button := HoverableButton {
                                         text: assignment.title;
                                         clicked => {
-                                            // Events have no course and no detail page;
-                                            // clicking one opens it in the event dialog.
-                                            if assignment.course-id.is-empty {
-                                                DashboardUi.edit-event(assignment);
-                                            } else {
-                                                DashboardUi.selected-assignment = assignment;
-                                                DashboardUi.sel-col = x;
-                                                DashboardUi.sel-row = y;
-                                            }
+                                            DashboardUi.selected-assignment = assignment;
+                                            DashboardUi.sel-col = x;
+                                            DashboardUi.sel-row = y;
                                         }
                                         double-clicked => {
                                             DashboardUi.selected-assignment = assignment;
-                                            if !assignment.course-id.is-empty {
-                                                DashboardUi.open-selected();
-                                            }
+                                            DashboardUi.open-selected();
                                         }
                                     }
 

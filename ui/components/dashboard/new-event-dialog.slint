@@ -21,6 +21,8 @@ export global NewEventUi {
     in-out property <Time> time;
     in-out property <string> editing-id;
     out property <bool> editing: !editing-id.is-empty;
+    // Schoology events are synced from the calendar feed and cannot be changed here.
+    in-out property <bool> read-only;
     // title, subtitle, description, year, month, day, hour, minute
     callback create(string, string, string, int, int, int, int, int);
     callback delete();
@@ -33,7 +35,7 @@ export global NewEventUi {
         MenubarData.refresh();
     }
     public function submit() {
-        if root.title.is-empty { return; }
+        if root.read-only || root.title.is-empty { return; }
         root.create(root.title, root.subtitle, root.description,
             root.date.year, root.date.month, root.date.day,
             root.time.hour, root.time.minute);
@@ -42,7 +44,9 @@ export global NewEventUi {
     // hotkeys keep working while a text box has focus.
     public function handle-key(event: KeyEvent, multiline: bool) -> EventResult {
         if event.modifiers.control && event.text == Key.Delete {
-            self.delete();
+            if !root.read-only {
+                self.delete();
+            }
             return EventResult.accept;
         }
         if event.text == Key.Return {
@@ -83,7 +87,9 @@ export component NewEventDialog inherits Rectangle {
                     NewEventUi.submit();
                     accept
                 } else if event.modifiers.control && event.text == Key.Delete {
-                    NewEventUi.delete();
+                    if !NewEventUi.read-only {
+                        NewEventUi.delete();
+                    }
                     accept
                 } else {
                     reject
@@ -93,14 +99,14 @@ export component NewEventDialog inherits Rectangle {
 
         VerticalLayout {
             ScreenTopBar {
-                title: NewEventUi.editing ? "Edit event" : "New event";
+                title: NewEventUi.read-only ? "View event" : NewEventUi.editing ? "Edit event" : "New event";
                 icon: @image-url("../../icons/calendar-days.svg");
 
                 Rectangle {
                     horizontal-stretch: 1;
                 }
 
-                SelectedItemAction {
+                if !NewEventUi.read-only: SelectedItemAction {
                     hotkey-name: "⏎";
                     hotkey: @keys(Return);
                     action-name: NewEventUi.editing ? "Save" : "Create";
@@ -114,7 +120,7 @@ export component NewEventDialog inherits Rectangle {
                     action => { NewEventUi.close(); }
                 }
 
-                if NewEventUi.editing: SelectedItemAction {
+                if NewEventUi.editing && !NewEventUi.read-only: SelectedItemAction {
                     hotkey-name: "\{UiState.shortcut-modifier}+Delete";
                     hotkey: @keys(Control+Delete);
                     action-name: "Delete";
@@ -130,6 +136,7 @@ export component NewEventDialog inherits Rectangle {
                 title-input := LineEdit {
                     placeholder-text: "Title";
                     text <=> NewEventUi.title;
+                    read-only: NewEventUi.read-only;
                     accepted => { NewEventUi.submit(); }
                     key-pressed(event) => { NewEventUi.handle-key(event, false); }
                     init => { self.focus-input(); }
@@ -138,6 +145,7 @@ export component NewEventDialog inherits Rectangle {
                 LineEdit {
                     placeholder-text: "Subtitle (optional)";
                     text <=> NewEventUi.subtitle;
+                    read-only: NewEventUi.read-only;
                     accepted => { NewEventUi.submit(); }
                     key-pressed(event) => { NewEventUi.handle-key(event, false); }
                 }
@@ -149,6 +157,7 @@ export component NewEventDialog inherits Rectangle {
                         horizontal-stretch: 1;
                         accessible-role: button;
                         accessible-label: "Pick date";
+                        enabled: !NewEventUi.read-only;
                         clicked => { date-picker.show(); }
 
                         Rectangle {
@@ -192,6 +201,7 @@ export component NewEventDialog inherits Rectangle {
                         horizontal-stretch: 1;
                         accessible-role: button;
                         accessible-label: "Pick time";
+                        enabled: !NewEventUi.read-only;
                         clicked => { time-picker.show(); }
 
                         Rectangle {
@@ -237,6 +247,7 @@ export component NewEventDialog inherits Rectangle {
                     placeholder-text: "Description (optional), use ⇧+⏎ to create a new line";
                     height: 12rem;
                     text <=> NewEventUi.description;
+                    read-only: NewEventUi.read-only;
                     wrap: true;
                     accepted => { NewEventUi.submit(); }
                     key-pressed(event) => { NewEventUi.handle-key(event, true); }

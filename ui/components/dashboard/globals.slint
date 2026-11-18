@@ -13,8 +13,16 @@ export global DashboardUi {
     callback set-done(bool, string);
     callback new-event();
     callback edit-event(Assignment);
+    callback open-event-in-browser(string);
     public function open-selected() {
-        AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
+        if selected-assignment.is-event {
+            edit-event(selected-assignment);
+        } else {
+            AssignmentUi.open(selected-assignment.course-id, selected-assignment.id);
+        }
+    }
+    public function open-selected-in-browser() {
+        open-event-in-browser(selected-assignment.id);
     }
     public function toggle-selected-done() {
         assignment-view[sel-col].assignments[sel-row].done = !selected-assignment.done;

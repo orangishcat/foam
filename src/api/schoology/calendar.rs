@@ -27,9 +27,8 @@ static ASSIGNMENT_LINK: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 
-static DESCRIPTION_LINK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?i)\s+- Link: https?://[^\s<>"']+/assignment/\d+\s*$"#).unwrap()
-});
+static DESCRIPTION_LINK: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"(?i)\s+- Link: https?://[^\s<>"']+\s*$"#).unwrap());
 
 static COURSE_LINK: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?i)https?://(?:[a-z0-9-]+\.)*schoology\.com/course/(\d+)"#).unwrap()
@@ -156,6 +155,18 @@ fn course_id(properties: &[Property]) -> Option<String> {
     DESCRIPTION_COURSE_LINK
         .captures(&description)
         .map(|captures| captures[1].to_owned())
+}
+
+/// Schoology event page for a stored event ID, which embeds the event's calendar UID.
+pub(crate) fn event_url(subdomain: &str, id: &str) -> Option<String> {
+    let event_id = id
+        .strip_prefix("schoology-calendar-event-")?
+        .split('@')
+        .next()
+        .filter(|event_id| !event_id.is_empty() && event_id.bytes().all(|b| b.is_ascii_digit()))?;
+    Some(format!(
+        "https://{subdomain}.schoology.com/event/{event_id}/profile"
+    ))
 }
 
 fn event_id(properties: &[Property], due: DateTime<Utc>, title: &Option<String>) -> String {

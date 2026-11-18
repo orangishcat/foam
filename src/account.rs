@@ -10,6 +10,7 @@ static ACCOUNTS: Mutex<Vec<Box<dyn Account>>> = Mutex::new(vec![]);
 pub trait Account: Send {
     fn clone_account(&self) -> Box<dyn Account>;
     fn assignment_url(&self, id: &str) -> String;
+    fn event_url(&self, id: &str) -> Option<String>;
     fn resource_headers(&self, url: &str) -> RequestResult<reqwest::header::HeaderMap>;
     fn load() -> anyhow::Result<Self>
     where

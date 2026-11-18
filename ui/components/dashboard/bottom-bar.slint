@@ -4,7 +4,7 @@ import { UiState } from "../../globals.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 
 export component DashboardBottomBar inherits BottomBarFrame {
-    if !DashboardUi.selected-assignment.course-id.is-empty: Rectangle {
+    if !DashboardUi.selected-assignment.id.is-empty: Rectangle {
         HorizontalLayout {
             alignment: center;
             view-item := SelectedItemAction {
@@ -14,11 +14,18 @@ export component DashboardBottomBar inherits BottomBarFrame {
                 action => { DashboardUi.open-selected(); }
             }
 
-            mark-done := SelectedItemAction {
+            if !DashboardUi.selected-assignment.is-event: SelectedItemAction {
                 hotkey-name: "D";
                 hotkey: @keys(D);
                 action-name: DashboardUi.selected-assignment.done ? "Unmark as done" : "Mark as done";
                 action => { DashboardUi.toggle-selected-done(); }
+            }
+
+            if DashboardUi.selected-assignment.is-schoology: SelectedItemAction {
+                hotkey-name: "O";
+                hotkey: @keys(O);
+                action-name: "Open in browser";
+                action => { DashboardUi.open-selected-in-browser(); }
             }
 
             unselect := SelectedItemAction {

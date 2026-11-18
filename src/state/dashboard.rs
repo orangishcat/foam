@@ -39,7 +39,10 @@ impl crate::state::state::State for DashboardState {
             String,
         )>(dashboard_query(), params![], |row| {
             Ok((serde_rusqlite::from_row(row)?, row.get("course_title")?))
-        })?;
+        })?
+        .into_iter()
+        .map(|(assignment, course_title)| (assignment, course_title, None))
+        .collect::<Vec<_>>();
         // Calendar events (Schoology or user-created) are shown like assignments,
         // but have no course, completion state, or detail page.
         let mut upcoming_events = database::from_sql_map(
@@ -69,15 +72,16 @@ impl crate::state::state::State for DashboardState {
                     ..Default::default()
                 },
                 subtitle,
+                Some(event.source),
             )
         }));
         let assignments_on_dashboard = upcoming_assignments.into_iter().fold(
             BTreeMap::new(),
-            |mut groups, (assignment, course_title)| {
+            |mut groups, (assignment, course_title, event_source)| {
                 groups
                     .entry(due_date_bucket(assignment.due))
                     .or_insert_with(Vec::new)
-                    .push((assignment, course_title));
+                    .push((assignment, course_title, event_source));
                 groups
             },
         );
@@ -87,17 +91,19 @@ impl crate::state::state::State for DashboardState {
                 .get(&bucket)
                 .cloned()
                 .unwrap_or_default();
-            assign_vec.sort_by_key(|(a, _)| a.due);
+            assign_vec.sort_by_key(|(a, _, _)| a.due);
             ModelRc::new(VecModel::from(
                 assign_vec
                     .iter()
-                    .map(|(a, course_name)| crate::Assignment {
+                    .map(|(a, course_name, event_source)| crate::Assignment {
                         id: a.id.to_shared_string(),
                         title: a.title.clone().into(),
                         course_id: a.course_id.clone().into(),
                         course_name: course_name.to_shared_string(),
                         done: a.is_completed(),
                         overdue: a.is_past_due(),
+                        is_event: event_source.is_some(),
+                        is_schoology: event_source.as_deref() == Some("schoology"),
                     })
                     .collect::<Vec<crate::Assignment>>(),
             ))
@@ -129,6 +135,18 @@ impl crate::state::state::State for DashboardState {
         g.set_assignment_view(ModelRc::new(VecModel::from(
             [overdue_col, day_cols, future_col].concat(),
         )));
+        g.on_open_event_in_browser(|id| {
+            let result = (|| -> anyhow::Result<String> {
+                let account = account::active_account()?;
+                account
+                    .event_url(&id)
+                    .ok_or_else(|| anyhow::anyhow!("Event has no browser URL"))
+            })();
+            match result {
+                Ok(url) => crate::state::attachment_view::open_browser(&url),
+                Err(error) => log::warn!("Opening event {id} in browser failed: {error}"),
+            }
+        });
         g.on_set_done(|done, id| {
             database::execute(
                 include_str!("../sql/assignment/set-done.sql").to_owned(),
@@ -156,6 +174,7 @@ impl crate::state::state::State for DashboardState {
             dialog.set_subtitle(Default::default());
             dialog.set_description(Default::default());
             dialog.set_editing_id(Default::default());
+            dialog.set_read_only(false);
             dialog.set_visible(true);
         });
         let window = ui.as_weak();
@@ -171,13 +190,10 @@ impl crate::state::state::State for DashboardState {
             .ok()
             .and_then(|mut events| events.pop());
             let Some(event) = event else { return };
-            // Only user-created events are editable; Schoology events are
-            // managed by the calendar feed and would be re-synced anyway.
-            if event.source != "user" {
-                return;
-            }
+            // Schoology events are managed by the calendar feed, so they open read-only.
             let due = event.due.with_timezone(&Local);
             let dialog = ui.global::<NewEventUi>();
+            dialog.set_read_only(event.source != "user");
             dialog.set_editing_id(event.id.clone().into());
             dialog.set_title(event.title.clone().into());
             dialog.set_subtitle(event.subtitle.into());
@@ -202,6 +218,9 @@ impl crate::state::state::State for DashboardState {
                     return;
                 }
                 let Some(ui) = window.upgrade() else { return };
+                if ui.global::<NewEventUi>().get_read_only() {
+                    return;
+                }
                 let Some(date) = chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32)
                 else {
                     log::warn!("Ignoring event with invalid date {year}-{month}-{day}");
@@ -247,7 +266,7 @@ impl crate::state::state::State for DashboardState {
             let Some(ui) = window.upgrade() else { return };
             let dialog = ui.global::<NewEventUi>();
             let id = dialog.get_editing_id().to_string();
-            if id.is_empty() {
+            if id.is_empty() || dialog.get_read_only() {
                 return;
             }
             let deleted = database::execute(
@@ -280,7 +299,7 @@ impl crate::state::state::State for DashboardState {
 
     fn menu_items(&self, ui: &AppWindow) -> Vec<ScreenMenuItem> {
         let selected = ui.global::<DashboardUi>().get_selected_assignment();
-        let enabled = !selected.course_id.is_empty();
+        let enabled = !selected.id.is_empty();
         vec![
             menu_item("View item", &["V"], enabled),
             menu_item(
@@ -290,8 +309,9 @@ impl crate::state::state::State for DashboardState {
                     "Mark as done"
                 },
                 &["D"],
-                enabled,
+                enabled && !selected.is_event,
             ),
+            menu_item("Open in browser", &["O"], selected.is_schoology),
             menu_item("Unselect item", &["Escape"], enabled),
             menu_item("Refresh", &["Control", "R"], true),
         ]

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     account::{Account, RequestResult},
-    api::schoology::cookies,
+    api::schoology::{calendar, cookies},
     config::config,
     database, filesystem,
     state::state::state,
@@ -50,6 +50,10 @@ impl Account for SchoologyAccountConfig {
             "https://{}.schoology.com/assignment/{id}",
             self.subdomain.trim()
         )
+    }
+
+    fn event_url(&self, id: &str) -> Option<String> {
+        calendar::event_url(self.subdomain.trim(), id)
     }
 
     fn resource_headers(&self, url: &str) -> RequestResult<reqwest::header::HeaderMap> {
