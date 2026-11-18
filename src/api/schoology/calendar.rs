@@ -157,13 +157,17 @@ fn course_id(properties: &[Property]) -> Option<String> {
         .map(|captures| captures[1].to_owned())
 }
 
-/// Schoology event page for a stored event ID, which embeds the event's calendar UID.
-pub(crate) fn event_url(subdomain: &str, id: &str) -> Option<String> {
-    let event_id = id
-        .strip_prefix("schoology-calendar-event-")?
+/// The numeric Schoology event ID embedded in a stored event ID.
+fn event_number(id: &str) -> Option<&str> {
+    id.strip_prefix("schoology-calendar-event-")?
         .split('@')
         .next()
-        .filter(|event_id| !event_id.is_empty() && event_id.bytes().all(|b| b.is_ascii_digit()))?;
+        .filter(|event_id| !event_id.is_empty() && event_id.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// Schoology event page for a stored event ID, which embeds the event's calendar UID.
+pub(crate) fn event_url(subdomain: &str, id: &str) -> Option<String> {
+    let event_id = event_number(id)?;
     Some(format!(
         "https://{subdomain}.schoology.com/event/{event_id}/profile"
     ))
@@ -341,7 +345,7 @@ impl SchoologyAccountConfig {
         &self,
         ids: &[String],
         cal_assignments: &[CalendarAssignment],
-        cal_events: &[CalendarEvent],
+        cal_events: &mut [CalendarEvent],
     ) -> anyhow::Result<usize> {
         if ids.len() != cal_assignments.len() {
             return Err(
@@ -349,6 +353,7 @@ impl SchoologyAccountConfig {
             );
         }
         self.scrape_missing_calendar(ids)?;
+        self.scrape_missing_event_courses(cal_events)?;
         let mut updated = database::bulk_execute(
             UPDATE_CALENDAR.to_owned(),
             calendar_updates(ids, cal_assignments)?,
@@ -359,6 +364,51 @@ impl SchoologyAccountConfig {
             event_updates(cal_events)?,
         )?;
         Ok(updated)
+    }
+
+    /// Feed events without a course link need their section, the realm for event API calls.
+    /// Scans every course's events once; events already linked are skipped.
+    fn scrape_missing_event_courses(&self, events: &mut [CalendarEvent]) -> anyhow::Result<()> {
+        let linked: HashSet<String> = database::from_sql_map(
+            "SELECT id FROM events WHERE course_id IS NOT NULL".to_owned(),
+            &[],
+            |row| Ok(row.get(0)?),
+        )?
+        .into_iter()
+        .collect();
+        let missing: Vec<&mut CalendarEvent> = events
+            .iter_mut()
+            .filter(|event| {
+                event.course_id.is_none()
+                    && !linked.contains(&event.id)
+                    && event_number(&event.id).is_some()
+            })
+            .collect();
+        if missing.is_empty() {
+            return Ok(());
+        }
+        let courses: Vec<String> =
+            database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
+                Ok(row.get(0)?)
+            })?;
+        let mut realms: HashMap<String, String> = HashMap::new();
+        for course_id in courses {
+            check_cancelled()?;
+            match self.scrape_section_event_ids(&course_id) {
+                Ok(ids) => {
+                    for id in ids {
+                        realms.entry(id).or_insert_with(|| course_id.clone());
+                    }
+                }
+                Err(err) => log::warn!("Listing events in course {course_id} failed: {err}"),
+            }
+        }
+        for event in missing {
+            if let Some(course_id) = event_number(&event.id).and_then(|id| realms.get(id)) {
+                event.course_id = Some(course_id.clone());
+            }
+        }
+        Ok(())
     }
 
     fn scrape_missing_calendar(&self, ids: &[String]) -> anyhow::Result<()> {

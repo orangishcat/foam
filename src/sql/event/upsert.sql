@@ -6,4 +6,4 @@ INSERT INTO events (id, title, subtitle, description, due, source, course_id) VA
     description = excluded.description,
     due = excluded.due,
     source = excluded.source,
-    course_id = excluded.course_id
+    course_id = COALESCE(excluded.course_id, events.course_id)

@@ -10,6 +10,7 @@ use std::{
 };
 
 pub mod courses;
+pub mod events;
 pub mod grades;
 pub mod materials;
 pub mod submissions;
