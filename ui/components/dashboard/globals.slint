@@ -6,6 +6,7 @@ export global DashboardUi {
     in-out property <[AssignmentCol]> assignment-view;
     in-out property <Assignment> selected-assignment;
     changed selected-assignment => { MenubarData.refresh(); }
+    in property <int> column-count;
     in-out property <int> sel-row;
     in-out property <int> sel-col;
     callback view-item();
@@ -13,6 +14,7 @@ export global DashboardUi {
     callback set-done(bool, string);
     callback new-event();
     callback edit-event(Assignment);
+    callback set-column-count(int);
     callback open-event-in-browser(string);
     public function open-selected() {
         if selected-assignment.is-event {

@@ -2,6 +2,7 @@ import { Slider, ScrollView } from "std-widgets.slint";
 import { ComboBox } from "@vivi/magic.slint";
 import { UiState } from "../../globals.slint";
 import { SettingsUi } from "globals.slint";
+import { DashboardUi } from "../dashboard/globals.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { IntInput } from "number-input.slint";
@@ -86,6 +87,42 @@ export component Settings inherits Rectangle {
                             Text {
                                 text: "px";
                                 color: UiState.theme.colors.text-base;
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
+                        padding-top: 3rem;
+                        padding-bottom: 1rem;
+                        spacing: 0.25rem;
+
+                        Text {
+                            text: "Dashboard";
+                            font-size: 1rem;
+                            color: UiState.theme.colors.text-muted;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: UiState.theme.colors.elevate-2;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        Text {
+                            text: "Columns";
+                            font-size: 1.25rem;
+                            color: UiState.theme.colors.text-secondary;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+
+                        IntInput {
+                            value <=> DashboardUi.column-count;
+                            edited(value) => {
+                                DashboardUi.set-column-count(round(value));
                             }
                         }
                     }

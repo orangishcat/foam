@@ -135,7 +135,7 @@ export component Dashboard inherits FocusScope {
                                         height: min(7.5rem, max(2.5rem, self.preferred-height));
                                     // Text measurements include font size, weight, and wrapping.
                                     preferred-height: title.preferred-height + course.preferred-height
-                                            + content.padding-top + content.padding-bottom + 1rem;
+                                            + content.padding-top + content.padding-bottom + 2rem;
                                         clip: true;
 
                                         content := VerticalBox {
@@ -149,9 +149,16 @@ export component Dashboard inherits FocusScope {
                                             }
 
                                             course := Text {
-                                                font-size: 0.75rem;
+                                                font-size: 0.7rem;
                                                 color: UiState.theme.colors.text-muted;
                                                 text: assignment.course-name;
+                                                wrap: word-wrap;
+                                            }
+
+                                            Text {
+                                                font-size: 0.75rem;
+                                                color: UiState.theme.colors.text-secondary;
+                                                text: (x == 5 ? assignment.date + ", " : "") + assignment.time;
                                                 wrap: word-wrap;
                                             }
                                         }

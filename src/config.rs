@@ -31,6 +31,8 @@ pub struct AppConfig {
     pub submission_refresh_duration: TimeDelta,
     #[derivative(Default(value = "15 * 1024 * 1024"))]
     pub max_attachment_bytes: u64,
+    #[derivative(Default(value = "4"))]
+    pub calendar_day_buckets: i32,
 
     #[derivative(Default(value = "16"))]
     pub font_size: i32,

@@ -6,7 +6,7 @@ use crate::{
     config::{config, config_write},
     theme::load_themes,
 };
-use crate::{ColorPalette, MagicPalette};
+use crate::{ColorPalette, DashboardUi, MagicPalette};
 use anyhow;
 
 /// Applies a user theme to both foam's UiState and the palette that @vivi components read.
@@ -36,9 +36,17 @@ pub struct SettingsState {}
 
 impl State for SettingsState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
-        let font_size = config().font_size.clamp(12, 24);
+        let [font_size, column_count] = {
+            let c = config();
+            [
+                c.font_size.clamp(12, 24),
+                c.calendar_day_buckets.clamp(1, 7) as i32,
+            ]
+        };
         ui.global::<UiState>().set_font_size(font_size);
         ui.global::<SettingsUi>().set_font_size(font_size);
+        ui.global::<DashboardUi>()
+            .set_column_count(column_count + 2);
         let weak = ui.as_weak();
         ui.global::<SettingsUi>().on_set_font_size(move |size| {
             let Some(ui) = weak.upgrade() else { return };
@@ -54,6 +62,21 @@ impl State for SettingsState {
                 .unwrap_or_default();
             ui.global::<SettingsUi>().set_save_error(error.into());
         });
+        let weak = ui.as_weak();
+        ui.global::<DashboardUi>()
+            .on_set_column_count(move |count| {
+                let Some(ui) = weak.upgrade() else { return };
+                let count = (count - 2).clamp(1, 7);
+                ui.global::<DashboardUi>().set_column_count(count + 2);
+                let mut config = config_write();
+                config.calendar_day_buckets = count;
+                let error = config
+                    .save()
+                    .err()
+                    .map(|e| format!("Could not save font size: {e}"))
+                    .unwrap_or_default();
+                ui.global::<SettingsUi>().set_save_error(error.into());
+            });
         Ok(())
     }
 }

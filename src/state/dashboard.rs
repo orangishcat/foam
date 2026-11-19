@@ -8,14 +8,15 @@ use super::state::menu_item;
 use crate::{
     AppWindow, AssignmentCol, DashboardUi, NewEventUi, ScreenMenuItem,
     account::{self, Account},
+    config::config,
     database, thread_manager, ui,
 };
 use anyhow;
 
-pub fn due_date_bucket(due: DateTime<Utc>) -> i64 {
+pub fn due_date_bucket(due: DateTime<Utc>, day_buckets: i64) -> i64 {
     (due.with_timezone(&Local).date_naive() - Local::now().date_naive())
         .num_days()
-        .clamp(-1, 4)
+        .clamp(-1, day_buckets)
 }
 
 const WEEKDAY_NAMES: [&str; 7] = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
@@ -34,6 +35,8 @@ pub struct DashboardState {}
 
 impl crate::state::state::State for DashboardState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
+        let day_buckets = config().calendar_day_buckets as i64;
+
         let mut upcoming_assignments = database::from_sql_map::<(
             crate::types::assignment::Assignment,
             String,
@@ -79,7 +82,7 @@ impl crate::state::state::State for DashboardState {
             BTreeMap::new(),
             |mut groups, (assignment, course_title, event_source)| {
                 groups
-                    .entry(due_date_bucket(assignment.due))
+                    .entry(due_date_bucket(assignment.due, day_buckets))
                     .or_insert_with(Vec::new)
                     .push((assignment, course_title, event_source));
                 groups
@@ -100,6 +103,16 @@ impl crate::state::state::State for DashboardState {
                         title: a.title.clone().into(),
                         course_id: a.course_id.clone().into(),
                         course_name: course_name.to_shared_string(),
+                        date: a
+                            .due
+                            .with_timezone(&Local)
+                            .format("%b %-d")
+                            .to_shared_string(),
+                        time: a
+                            .due
+                            .with_timezone(&Local)
+                            .format("%I:%M %p")
+                            .to_shared_string(),
                         done: a.is_completed(),
                         overdue: a.is_past_due(),
                         is_event: event_source.is_some(),
@@ -113,7 +126,7 @@ impl crate::state::state::State for DashboardState {
             title: "Overdue".into(),
             assignments: sorted_bucket_to_modelrc(-1),
         }];
-        let day_cols = (0..4)
+        let day_cols = (0..day_buckets as u64)
             .map(|day_add| crate::AssignmentCol {
                 title: Local::now()
                     .checked_add_days(Days::new(day_add))
