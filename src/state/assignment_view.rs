@@ -174,6 +174,7 @@ fn load(course: &str, id: &str) -> anyhow::Result<Option<AssignmentWithDetails>>
                 .iter()
                 .map(|submission| submission.attachments.files.file.len() as i32)
                 .sum(),
+            submissions_enabled: assignment.allow_submissions,
             submissions: ModelRc::new(VecModel::from(
                 assignment
                     .submissions

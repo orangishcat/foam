@@ -180,11 +180,11 @@ export component AssignmentView inherits Rectangle {
                                     text: "Submissions";
                                     font-size: 1.125rem;
                                     font-weight: 700;
-                                    color: UiState.theme.colors.text-base;
+                                    color: AssignmentUi.assignment.submissions-enabled ? UiState.theme.colors.text-base : UiState.theme.colors.text-muted;
                                 }
 
                                 if AssignmentUi.assignment.submissions.length == 0: SelectableText {
-                                    text: "No submissions yet";
+                                    text: AssignmentUi.assignment.submissions-enabled ? "No submissions yet" : "Submissions are disabled";
                                     color: UiState.theme.colors.text-muted;
                                     font-size: 0.875rem;
                                 }
