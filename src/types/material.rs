@@ -196,7 +196,7 @@ fn materials_from(connection: &Connection, course_id: &str) -> anyhow::Result<Ve
     let mut statement = connection.prepare_cached(
         "SELECT data FROM materials WHERE course_id = ? AND type != 'assignment'",
     )?;
-    let rows = statement.query_map(params![course_id], |row| Ok(row.get::<_, String>(0)?))?;
+    let rows = statement.query_map(params![course_id], |row| row.get::<_, String>(0))?;
     let mut materials = rows
         .map(|row| Ok(serde_json::from_str(&row?)?))
         .collect::<anyhow::Result<Vec<_>>>()?;

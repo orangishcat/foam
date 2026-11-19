@@ -1,4 +1,3 @@
-use anyhow;
 use std::{
     io,
     path::PathBuf,
@@ -114,7 +113,7 @@ pub fn add_column_if_missing(table: &str, column: &str, definition: &str) -> any
     let exists: bool = connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM pragma_table_xinfo(?1) WHERE name = ?2)",
         (table, column),
-        |row| Ok(row.get(0)?),
+        |row| row.get(0),
     )?;
     if exists {
         return Ok(false);

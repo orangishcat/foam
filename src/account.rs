@@ -1,6 +1,5 @@
 use std::{error, io, sync::Mutex};
 
-use anyhow;
 
 pub type RequestError = Box<dyn error::Error + Send + Sync>;
 pub type RequestResult<T> = std::result::Result<T, RequestError>;

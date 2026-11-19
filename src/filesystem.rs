@@ -9,7 +9,6 @@ use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 use crate::{AppWindow, config::config, database, thread_manager, ui};
-use anyhow;
 
 static NEXT_DOWNLOAD: AtomicU64 = AtomicU64::new(0);
 

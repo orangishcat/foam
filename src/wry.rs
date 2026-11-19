@@ -11,7 +11,6 @@ use ::wry::{
 use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 
 use crate::{AppWindow, DocumentUi, Screen, UiState};
-use anyhow;
 
 pub enum Source {
     Local(PathBuf),

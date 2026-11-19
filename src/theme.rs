@@ -4,7 +4,6 @@ use serde_json::Value;
 use slint::Color;
 
 use crate::ColorPalette;
-use anyhow;
 
 #[derive(Clone)]
 pub struct Theme {
