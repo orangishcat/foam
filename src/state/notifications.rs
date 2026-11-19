@@ -1,3 +1,4 @@
+
 use anyhow;
 
 use chrono::{DateTime, Local};
@@ -217,6 +218,7 @@ impl NotificationState {
             }
             ui::sync_ui();
         });
+        self.sync_sidebar(ui).ok();
     }
 
     pub fn sync_sidebar(&self, ui: &AppWindow) -> anyhow::Result<()> {
