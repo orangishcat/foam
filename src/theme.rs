@@ -167,6 +167,7 @@ fn apply_color(key: &str, palette: &mut ColorPalette, color: Color) {
         "secondary.selected" => palette.colors.secondary_selected = color,
         "secondary.status" => palette.colors.secondary_status = color,
         "secondary.overlay" => palette.colors.secondary_overlay = color,
+        "tertiary" => palette.colors.tertiary = color,
         "progress.1" => palette.colors.progress_1 = color,
         "progress.2" => palette.colors.progress_2 = color,
         "progress.3" => palette.colors.progress_3 = color,
@@ -190,7 +191,11 @@ fn set_defaults(palette: &mut ColorPalette) {
     palette.overrides.dashboard_overdue = palette.colors.primary_status;
     palette.overrides.dashboard_pending = palette.colors.secondary_status;
     palette.overrides.dashboard_done = palette.colors.progress_9;
+    palette.overrides.dashboard_event = palette.colors.tertiary;
     palette.overrides.attachment_backdrop = palette.colors.secondary_overlay;
+    palette.overrides.progress_calendar = palette.colors.primary;
+    palette.overrides.progress_notifications = palette.colors.secondary;
+    palette.overrides.progress_submissions = palette.colors.tertiary;
 }
 
 fn apply_palette_override(key: &str, palette: &mut ColorPalette, color: Color) {
@@ -211,6 +216,10 @@ fn apply_screen_specific_override(key: &str, palette: &mut ColorPalette, color: 
         "dashboard.pending" => palette.overrides.dashboard_pending = color,
         "attachment.backdrop" => palette.overrides.attachment_backdrop = color,
         "dashboard.done" => palette.overrides.dashboard_done = color,
+        "dashboard.event" => palette.overrides.dashboard_event = color,
+        "progress.calendar" => palette.overrides.progress_calendar = color,
+        "progress.notifications" => palette.overrides.progress_notifications = color,
+        "progress.submissions" => palette.overrides.progress_submissions = color,
         _ => log::warn!("Unknown override key: {key}"),
     }
 }

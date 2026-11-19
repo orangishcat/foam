@@ -2,7 +2,6 @@ use crate::api::schoology::account::{ResetProgress, SchoologyAccountConfig};
 use crate::ui;
 
 const NOTIFICATION_PROGRESS_PRIORITY: u8 = 1;
-const NOTIFICATION_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(0x78, 0xaa, 0xff);
 use crate::{
     api::schoology::RequestResult,
     database,
@@ -18,7 +17,10 @@ use std::{collections::HashSet, io};
 impl SchoologyAccountConfig {
     /// Process each course hierarchy once. Failed items remain pending.
     pub fn update_notifications(&self, notifications: &mut [Notification]) -> RequestResult<()> {
-        let _reset = ResetProgress(NOTIFICATION_PROGRESS_PRIORITY, NOTIFICATION_PROGRESS_COLOR);
+        let _reset = ResetProgress(
+            NOTIFICATION_PROGRESS_PRIORITY,
+            ui::ProgressTask::Notifications,
+        );
         let mut refreshed = HashSet::new();
         let total = notifications.len();
         let mut failure = None;
@@ -26,7 +28,7 @@ impl SchoologyAccountConfig {
         ui::publish_progress(
             1.0,
             NOTIFICATION_PROGRESS_PRIORITY,
-            &NOTIFICATION_PROGRESS_COLOR,
+            ui::ProgressTask::Notifications,
         );
         for i in 0..notifications.len() {
             // grades are batch processed
@@ -55,7 +57,7 @@ impl SchoologyAccountConfig {
             ui::publish_progress(
                 attempted as f32 / total as f32,
                 NOTIFICATION_PROGRESS_PRIORITY,
-                &NOTIFICATION_PROGRESS_COLOR,
+                ui::ProgressTask::Notifications,
             );
         }
         if notifications
@@ -103,7 +105,7 @@ impl SchoologyAccountConfig {
             ui::publish_progress(
                 0.0,
                 NOTIFICATION_PROGRESS_PRIORITY,
-                &NOTIFICATION_PROGRESS_COLOR,
+                ui::ProgressTask::Notifications,
             );
         }
         check_cancelled()?;

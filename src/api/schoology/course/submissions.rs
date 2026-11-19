@@ -2,7 +2,6 @@ use crate::api::schoology::account::{ResetProgress, SchoologyAccountConfig};
 use crate::ui;
 
 const SUBMISSION_PROGRESS_PRIORITY: u8 = 2;
-const SUBMISSION_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(180, 138, 255);
 use crate::{
     api::schoology::{
         RequestResult,
@@ -21,7 +20,7 @@ impl SchoologyAccountConfig {
         &self,
         assignments: impl IntoIterator<Item = &'a mut Assignment>,
     ) -> RequestResult<()> {
-        let _reset = ResetProgress(SUBMISSION_PROGRESS_PRIORITY, SUBMISSION_PROGRESS_COLOR);
+        let _reset = ResetProgress(SUBMISSION_PROGRESS_PRIORITY, ui::ProgressTask::Submissions);
         let user_id = self.user_id.to_string();
         let assignments: Vec<_> = assignments.into_iter().collect();
         let total = assignments.len();
@@ -29,7 +28,7 @@ impl SchoologyAccountConfig {
             ui::publish_progress(
                 1.0,
                 SUBMISSION_PROGRESS_PRIORITY,
-                &SUBMISSION_PROGRESS_COLOR,
+                ui::ProgressTask::Submissions,
             );
         }
         for (index, assignment) in assignments.into_iter().enumerate() {
@@ -56,7 +55,7 @@ impl SchoologyAccountConfig {
             ui::publish_progress(
                 (index + 1) as f32 / total as f32,
                 SUBMISSION_PROGRESS_PRIORITY,
-                &SUBMISSION_PROGRESS_COLOR,
+                ui::ProgressTask::Submissions,
             );
         }
         Ok(())

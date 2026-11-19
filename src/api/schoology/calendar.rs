@@ -4,7 +4,6 @@ use crate::ui;
 use anyhow;
 
 const CALENDAR_PROGRESS_PRIORITY: u8 = 1;
-const CALENDAR_PROGRESS_COLOR: slint::Color = slint::Color::from_rgb_u8(177, 134, 103);
 use std::{
     collections::{HashMap, HashSet},
     io,
@@ -412,7 +411,7 @@ impl SchoologyAccountConfig {
     }
 
     fn scrape_missing_calendar(&self, ids: &[String]) -> anyhow::Result<()> {
-        let _reset = ResetProgress(CALENDAR_PROGRESS_PRIORITY, CALENDAR_PROGRESS_COLOR);
+        let _reset = ResetProgress(CALENDAR_PROGRESS_PRIORITY, ui::ProgressTask::Calendar);
         let mut missing: HashSet<String> = ids.iter().cloned().collect();
         let existing: Vec<String> = database::from_sql_map(
             "SELECT DISTINCT id FROM assignments".to_owned(),
@@ -423,11 +422,11 @@ impl SchoologyAccountConfig {
             missing.remove(&id);
         }
         if missing.is_empty() {
-            ui::publish_progress(0.0, CALENDAR_PROGRESS_PRIORITY, &CALENDAR_PROGRESS_COLOR);
+            ui::publish_progress(0.0, CALENDAR_PROGRESS_PRIORITY, ui::ProgressTask::Calendar);
             return Ok(());
         }
         let total_missing = missing.len();
-        ui::publish_progress(1.0, CALENDAR_PROGRESS_PRIORITY, &CALENDAR_PROGRESS_COLOR);
+        ui::publish_progress(1.0, CALENDAR_PROGRESS_PRIORITY, ui::ProgressTask::Calendar);
         let courses: Vec<String> =
             database::from_sql_map("SELECT course_id FROM courses".to_owned(), &[], |row| {
                 Ok(row.get(0)?)
@@ -452,7 +451,7 @@ impl SchoologyAccountConfig {
                         ui::publish_progress(
                             (total_missing - missing.len()) as f32 / total_missing as f32,
                             CALENDAR_PROGRESS_PRIORITY,
-                            &CALENDAR_PROGRESS_COLOR,
+                            ui::ProgressTask::Calendar,
                         );
                     }
                 }
@@ -481,7 +480,7 @@ impl SchoologyAccountConfig {
                         ui::publish_progress(
                             (total_missing - missing.len()) as f32 / total_missing as f32,
                             CALENDAR_PROGRESS_PRIORITY,
-                            &CALENDAR_PROGRESS_COLOR,
+                            ui::ProgressTask::Calendar,
                         );
                     }
                     Ok(_) => {

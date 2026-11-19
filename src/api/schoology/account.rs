@@ -15,11 +15,11 @@ use crate::{
 };
 use anyhow;
 
-pub(super) struct ResetProgress(pub(super) u8, pub(super) slint::Color);
+pub(super) struct ResetProgress(pub(super) u8, pub(super) ui::ProgressTask);
 
 impl Drop for ResetProgress {
     fn drop(&mut self) {
-        ui::publish_progress(0.0, self.0, &self.1);
+        ui::publish_progress(0.0, self.0, self.1);
     }
 }
 

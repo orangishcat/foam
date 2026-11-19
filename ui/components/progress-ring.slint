@@ -1,7 +1,9 @@
+import { UiState } from "../globals.slint";
+
 export component ProgressRing inherits Rectangle {
     in property <float> progress: 0;
     in property <color> track-color: #454545;
-    in property <color> progress-color: #78aaff;
+    in property <color> progress-color: UiState.theme.overrides.progress-notifications;
     private property <float> p: min(1, max(0, root.progress));
 
     width: 2.25rem;

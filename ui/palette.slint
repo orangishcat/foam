@@ -32,6 +32,7 @@ export struct DefaultColors {
     secondary-selected: color,
     secondary-status: color,
     secondary-overlay: color,
+    tertiary: color,
     progress-1: color,
     progress-2: color,
     progress-3: color,
@@ -47,7 +48,11 @@ export struct ColorOverrides {
     dashboard-overdue: color,
     dashboard-pending: color,
     dashboard-done: color,
+    dashboard-event: color,
     attachment-backdrop: color,
+    progress-calendar: color,
+    progress-notifications: color,
+    progress-submissions: color,
 }
 
 export struct ColorPalette {
@@ -90,6 +95,7 @@ export global Theme {
         secondary-selected: oklch(54.73%, 0.110, 263.10, 1.0),
         secondary-status: oklch(46.81%, 0.092, 262.84, 1.0),
         secondary-overlay: oklch(14.98%, 0.016, 265.80, 1.0),
+        tertiary: oklch(53%, 0.12, 298.67, 1.0),
         progress-1: oklch(0.55447, 0.08888, 29.23, 1.0),
         progress-2: oklch(0.55447, 0.08888, 44.74, 1.0),
         progress-3: oklch(0.55447, 0.08888, 60.26, 1.0),
@@ -135,6 +141,7 @@ export global Theme {
         secondary-selected: oklch(54.73%, 0.110, 263.10, 1.0),
         secondary-status: oklch(64.05%, 0.086, 263.36, 1.0),
         secondary-overlay: oklch(95.68%, 0.009, 258.34, 1.0),
+        tertiary: oklch(54.73%, 0.168, 298.67, 1.0),
         progress-1: oklch(0.55447, 0.08888, 29.23, 1.0),
         progress-2: oklch(0.55447, 0.08888, 44.74, 1.0),
         progress-3: oklch(0.55447, 0.08888, 60.26, 1.0),
@@ -152,7 +159,11 @@ export global Theme {
             dashboard-overdue: Theme.dark-default-colors.primary-status,
             dashboard-pending: Theme.dark-default-colors.secondary-status,
             dashboard-done: Theme.dark-default-colors.progress-9,
+            dashboard-event: Theme.dark-default-colors.tertiary,
             attachment-backdrop: Theme.dark-default-colors.secondary-overlay,
+            progress-calendar: Theme.dark-default-colors.primary,
+            progress-notifications: Theme.dark-default-colors.secondary,
+            progress-submissions: Theme.dark-default-colors.tertiary,
         },
     };
 
@@ -162,7 +173,11 @@ export global Theme {
             dashboard-overdue: Theme.light-default-colors.primary-status,
             dashboard-pending: Theme.light-default-colors.secondary-status,
             dashboard-done: Theme.light-default-colors.progress-9,
+            dashboard-event: Theme.light-default-colors.tertiary,
             attachment-backdrop: Theme.light-default-colors.secondary-overlay,
+            progress-calendar: Theme.light-default-colors.primary,
+            progress-notifications: Theme.light-default-colors.secondary,
+            progress-submissions: Theme.light-default-colors.tertiary,
         },
     };
 }

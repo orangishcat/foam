@@ -1,7 +1,24 @@
 use slint::ComponentHandle;
 use std::sync::Mutex;
 
-use crate::{AppWindow, UiState, database, state::state::state};
+use crate::{AppWindow, ColorPalette, UiState, database, state::state::state};
+
+#[derive(Clone, Copy)]
+pub enum ProgressTask {
+    Calendar,
+    Notifications,
+    Submissions,
+}
+
+impl ProgressTask {
+    fn color(self, palette: &ColorPalette) -> slint::Color {
+        match self {
+            Self::Calendar => palette.overrides.progress_calendar,
+            Self::Notifications => palette.overrides.progress_notifications,
+            Self::Submissions => palette.overrides.progress_submissions,
+        }
+    }
+}
 
 pub(crate) fn progress_color(ui: &AppWindow, percent: f64) -> slint::Color {
     let theme = ui.global::<UiState>().get_theme();
@@ -52,15 +69,15 @@ impl ProgressPriority {
     }
 }
 
-pub fn publish_progress(progress: f32, priority: u8, color: &slint::Color) {
+pub fn publish_progress(progress: f32, priority: u8, task: ProgressTask) {
     static PRIORITY: Mutex<ProgressPriority> = Mutex::new(ProgressPriority(None));
-    let color = *color;
     run_on_ui_thread(move |ui| {
         if PRIORITY
             .lock()
             .expect("progress lock is poisoned")
             .accept(progress, priority)
         {
+            let color = task.color(&ui.global::<UiState>().get_theme());
             let global = ui.global::<crate::NotificationUi>();
             global.set_progress_color(color);
             global.set_progress(progress);

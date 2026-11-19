@@ -17,7 +17,7 @@ component NavigationItem inherits Rectangle {
 
     in property <Screen> change-to;
     in property <float> progress: 0;
-    in property <color> progress-color: #78aaff;
+    in property <color> progress-color: UiState.theme.overrides.progress-notifications;
     in property <int> unread-count: 0;
 
     height: 2.75rem;

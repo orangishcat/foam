@@ -118,9 +118,10 @@ export component Dashboard inherits FocusScope {
 
                                     inner := Rectangle {
                                         background: {
-                                            let c = (assignment.done ? UiState.theme.colors.progress-9 :
+                                            let c = (assignment.is-event ? UiState.theme.overrides.dashboard-event :
+                                                (assignment.done ? UiState.theme.colors.progress-9 :
                                                 (assignment.overdue ? UiState.theme.overrides.dashboard-overdue :
-                                                UiState.theme.overrides.dashboard-pending)).to-oklch();
+                                                UiState.theme.overrides.dashboard-pending))).to-oklch();
                                             let selected = DashboardUi.selected-assignment.id == assignment.id;
 
                                             oklch(
