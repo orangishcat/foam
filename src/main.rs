@@ -67,6 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     api::schoology::onboarding::init(&ui);
 
     updater::spawn_check_update_timer();
+    let _sync_timers = state::notifications::spawn_sync_timers()?;
 
     let _event_pump = crate::platform::start_event_pump();
 

@@ -126,27 +126,35 @@ impl NotificationState {
     }
 
     pub fn check_notifications(&mut self) {
-        if crate::account::active_account().is_err() {
+        if Local::now() - self.last_fast_sync >= config().refresh_duration {
+            self.start_fast_sync();
+        }
+        if Local::now() - self.last_slow_sync >= config().submission_refresh_duration {
+            self.start_slow_sync();
+        }
+    }
+
+    fn start_fast_sync(&mut self) {
+        if self.is_fast_syncing || crate::account::active_account().is_err() {
             return;
         }
-        if !self.is_fast_syncing && Local::now() - self.last_fast_sync >= config().refresh_duration
-        {
-            self.is_fast_syncing = true;
-            log::debug!("Calling fast sync");
-            if let Err(err) = thread_manager::spawn_thread("sync notifications", Self::fast_sync) {
-                self.is_fast_syncing = false;
-                log::warn!("Starting notification sync failed: {err}");
-            }
+        self.is_fast_syncing = true;
+        log::debug!("Calling fast sync");
+        if let Err(err) = thread_manager::spawn_thread("sync notifications", Self::fast_sync) {
+            self.is_fast_syncing = false;
+            log::warn!("Starting notification sync failed: {err}");
         }
-        if !self.is_slow_syncing
-            && Local::now() - self.last_slow_sync >= config().submission_refresh_duration
-        {
-            log::info!("Calling slow sync");
-            self.is_slow_syncing = true;
-            if let Err(err) = thread_manager::spawn_thread("sync submissions", Self::slow_sync) {
-                self.is_slow_syncing = false;
-                log::warn!("Starting submission sync failed: {err}");
-            }
+    }
+
+    fn start_slow_sync(&mut self) {
+        if self.is_slow_syncing || crate::account::active_account().is_err() {
+            return;
+        }
+        log::info!("Calling slow sync");
+        self.is_slow_syncing = true;
+        if let Err(err) = thread_manager::spawn_thread("sync submissions", Self::slow_sync) {
+            self.is_slow_syncing = false;
+            log::warn!("Starting submission sync failed: {err}");
         }
     }
 
@@ -250,4 +258,26 @@ impl NotificationState {
         )?;
         Ok(values.into_iter().next().unwrap_or_default())
     }
+}
+
+/// Starts the periodic sync timers at the configured intervals. The intervals are
+/// read once here, so changing the config requires restarting the app.
+pub fn spawn_sync_timers() -> anyhow::Result<(slint::Timer, slint::Timer)> {
+    let slow_interval = config().submission_refresh_duration.to_std()?;
+
+    let fast = slint::Timer::default();
+    fast.start(
+        slint::TimerMode::Repeated,
+        slow_interval, /* slow interval is intentional */
+        || {
+            state().notif.start_fast_sync();
+        },
+    );
+
+    let slow = slint::Timer::default();
+    slow.start(slint::TimerMode::Repeated, slow_interval, || {
+        state().notif.start_slow_sync();
+    });
+
+    Ok((fast, slow))
 }
