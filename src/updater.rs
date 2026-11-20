@@ -33,11 +33,12 @@ pub fn check_update_ui() {
 }
 
 pub fn check_update() -> anyhow::Result<bool> {
+    let endpoint = std::env::var("FOAM_UPDATE_ENDPOINT").unwrap_or_else(|_| {
+        "https://github.com/orangishcat/foam/releases/latest/download/latest.json".to_owned()
+    });
     let config = Config {
-        endpoints: vec![Url::parse(
-            "https://github.com/orangishcat/foam/releases/latest/download/latest.json",
-        )?],
-        pubkey: include_str!("foam.key.pub").into(),
+        endpoints: vec![Url::parse(&endpoint)?],
+        pubkey: include_str!("foam.key.pub").trim().into(),
         ..Default::default()
     };
 
