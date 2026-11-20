@@ -142,7 +142,7 @@ impl crate::state::state::State for DashboardState {
             .collect::<Vec<AssignmentCol>>();
         let future_col = vec![crate::AssignmentCol {
             title: "Future".into(),
-            assignments: sorted_bucket_to_modelrc(4),
+            assignments: sorted_bucket_to_modelrc(day_buckets),
         }];
         let g = ui.global::<crate::DashboardUi>();
         g.set_assignment_view(ModelRc::new(VecModel::from(

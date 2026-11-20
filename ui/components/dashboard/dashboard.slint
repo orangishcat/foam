@@ -158,7 +158,7 @@ export component Dashboard inherits FocusScope {
                                             Text {
                                                 font-size: 0.75rem;
                                                 color: UiState.theme.colors.text-secondary;
-                                                text: (x == 5 ? assignment.date + ", " : "") + assignment.time;
+                                                text: (x == DashboardUi.column-count - 1 ? assignment.date + ", " : "") + assignment.time;
                                                 wrap: word-wrap;
                                             }
                                         }
