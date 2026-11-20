@@ -4,7 +4,7 @@ use cargo_packager_updater::{Config, semver::Version};
 use reqwest::Url;
 use slint::ComponentHandle;
 
-use crate::{UiState, ui};
+use crate::{UiState, thread_manager, ui};
 use anyhow::{self, Ok};
 
 pub fn spawn_check_update_timer() {
@@ -19,17 +19,21 @@ pub fn spawn_check_update_timer() {
 }
 
 pub fn check_update_ui() {
-    if let Some(has_update) = check_update()
-        .inspect(|u| log::info!("Is newer version available: {u}"))
-        .inspect_err(|e| log::warn!("Failed to check updates: {e}"))
-        .ok()
-        && has_update
-    {
-        ui::run_on_ui_thread(|ui| {
-            ui.global::<UiState>()
-                .set_top_right_text("Update available, restart to apply".into());
-        });
-    }
+    thread_manager::spawn_thread("Update check", || {
+        if let Some(has_update) = check_update()
+            .inspect(|u| log::info!("Is newer version available: {u}"))
+            .inspect_err(|e| log::warn!("Failed to check updates: {e}"))
+            .ok()
+            && has_update
+        {
+            ui::run_on_ui_thread(|ui| {
+                ui.global::<UiState>()
+                    .set_top_right_text("Update available, restart to apply".into());
+            });
+        }
+    })
+    .inspect_err(|err| log::warn!("Spwaning check update thread failed: {err}"))
+    .ok();
 }
 
 pub fn check_update() -> anyhow::Result<bool> {
