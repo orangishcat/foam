@@ -20,6 +20,7 @@ export global DashboardMenu {
         else if index == 2 { DashboardUi.open-selected-in-browser(); }
         else if index == 3 { DashboardUi.unselect(); }
         else if index == 4 { DashboardUi.refresh(); }
+        else if index == 5 { DashboardUi.new-event(); }
     }
 }
 
@@ -72,6 +73,23 @@ export component Dashboard inherits FocusScope {
                         font-size: 0.75rem;
                         vertical-alignment: center;
                         color: UiState.theme.colors.text-secondary;
+                    }
+                }
+
+                Tooltip {
+                    VerticalLayout {
+                        padding: 0.25rem;
+                        Text {
+                            font-size: 0.75rem;
+                            text: "New event";
+                            color: UiState.theme.colors.text-base;
+                        }
+
+                        Text {
+                            font-size: 0.75rem;
+                            text: UiState.shortcut-modifier + "+N";
+                            color: UiState.theme.colors.text-muted;
+                        }
                     }
                 }
             }

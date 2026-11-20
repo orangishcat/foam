@@ -327,6 +327,7 @@ impl crate::state::state::State for DashboardState {
             menu_item("Open in browser", &["O"], selected.is_schoology),
             menu_item("Unselect item", &["Escape"], enabled),
             menu_item("Refresh", &["Control", "R"], true),
+            menu_item("New event", &["Control", "N"], true),
         ]
     }
 }

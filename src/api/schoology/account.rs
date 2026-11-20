@@ -110,9 +110,7 @@ impl Account for SchoologyAccountConfig {
             })
             .cloned()
             .collect();
-        // clone to avoid deadlock
-        let next = state().notif.clone();
-        notification::save_notifications(&scraped_notifs, &next)?;
+        notification::save_notifications(&scraped_notifs)?;
         check_cancelled()?;
         ui::sync_ui();
         let update_result = self.update_notifications(&mut pending);
@@ -132,9 +130,7 @@ impl Account for SchoologyAccountConfig {
             Ok(updated) => log::debug!("Updated {updated} calendar assignments"),
             Err(err) => log::warn!("Calendar sync failed: {err}"),
         }
-        // clone to avoid deadlock
-        let next = state().notif.clone();
-        notification::save_notifications(&scraped_notifs, &next)?;
+        notification::save_notifications(&scraped_notifs)?;
         update_result.map_err(|error| anyhow::anyhow!("{error}"))
     }
 
@@ -160,9 +156,11 @@ impl Account for SchoologyAccountConfig {
                 .map_err(|error| anyhow::anyhow!("{error}"))?;
             check_cancelled()?;
             submission::update_submissions(&assignments)?;
-            let mut app = state();
-            app.notif.last_slow_sync = check_started;
-            app.notif.save_state()?;
+            {
+                let notif = &mut state().notif;
+                notif.last_slow_sync = check_started;
+                notif.save_state()?;
+            }
             ui::sync_ui();
             Ok(())
         })()

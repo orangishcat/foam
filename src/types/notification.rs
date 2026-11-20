@@ -1,6 +1,6 @@
 use crate::{
     database,
-    state::notifications::NotificationState,
+    state::{notifications::NotificationState, state::state},
 };
 use anyhow;
 use chrono::{DateTime, Local};
@@ -46,18 +46,14 @@ pub fn notifications() -> anyhow::Result<Vec<Notification>> {
     )
 }
 
-pub fn save_notifications(
-    notifications: &[Notification],
-    notif_state: &NotificationState,
-) -> anyhow::Result<()> {
+pub fn save_notifications(notifications: &[Notification]) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
-    save_notifications_on(&mut connection, notifications, notif_state)
+    save_notifications_on(&mut connection, notifications)
 }
 
 pub(crate) fn save_notifications_on(
     connection: &mut rusqlite::Connection,
     notifications: &[Notification],
-    notif_state: &NotificationState,
 ) -> anyhow::Result<()> {
     let transaction = connection.transaction()?;
     for notification in notifications {
@@ -70,6 +66,6 @@ pub(crate) fn save_notifications_on(
             ON CONFLICT(resource_id) DO UPDATE SET event = excluded.event, title = excluded.title, subtitle = excluded.subtitle, created = excluded.created, material_type = excluded.material_type, course_id = excluded.course_id, course_title = excluded.course_title, seq = excluded.seq
             WHERE julianday(excluded.created) >= julianday(notifications.created)", values.as_slice())?;
     }
-    notif_state.save_state_on(&transaction)?;
+    state().notif.save_state_on(&transaction)?;
     Ok(transaction.commit()?)
 }
