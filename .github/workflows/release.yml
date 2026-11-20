@@ -133,8 +133,10 @@ jobs:
           base="https://github.com/orangishcat/foam/releases/download/$version"
           case "$RUNNER_OS" in
             macOS)
-              key="darwin-aarch64"
-              [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && key="darwin-x86_64"
+              # cargo-packager-updater looks up `macos-<arch>`, not
+              # `darwin-<arch>` (its docs show the latter by mistake).
+              key="macos-aarch64"
+              [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && key="macos-x86_64"
               bundle="$(find . -maxdepth 1 -name '*.app.tar.gz' -print -quit | xargs basename)"
               format="app"
               ;;
