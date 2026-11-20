@@ -40,7 +40,7 @@ impl State for SettingsState {
             let c = config();
             [
                 c.font_size.clamp(12, 24),
-                c.calendar_day_buckets.clamp(1, 7) as i32,
+                c.calendar_day_buckets.clamp(1, 7),
             ]
         };
         ui.global::<UiState>().set_font_size(font_size);

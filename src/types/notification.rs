@@ -1,4 +1,7 @@
-use crate::{database, state::notifications::NotificationState};
+use crate::{
+    database,
+    state::notifications::NotificationState,
+};
 use anyhow;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};

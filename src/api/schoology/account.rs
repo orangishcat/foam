@@ -110,7 +110,11 @@ impl Account for SchoologyAccountConfig {
             })
             .cloned()
             .collect();
+        // clone to avoid deadlock
+        let next = state().notif.clone();
+        notification::save_notifications(&scraped_notifs, &next)?;
         check_cancelled()?;
+        ui::sync_ui();
         let update_result = self.update_notifications(&mut pending);
         for updated in pending {
             if let Some(n) = scraped_notifs
@@ -159,6 +163,7 @@ impl Account for SchoologyAccountConfig {
             let mut app = state();
             app.notif.last_slow_sync = check_started;
             app.notif.save_state()?;
+            ui::sync_ui();
             Ok(())
         })()
     }
