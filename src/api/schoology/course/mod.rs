@@ -189,14 +189,16 @@ impl SchoologyAccountConfig {
                 }
             } else if let Some(cached) = cached {
                 use crate::types::material::MaterialType;
-                let kind = match material.material_type.as_str() {
-                    "assignment" => Some(MaterialType::Assignment),
-                    "document" => Some(MaterialType::Document),
-                    "link" => Some(MaterialType::Link),
-                    "assessment" | "test/quiz" | "quiz" => Some(MaterialType::Assessment),
-                    _ => None,
+                let kinds: &[MaterialType] = match material.material_type.as_str() {
+                    "assignment" => &[MaterialType::Assignment],
+                    "document" => &[MaterialType::Document, MaterialType::Link],
+                    "link" => &[MaterialType::Link],
+                    "assessment" | "test/quiz" | "quiz" => &[MaterialType::Assessment],
+                    _ => &[],
                 };
-                if let Some(value) = kind.and_then(|kind| cached.get(&(kind, material.id.clone())))
+                if let Some(value) = kinds
+                    .iter()
+                    .find_map(|kind| cached.get(&(*kind, material.id.clone())))
                 {
                     folder.materials.push(value.clone());
                 } else if posted.contains(&material.id) {

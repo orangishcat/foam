@@ -1,4 +1,8 @@
-import { CourseItem, MaterialItem, CourseTab } from "../../types/course-ui.slint";
+import {
+    CourseItem,
+    MaterialItem,
+    CourseTab,
+} from "../../types/course-ui.slint";
 import { MenubarData } from "../../globals.slint";
 
 export global CoursesUi {
@@ -20,6 +24,7 @@ export global CoursesUi {
     callback open(string);
     callback open-with-image(string, image);
     callback open-folder(string, string);
+    callback refresh-active-folder();
     in-out property <[CourseItem]> courses;
     in-out property <int> period-character-count: 1;
     callback reorder(int, int);

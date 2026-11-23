@@ -40,6 +40,11 @@ impl State for NotificationState {
                     subtitle: (&n.subtitle).into(),
                     course: course.into(),
                     course_id: (&n.course_id).into(),
+                    material_type: n
+                        .material_type
+                        .map(MaterialType::as_str)
+                        .unwrap_or_default()
+                        .into(),
                     resource_id: (&n.resource_id).into(),
                     n_type: match (n.event, n.material_type) {
                         (NotificationEvent::GradeUpdated, _) => crate::NotificationType::NewGrade,
@@ -92,6 +97,11 @@ impl State for NotificationState {
         vec![
             menu_item("Mark all as read", &["A"], true),
             menu_item("View item", &["V"], notification_ui.get_can_open_selected()),
+            menu_item(
+                "Open in browser",
+                &["O"],
+                notification_ui.get_can_open_browser_selected(),
+            ),
             menu_item("Mark as read", &["D"], enabled),
             menu_item("Unselect item", &["Escape"], enabled),
         ]
@@ -228,6 +238,13 @@ impl NotificationState {
                 log::warn!("Marking notification failed: {err}");
             }
             ui::sync_ui();
+        });
+        global.on_open_browser(|course, kind, id| {
+            match crate::state::materials::browser_url(course.as_str(), kind.as_str(), id.as_str())
+            {
+                Ok(url) => crate::state::attachment_view::open_browser(&url),
+                Err(err) => log::warn!("Opening notification in browser failed: {err}"),
+            }
         });
         self.sync_sidebar(ui).ok();
     }

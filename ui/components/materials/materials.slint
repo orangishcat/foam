@@ -24,6 +24,7 @@ export global MaterialsMenu {
         && selected-index >= 0 && selected-index < tab.materials.length;
     public function activate(index: int) {
         if index == 0 { CoursesUi.close-tab(CoursesUi.active-tab); }
+        else if index == 4 { CoursesUi.refresh-active-folder(); }
         else if has-selection {
             if index == 1 { MaterialUi.open(tab.materials[selected-index]); }
             else if index == 2 { MaterialUi.open-in-browser(tab.materials[selected-index]); }

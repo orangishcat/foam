@@ -40,6 +40,18 @@ impl From<&Material> for MaterialType {
     }
 }
 
+impl MaterialType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Folder => "folder",
+            Self::Assessment => "assessment",
+            Self::Assignment => "assignment",
+            Self::Document => "document",
+            Self::Link => "link",
+        }
+    }
+}
+
 pub fn store_hierarchy(course_id: &str, root: &Folder) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
     let transaction = connection.transaction()?;
@@ -320,7 +332,7 @@ fn store_material_on(
         Material::Document(m) => (&m.id, &m.title),
         Material::Link(m) => (&m.id, &m.title),
     };
-    let kind = serde_json::to_value(MaterialType::from(material))?;
+    let kind = MaterialType::from(material);
     // Assignment content lives only in assignments; data holds other material variants.
     let data = if matches!(material, Material::Assignment(_)) {
         "{}".to_owned()

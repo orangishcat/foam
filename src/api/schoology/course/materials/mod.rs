@@ -35,7 +35,7 @@ impl SchoologyAccountConfig {
 
         Ok(Some(match material_type {
             "assignment" => Material::Assignment(self.scrape_assignment(material, url)?),
-            "document" => Material::Document(self.scrape_document(material, url)?),
+            "document" => self.scrape_document(material, url)?,
             "assessment" | "test/quiz" | "quiz" => {
                 Material::Assessment(self.scrape_assessment(material, url)?)
             }

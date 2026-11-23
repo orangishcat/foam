@@ -114,11 +114,13 @@ impl SchoologyAccountConfig {
     }
 
     pub fn api_get<T: DeserializeOwned>(&self, url: &str) -> RequestResult<T> {
-        self.api_get_request(url)?
+        let text = self
+            .api_get_request(url)?
             .send()?
             .error_for_status()?
-            .json()
-            .map_err(Into::into)
+            .text()?;
+        log::debug!("response for {url}: {}", text);
+        serde_json::from_str(&text).map_err(Into::into)
     }
 
     pub fn api_get_with_query<Q, T>(&self, url: &str, query: &Q) -> RequestResult<T>

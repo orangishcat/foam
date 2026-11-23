@@ -20,8 +20,9 @@ export global NotificationsMenu {
     public function activate(index: int) {
         if index == 0 { NotificationUi.mark-all-as-read(); }
         if index == 1 { NotificationUi.open-selected(); }
-        else if index == 2 { NotificationUi.toggle-selected-read(); }
-        else if index == 3 { NotificationUi.unselect(); }
+        else if index == 2 { NotificationUi.open-selected-in-browser(); }
+        else if index == 3 { NotificationUi.toggle-selected-read(); }
+        else if index == 4 { NotificationUi.unselect(); }
     }
 }
 

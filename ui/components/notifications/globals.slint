@@ -1,4 +1,7 @@
-import { Notification, NotificationType } from "../../types/notification-ui.slint";
+import {
+    Notification,
+    NotificationType,
+} from "../../types/notification-ui.slint";
 import { AssignmentUi } from "../assignment/globals.slint";
 import { DocumentUi } from "../document/globals.slint";
 import { MenubarData, UiState } from "../../globals.slint";
@@ -11,6 +14,9 @@ export global NotificationUi {
         && (selected-notification.n-type == NotificationType.new-assignment
         || selected-notification.n-type == NotificationType.new-grade
         || selected-notification.n-type == NotificationType.new-document);
+    out property <bool> can-open-browser-selected: !selected-notification.course-id.is-empty
+        && !selected-notification.resource-id.is-empty
+        && !selected-notification.material-type.is-empty;
     public function open-selected() {
         if can-open-selected {
             if selected-notification.n-type == NotificationType.new-document {
@@ -18,6 +24,15 @@ export global NotificationUi {
             } else {
                 AssignmentUi.open(selected-notification.course-id, selected-notification.resource-id);
             }
+        }
+    }
+    public function open-selected-in-browser() {
+        if can-open-browser-selected {
+            open-browser(
+                selected-notification.course-id,
+                selected-notification.material-type,
+                selected-notification.resource-id,
+            );
         }
     }
     public function toggle-selected-read() {
@@ -31,6 +46,7 @@ export global NotificationUi {
     callback closed();
     callback mark-all-as-read();
     callback set-read(string, bool);
+    callback open-browser(string, string, string);
     callback load-more();
     in-out property <float> progress;
     in-out property <color> progress-color: UiState.theme.overrides.progress-notifications;

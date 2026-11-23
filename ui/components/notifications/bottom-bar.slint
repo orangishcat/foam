@@ -19,6 +19,12 @@ export component NotificationsBottomBar inherits BottomBarFrame {
                 action-name: "View item";
                 action => { NotificationUi.open-selected(); }
             }
+            if NotificationUi.can-open-browser-selected: SelectedItemAction {
+                hotkey-name: "O";
+                hotkey: @keys(O);
+                action-name: "Open in browser";
+                action => { NotificationUi.open-selected-in-browser(); }
+            }
             if !NotificationUi.selected-notification.id.is-empty: SelectedItemAction {
                 hotkey-name: "D";
                 hotkey: @keys(D);

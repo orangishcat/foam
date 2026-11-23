@@ -423,22 +423,8 @@ impl CourseState {
 
     /// Refresh the folder currently open in the UI when its cached scrape is stale.
     pub fn refresh_folder_if_stale(ui: &AppWindow) {
-        let global = ui.global::<CoursesUi>();
-        let course = global.get_course_id().to_string();
-        if course.is_empty() {
+        let Some((course, folder_id)) = Self::current_folder(ui) else {
             return;
-        }
-        let folder = global.get_folder_id().to_string();
-        let folder_id = if folder.is_empty() {
-            match Self::root_folder(&course) {
-                Ok(folder) => folder,
-                Err(error) => {
-                    log::warn!("Resolving course root folder failed: {error}");
-                    return;
-                }
-            }
-        } else {
-            folder
         };
         match Self::folder_needs_refresh(&course, &folder_id) {
             Ok(true) => {}
@@ -448,6 +434,46 @@ impl CourseState {
                 return;
             }
         }
+        Self::spawn_folder_refresh(course, folder_id);
+    }
+
+    /// Refresh the active folder of the course open in the UI, regardless of staleness.
+    pub fn refresh_active_folder(ui: &AppWindow) {
+        let [course, folder] = {
+            let cui = ui.global::<CoursesUi>();
+            [
+                cui.get_course_id().to_string(),
+                cui.get_folder_id().to_string(),
+            ]
+        };
+        if course.is_empty() || folder.is_empty() {
+            return;
+        }
+        Self::spawn_folder_refresh(course, folder);
+    }
+
+    fn current_folder(ui: &AppWindow) -> Option<(String, String)> {
+        let global = ui.global::<CoursesUi>();
+        let course = global.get_course_id().to_string();
+        if course.is_empty() {
+            return None;
+        }
+        let folder = global.get_folder_id().to_string();
+        let folder_id = if folder.is_empty() {
+            match Self::root_folder(&course) {
+                Ok(folder) => folder,
+                Err(error) => {
+                    log::warn!("Resolving course root folder failed: {error}");
+                    return None;
+                }
+            }
+        } else {
+            folder
+        };
+        Some((course, folder_id))
+    }
+
+    fn spawn_folder_refresh(course: String, folder_id: String) {
         let key = (course.clone(), folder_id.clone());
         {
             let mut refreshing = REFRESHING_FOLDERS
@@ -457,8 +483,8 @@ impl CourseState {
                 return;
             }
         }
-        let thread_course = course.clone();
-        let thread_folder = folder_id.clone();
+        let thread_course = course;
+        let thread_folder = folder_id;
         let thread_key = key.clone();
         let result = thread_manager::spawn_thread("refresh folder", move || {
             let _guard = FolderRefreshGuard(thread_key);
