@@ -88,12 +88,15 @@ jobs:
           CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
           CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
         run: |
+          # Arch-specific name: both macOS targets build foam.app, and
+          # same-named release assets overwrite each other.
           app="$(find . -maxdepth 1 -name '*.app' -print -quit)"
-          tar -czf "${app}.tar.gz" "$app"
+          bundle="${app%.app}-${{ matrix.target }}.app.tar.gz"
+          tar -czf "$bundle" "$app"
           cargo packager signer sign \
             --private-key "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" \
             --password "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" \
-            "${app}.tar.gz"
+            "$bundle"
 
       - name: Prepare updater artifacts (Linux)
         if: runner.os == 'Linux'
