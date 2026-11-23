@@ -61,7 +61,10 @@ impl State for NotificationState {
                             Some(MaterialType::Assignment | MaterialType::Assessment) => {
                                 ui.global::<UiState>().get_theme().colors.progress_9
                             }
-                            _ => ui.global::<UiState>().get_theme().colors.text_muted,
+                            Some(MaterialType::Link) => {
+                                ui.global::<UiState>().get_theme().colors.secondary_strong
+                            }
+                            _ => ui.global::<UiState>().get_theme().colors.primary_hover,
                         },
                     },
                 })
