@@ -88,6 +88,23 @@ impl SchoologyAccountConfig {
             &mut HashSet::new(),
             None,
             &HashSet::new(),
+            true,
+        )?;
+        folder.set_course_id(course_id);
+        Ok(folder)
+    }
+
+    /// Fetch one folder's immediate materials without descending into subfolders.
+    pub fn folder(&self, course_id: &str, folder_id: &str) -> RequestResult<Folder> {
+        info!("scraping Schoology folder: course={course_id}, folder={folder_id}");
+        let mut folder = self.scrape_folder(
+            course_id,
+            folder_id,
+            None,
+            &mut HashSet::new(),
+            None,
+            &HashSet::new(),
+            false,
         )?;
         folder.set_course_id(course_id);
         Ok(folder)
@@ -119,6 +136,7 @@ impl SchoologyAccountConfig {
             &mut HashSet::new(),
             Some(&cached),
             posted,
+            true,
         )?;
         folder.set_course_id(course_id);
         Ok(folder)
@@ -132,6 +150,7 @@ impl SchoologyAccountConfig {
         visited: &mut HashSet<String>,
         cached: Option<&HashMap<(crate::types::material::MaterialType, String), Material>>,
         posted: &HashSet<String>,
+        descend: bool,
     ) -> RequestResult<Folder> {
         crate::thread_manager::check_cancelled()?;
         if !visited.insert(folder_id.to_owned()) {
@@ -149,15 +168,25 @@ impl SchoologyAccountConfig {
         for item in raw.folder_items {
             let material = CourseMaterial::from_raw(item)?;
             if material.material_type == "folder" {
-                let child = self.scrape_folder(
-                    course_id,
-                    &material.id,
-                    material.location.as_deref(),
-                    visited,
-                    cached,
-                    posted,
-                )?;
-                folder.materials.push(Material::Folder(Box::new(child)));
+                if descend {
+                    let child = self.scrape_folder(
+                        course_id,
+                        &material.id,
+                        material.location.as_deref(),
+                        visited,
+                        cached,
+                        posted,
+                        true,
+                    )?;
+                    folder.materials.push(Material::Folder(Box::new(child)));
+                } else {
+                    folder.materials.push(Material::Folder(Box::new(Folder {
+                        id: material.id,
+                        title: material.title,
+                        body: material.body,
+                        materials: Vec::new(),
+                    })));
+                }
             } else if let Some(cached) = cached {
                 use crate::types::material::MaterialType;
                 let kind = match material.material_type.as_str() {

@@ -140,7 +140,7 @@ impl Account for SchoologyAccountConfig {
         let _reset = ResetProgress(FOLDER_PROGRESS_PRIORITY, ui::ProgressTask::Folder);
         ui::publish_progress(1.0, FOLDER_PROGRESS_PRIORITY, ui::ProgressTask::Folder);
         let folder = self
-            .course(course_id, folder_id)
+            .folder(course_id, folder_id)
             .map_err(|error| anyhow::anyhow!("{error}"))?;
         crate::types::material::store_refreshed_folder(course_id, &folder)?;
         Ok(())

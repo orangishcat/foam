@@ -47,7 +47,7 @@ pub fn store_hierarchy(course_id: &str, root: &Folder) -> anyhow::Result<()> {
     Ok(transaction.commit()?)
 }
 
-/// Replace one folder and its descendants with a freshly scraped subtree.
+/// Replace one folder's immediate materials without refreshing subfolder contents.
 pub fn store_refreshed_folder(course_id: &str, folder: &Folder) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
     let transaction = connection.transaction()?;
@@ -61,17 +61,61 @@ pub fn store_refreshed_folder(course_id: &str, folder: &Folder) -> anyhow::Resul
         .optional()?
         .unwrap_or_default();
     let last_updated = chrono::Utc::now().to_rfc3339();
-    let mut retained = Vec::new();
-    store_folder_on(
+    store_material_on(
         &transaction,
         course_id,
         &parent_id,
-        folder,
-        &mut retained,
-        Some(&last_updated),
+        &Material::Folder(Box::new(Folder {
+            id: folder.id.clone(),
+            title: folder.title.clone(),
+            body: folder.body.clone(),
+            materials: Vec::new(),
+        })),
     )?;
-    prune_folder_subtree(&transaction, course_id, &folder.id, &retained)?;
+    transaction.execute(
+        "UPDATE materials SET last_updated = ?
+         WHERE course_id = ? AND type = 'folder' AND material_id = ?",
+        params![last_updated, course_id, folder.id],
+    )?;
+    let mut retained = Vec::with_capacity(folder.materials.len());
+    for material in &folder.materials {
+        if let Material::Folder(child) = material {
+            store_child_folder_on(&transaction, course_id, &folder.id, child)?;
+        } else {
+            store_material_on(&transaction, course_id, &folder.id, material)?;
+        }
+        retained.push((MaterialType::from(material), material.id().to_owned()));
+    }
+    prune_folder_children(&transaction, course_id, &folder.id, &retained)?;
     Ok(transaction.commit()?)
+}
+
+/// Add a subfolder discovered in a shallow refresh without overwriting its cached contents.
+fn store_child_folder_on(
+    connection: &Connection,
+    course_id: &str,
+    parent_id: &str,
+    folder: &Folder,
+) -> anyhow::Result<()> {
+    let metadata = Material::Folder(Box::new(Folder {
+        id: folder.id.clone(),
+        title: folder.title.clone(),
+        body: folder.body.clone(),
+        materials: Vec::new(),
+    }));
+    connection.execute(
+        "INSERT INTO materials (course_id, material_id, type, parent_id, title, data)
+         VALUES (?1, ?2, 'folder', ?3, ?4, ?5)
+         ON CONFLICT(course_id, type, material_id) DO UPDATE SET parent_id = excluded.parent_id",
+        params![
+            course_id,
+            folder.id,
+            parent_id,
+            folder.title,
+            serde_json::to_string(&metadata)?
+        ],
+    )?;
+    Ok(())
 }
 
 /// Insert one assignment without replacing the rest of the course hierarchy.
@@ -217,25 +261,47 @@ fn store_folder_on(
     Ok(())
 }
 
-/// Remove materials under a refreshed folder that no longer exist in its scraped subtree.
-fn prune_folder_subtree(
+/// Remove immediate children no longer in a refreshed folder, including removed subfolder
+/// trees, while leaving retained subfolder contents untouched.
+fn prune_folder_children(
     connection: &Connection,
     course_id: &str,
     folder_id: &str,
     retained: &[(MaterialType, String)],
 ) -> anyhow::Result<()> {
     connection.execute(
-        "WITH RECURSIVE subtree(rowid, type, material_id, parent_id) AS (
-            SELECT rowid, type, material_id, parent_id FROM materials
-            WHERE course_id = ?1 AND type = 'folder' AND material_id = ?2
+        "WITH RECURSIVE
+        protected(type, material_id) AS (
+            SELECT type, material_id FROM materials
+            WHERE course_id = ?1 AND parent_id = ?2 AND type = 'folder'
+                AND EXISTS (
+                    SELECT 1 FROM json_each(?3)
+                    WHERE json_extract(value, '$[0]') = materials.type
+                        AND json_extract(value, '$[1]') = materials.material_id
+                )
             UNION
-            SELECT m.rowid, m.type, m.material_id, m.parent_id
-            FROM materials m JOIN subtree s ON m.course_id = ?1 AND m.parent_id = s.material_id
+            SELECT m.type, m.material_id FROM materials m
+            JOIN protected p ON m.course_id = ?1 AND m.parent_id = p.material_id
+        ),
+        candidates(rowid, type, material_id) AS (
+            SELECT rowid, type, material_id FROM materials
+            WHERE course_id = ?1 AND parent_id = ?2
+            UNION
+            SELECT m.rowid, m.type, m.material_id FROM materials m
+            JOIN candidates c ON m.course_id = ?1 AND m.parent_id = c.material_id
         )
         DELETE FROM materials WHERE rowid IN (
-            SELECT rowid FROM subtree WHERE NOT EXISTS (
-                SELECT 1 FROM json_each(?3) WHERE json_extract(value, '$[0]') = subtree.type
-                    AND json_extract(value, '$[1]') = subtree.material_id))",
+            SELECT rowid FROM candidates c
+            WHERE NOT EXISTS (
+                SELECT 1 FROM json_each(?3)
+                WHERE json_extract(value, '$[0]') = c.type
+                    AND json_extract(value, '$[1]') = c.material_id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM protected p
+                WHERE p.type = c.type AND p.material_id = c.material_id
+            )
+        )",
         params![course_id, folder_id, serde_json::to_string(retained)?],
     )?;
     Ok(())
