@@ -5,6 +5,7 @@ use rusqlite::params;
 use slint::{ComponentHandle, Model};
 
 use super::assignment_view::assignment_menu_items;
+use super::attachment_view::{self, is_office_document, wry_supported};
 use crate::ScreenMenuItem;
 use crate::{
     AppWindow, CoursesUi, DocumentUi, Screen, UiState, database, filesystem,
@@ -64,6 +65,20 @@ impl DocumentViewerState {
         if url.trim().is_empty() {
             return Err(io::Error::other("Document has no resource URL").into());
         }
+        let extension = attachment
+            .map(|file| {
+                if !file.extension.is_empty() {
+                    file.extension.clone()
+                } else {
+                    std::path::Path::new(&file.filename)
+                        .extension()
+                        .and_then(|extension| extension.to_str())
+                        .unwrap_or_default()
+                        .to_owned()
+                }
+            })
+            .unwrap_or_default();
+        let unsupported = attachment.is_some() && !wry_supported(&extension);
         let course_id = canon_course_id.as_str();
         let index = CourseState::ensure_course_tab(ui, course_id, None)?;
         let courses = ui.global::<CoursesUi>();
@@ -84,6 +99,15 @@ impl DocumentViewerState {
         global.set_id(id.into());
         global.set_title(document.title.into());
         global.set_error("".into());
+        global.set_unsupported(unsupported);
+        global.set_extension(
+            extension
+                .trim_start_matches('.')
+                .to_ascii_lowercase()
+                .into(),
+        );
+        global.set_is_office_document(is_office_document(&extension));
+        global.set_file_ready(false);
         ui.global::<UiState>().set_screen(Screen::Document);
         refresh_file_view(ui);
         let generation = wry::reset();
@@ -94,19 +118,6 @@ impl DocumentViewerState {
             return Ok(());
         }
         let remote = url.clone();
-        let extension = attachment
-            .map(|file| {
-                if !file.extension.is_empty() {
-                    file.extension.clone()
-                } else {
-                    std::path::Path::new(&file.filename)
-                        .extension()
-                        .and_then(|extension| extension.to_str())
-                        .unwrap_or_default()
-                        .to_owned()
-                }
-            })
-            .unwrap_or_default();
         let weak = ui.as_weak();
         filesystem::asset_from_url(&url, &extension, move |result| {
             let source = match result {
@@ -116,6 +127,16 @@ impl DocumentViewerState {
             let _ = weak.upgrade_in_event_loop(move |ui| ready(&ui, generation, source));
         });
         Ok(())
+    }
+
+    fn open_local(ui: &AppWindow, reveal: bool) {
+        let Some(path) = wry::local_path() else {
+            return;
+        };
+        if let Err(error) = attachment_view::open_path(&path, reveal) {
+            ui.global::<DocumentUi>()
+                .set_error(format!("Could not open document: {error}").into());
+        }
     }
 
     pub fn init_ui(&self, ui: &AppWindow) {
@@ -129,6 +150,22 @@ impl DocumentViewerState {
                 wry::reset();
                 ui.global::<DocumentUi>()
                     .set_error(error.to_string().into());
+            }
+        });
+        let global = ui.global::<DocumentUi>();
+        global.on_open_libreoffice_link(|| {
+            attachment_view::open_browser("https://www.libreoffice.org/")
+        });
+        let weak = ui.as_weak();
+        global.on_open_external(move || {
+            if let Some(ui) = weak.upgrade() {
+                Self::open_local(&ui, false);
+            }
+        });
+        let weak = ui.as_weak();
+        global.on_reveal_file(move || {
+            if let Some(ui) = weak.upgrade() {
+                Self::open_local(&ui, true);
             }
         });
     }

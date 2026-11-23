@@ -2,5 +2,12 @@ export global DocumentUi {
     in-out property <string> id;
     in-out property <string> title;
     in-out property <string> error;
+    in-out property <bool> unsupported;
+    in-out property <string> extension;
+    in-out property <bool> is-office-document;
+    in-out property <bool> file-ready;
     callback open(string, string);
+    callback open-libreoffice-link();
+    callback open-external();
+    callback reveal-file();
 }

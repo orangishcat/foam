@@ -1,0 +1,99 @@
+import { UiState } from "../globals.slint";
+import { FilledButton } from "@vivi/magic.slint";
+import { HoverableButton } from "hoverable-button.slint";
+
+export component UnsupportedFile inherits VerticalLayout {
+    in property <string> extension;
+    in property <bool> is-office-document;
+    in property <bool> file-ready;
+    in property <string> error;
+    callback open-libreoffice-link();
+    callback open-external();
+    callback reveal-file();
+    alignment: center;
+    spacing: 1rem;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    Text {
+        text: "This file type" + (root.extension.is-empty ? "" : " (." + root.extension + ")") + " is not supported.";
+        color: UiState.theme.colors.text-strong;
+        wrap: word-wrap;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-size: 0.875rem;
+        horizontal-stretch: 1;
+        vertical-stretch: 0;
+    }
+
+    if root.is-office-document: VerticalLayout {
+        spacing: 0.25rem;
+        vertical-stretch: 0;
+        Text {
+            font-size: 0.75rem;
+            text: "for viewing office documents like this one,";
+            color: UiState.theme.colors.text-secondary;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+            vertical-stretch: 0;
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            spacing: 0.25rem;
+            vertical-stretch: 0;
+            Text {
+                font-size: 0.75rem;
+                text: "i recommend";
+                color: UiState.theme.colors.text-secondary;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            HoverableButton {
+                text: "LibreOffice";
+                accessible-role: button;
+                accessible-label: "LibreOffice homepage";
+                width: link-text.preferred-width;
+                height: link-text.preferred-height + 0.1245rem;
+                clicked => { root.open-libreoffice-link(); }
+                link-text := Text {
+                    font-size: 0.75rem;
+                    text: "LibreOffice";
+                    color: UiState.theme.colors.secondary;
+                    horizontal-alignment: center;
+                }
+
+                Rectangle {
+                    y: parent.height - 0.0625rem;
+                    height: 0.0625rem;
+                    background: UiState.theme.colors.secondary;
+                }
+            }
+        }
+    }
+    if root.error != "": Text {
+        font-size: 0.75rem;
+        text: root.error;
+        color: UiState.theme.colors.text-secondary;
+        wrap: word-wrap;
+        horizontal-alignment: center;
+        horizontal-stretch: 1;
+        vertical-stretch: 0;
+    }
+    HorizontalLayout {
+        alignment: center;
+        spacing: 0.75rem;
+        vertical-stretch: 0;
+        FilledButton {
+            text: "Open in external app";
+            enabled: root.file-ready;
+            clicked => { root.open-external(); }
+        }
+
+        FilledButton {
+            text: "Open in file manager (O)";
+            enabled: root.file-ready;
+            clicked => { root.reveal-file(); }
+        }
+    }
+}

@@ -2,8 +2,7 @@ import { UiState, MenubarData } from "../../globals.slint";
 import { SelectedItemAction } from "../selected-item-action.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
 import { ScreenTopBar } from "../screen-top-bar.slint";
-import { FilledButton } from "@vivi/magic.slint";
-import { HoverableButton } from "../hoverable-button.slint";
+import { UnsupportedFile } from "../unsupported-file.slint";
 
 export global AttachmentMenu {
     in-out property <bool> visible;
@@ -99,8 +98,8 @@ export component AttachmentDialog inherits Rectangle {
                 padding: 1.5rem;
                 horizontal-stretch: 1;
                 vertical-stretch: 1;
-                Text {
-                    text: AttachmentMenu.unsupported ? "This file type" + (AttachmentMenu.extension.is-empty ? "" : " (." + AttachmentMenu.extension + ")") + " is not supported." : AttachmentMenu.error.is-empty ? "Loading " + AttachmentMenu.kind + "…" : AttachmentMenu.error;
+                if !AttachmentMenu.unsupported: Text {
+                    text: AttachmentMenu.error.is-empty ? "Loading " + AttachmentMenu.kind + "…" : AttachmentMenu.error;
                     color: UiState.theme.colors.text-strong;
                     wrap: word-wrap;
                     horizontal-alignment: center;
@@ -109,77 +108,14 @@ export component AttachmentDialog inherits Rectangle {
                     horizontal-stretch: 1;
                     vertical-stretch: 0;
                 }
-
-                if AttachmentMenu.unsupported && AttachmentMenu.is-office-document: VerticalLayout {
-                    spacing: 0.25rem;
-                    vertical-stretch: 0;
-                    Text {
-                        font-size: 0.75rem;
-                        text: "for viewing office documents like this one,";
-                        color: UiState.theme.colors.text-secondary;
-                        wrap: word-wrap;
-                        horizontal-alignment: center;
-                        vertical-stretch: 0;
-                    }
-
-                    HorizontalLayout {
-                        alignment: center;
-                        spacing: 0.25rem;
-                        vertical-stretch: 0;
-                        Text {
-                            font-size: 0.75rem;
-                            text: "i recommend";
-                            color: UiState.theme.colors.text-secondary;
-                            vertical-alignment: center;
-                            horizontal-stretch: 0;
-                        }
-
-                        HoverableButton {
-                            text: "LibreOffice";
-                            accessible-role: button;
-                            accessible-label: "LibreOffice homepage";
-                            width: link-text.preferred-width;
-                            height: link-text.preferred-height + 0.1245rem;
-                            clicked => { AttachmentMenu.open-libreoffice-link(); }
-                            link-text := Text {
-                                font-size: 0.75rem;
-                                text: "LibreOffice";
-                                color: UiState.theme.colors.secondary;
-                                horizontal-alignment: center;
-                            }
-
-                            Rectangle {
-                                y: parent.height - 0.0625rem;
-                                height: 0.0625rem;
-                                background: UiState.theme.colors.secondary;
-                            }
-                        }
-                    }
-                }
-                if AttachmentMenu.unsupported && !AttachmentMenu.error.is-empty: Text {
-                    font-size: 0.75rem;
-                    text: AttachmentMenu.error;
-                    color: UiState.theme.colors.text-secondary;
-                    wrap: word-wrap;
-                    horizontal-alignment: center;
-                    horizontal-stretch: 1;
-                    vertical-stretch: 0;
-                }
-                if AttachmentMenu.unsupported: HorizontalLayout {
-                    alignment: center;
-                    spacing: 0.75rem;
-                    vertical-stretch: 0;
-                    FilledButton {
-                        text: "Open in external app";
-                        enabled: AttachmentMenu.file-ready;
-                        clicked => { AttachmentMenu.open-external(); }
-                    }
-
-                    FilledButton {
-                        text: "Open in file manager (O)";
-                        enabled: AttachmentMenu.file-ready;
-                        clicked => { AttachmentMenu.reveal-file(); }
-                    }
+                if AttachmentMenu.unsupported: UnsupportedFile {
+                    extension: AttachmentMenu.extension;
+                    is-office-document: AttachmentMenu.is-office-document;
+                    file-ready: AttachmentMenu.file-ready;
+                    error: AttachmentMenu.error;
+                    open-libreoffice-link => { AttachmentMenu.open-libreoffice-link(); }
+                    open-external => { AttachmentMenu.open-external(); }
+                    reveal-file => { AttachmentMenu.reveal-file(); }
                 }
             }
         }

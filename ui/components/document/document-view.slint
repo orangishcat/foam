@@ -4,6 +4,7 @@ import { CourseTab } from "../../types/course-ui.slint";
 import { TopBar } from "../materials/top-bar.slint";
 import { Sidebar } from "../materials/sidebar.slint";
 import { BottomBarFrame } from "../bottom-bar-frame.slint";
+import { UnsupportedFile } from "../unsupported-file.slint";
 
 export component DocumentView inherits Rectangle {
     in property <CourseTab> tab;
@@ -30,7 +31,7 @@ export component DocumentView inherits Rectangle {
                 selected-id: DocumentUi.id;
             }
 
-            Text {
+            if !DocumentUi.unsupported: Text {
                 font-size: 0.75rem;
                 x: root.viewer-x + 1rem;
                 y: 1rem;
@@ -41,6 +42,20 @@ export component DocumentView inherits Rectangle {
                 wrap: word-wrap;
                 horizontal-alignment: center;
                 vertical-alignment: center;
+            }
+
+            if DocumentUi.unsupported: UnsupportedFile {
+                x: root.viewer-x + 1rem;
+                y: 1rem;
+                width: max(0rem, root.viewer-width - 2rem);
+                height: max(0rem, parent.height - 2rem);
+                extension: DocumentUi.extension;
+                is-office-document: DocumentUi.is-office-document;
+                file-ready: DocumentUi.file-ready;
+                error: DocumentUi.error;
+                open-libreoffice-link => { DocumentUi.open-libreoffice-link(); }
+                open-external => { DocumentUi.open-external(); }
+                reveal-file => { DocumentUi.reveal-file(); }
             }
         }
 

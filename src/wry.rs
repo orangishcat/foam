@@ -22,6 +22,7 @@ struct Viewer {
     generation: u64,
     pending: Option<Source>,
     webview: Option<EmbeddedWebView>,
+    local_path: Option<PathBuf>,
 }
 
 thread_local! {
@@ -35,12 +36,16 @@ pub fn reset() -> u64 {
         viewer.generation += 1;
         viewer.webview = None;
         viewer.pending = None;
+        viewer.local_path = None;
         viewer.generation
     })
 }
 
 /// Queue a source only if it belongs to the current viewer. Call on the UI thread.
 pub fn ready(ui: &AppWindow, generation: u64, source: Source) {
+    if ui.global::<DocumentUi>().get_unsupported() {
+        return ready_unsupported(ui, generation, source);
+    }
     VIEWER.with(|viewer| {
         let mut viewer = viewer.borrow_mut();
         if viewer.generation == generation {
@@ -48,6 +53,32 @@ pub fn ready(ui: &AppWindow, generation: u64, source: Source) {
         }
     });
     update(ui);
+}
+
+fn ready_unsupported(ui: &AppWindow, generation: u64, source: Source) {
+    let current = VIEWER.with(|viewer| {
+        let mut viewer = viewer.borrow_mut();
+        let current = viewer.generation == generation;
+        if let (true, Source::Local(path)) = (current, &source) {
+            viewer.local_path = Some(path.clone());
+        }
+        current
+    });
+    if !current {
+        return;
+    }
+    let global = ui.global::<DocumentUi>();
+    match source {
+        Source::Local(_) => global.set_file_ready(true),
+        Source::Remote(_) => {
+            global.set_error("Could not download attachment for external opening.".into())
+        }
+    }
+}
+
+/// Local copy of the current document, if it has been downloaded. Call on the UI thread.
+pub fn local_path() -> Option<PathBuf> {
+    VIEWER.with(|viewer| viewer.borrow().local_path.clone())
 }
 
 pub fn init(ui: &AppWindow) {

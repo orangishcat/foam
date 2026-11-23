@@ -36,7 +36,7 @@ struct Preview {
     local_path: Option<std::path::PathBuf>,
 }
 
-fn wry_supported(extension: &str) -> bool {
+pub(crate) fn wry_supported(extension: &str) -> bool {
     matches!(
         extension
             .trim_start_matches('.')
@@ -69,7 +69,7 @@ fn wry_supported(extension: &str) -> bool {
     )
 }
 
-fn is_office_document(extension: &str) -> bool {
+pub(crate) fn is_office_document(extension: &str) -> bool {
     matches!(
         extension
             .trim_start_matches('.')
@@ -110,13 +110,7 @@ fn is_office_document(extension: &str) -> bool {
     )
 }
 
-fn open_local(reveal: bool) {
-    let preview = PREVIEW.with(|slot| slot.borrow().clone());
-    let Some(preview) = preview else { return };
-    let preview = preview.borrow();
-    let Some(path) = &preview.local_path else {
-        return;
-    };
+pub(crate) fn open_path(path: &std::path::Path, reveal: bool) -> std::io::Result<()> {
     #[cfg(target_os = "macos")]
     let result = {
         let mut command = std::process::Command::new("open");
@@ -141,10 +135,20 @@ fn open_local(reveal: bool) {
         .arg(if reveal {
             path.parent().unwrap_or(path)
         } else {
-            path.as_path()
+            path
         })
         .spawn();
-    if let Err(error) = result {
+    result.map(|_| ())
+}
+
+fn open_local(reveal: bool) {
+    let preview = PREVIEW.with(|slot| slot.borrow().clone());
+    let Some(preview) = preview else { return };
+    let preview = preview.borrow();
+    let Some(path) = &preview.local_path else {
+        return;
+    };
+    if let Err(error) = open_path(path, reveal) {
         preview
             .window
             .global::<AttachmentMenu>()
