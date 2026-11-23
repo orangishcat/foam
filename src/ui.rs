@@ -1,7 +1,9 @@
 use slint::ComponentHandle;
 use std::sync::Mutex;
 
-use crate::{AppWindow, ColorPalette, UiState, database, state::state::state};
+use crate::{
+    AppWindow, ColorPalette, UiState, database, state::state::state, types::assignment::Assignment,
+};
 
 #[derive(Clone, Copy)]
 pub enum ProgressTask {
@@ -38,19 +40,31 @@ pub(crate) fn progress_color(ui: &AppWindow, percent: f64) -> slint::Color {
     }
 }
 
-pub(crate) fn progress_percent(course: &str, id: &str) -> Option<f64> {
-    database::from_sql_map(
-        "SELECT score, max_points FROM assignments WHERE course_id = ? AND id = ?".into(),
-        rusqlite::params![course, id],
-        |row| Ok((row.get::<_, Option<f64>>(0)?, row.get::<_, f64>(1)?)),
+fn progress_percent(assignment: &Assignment) -> Option<f64> {
+    (assignment.max_points > 0.0)
+        .then(|| {
+            assignment
+                .score
+                .map(|score| score / assignment.max_points * 100.0)
+        })
+        .flatten()
+}
+
+pub(crate) fn grade_color(ui: &AppWindow, course: &str, id: &str) -> slint::Color {
+    let theme = ui.global::<UiState>().get_theme();
+    let assignment = database::from_sql::<Assignment>(
+        "SELECT * FROM assignments WHERE course_id = ? AND id = ?".to_owned(),
+        &[&course, &id],
     )
     .ok()
-    .and_then(|rows| rows.into_iter().next())
-    .and_then(|(score, max_points)| {
-        (max_points > 0.0)
-            .then(|| score.map(|score| score / max_points * 100.0))
-            .flatten()
-    })
+    .and_then(|rows| rows.into_iter().next());
+    match assignment.as_ref().and_then(progress_percent) {
+        Some(percent) => progress_color(ui, percent),
+        None if assignment.is_some_and(|a| a.is_submitted() && !a.is_scored()) => {
+            theme.colors.tertiary
+        }
+        None => theme.colors.border,
+    }
 }
 
 pub(super) static WEAK_UI: Mutex<Option<slint::Weak<AppWindow>>> = Mutex::new(None);

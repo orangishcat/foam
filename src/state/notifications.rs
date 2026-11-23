@@ -57,10 +57,7 @@ impl State for NotificationState {
                     },
                     icon_color: match n.event {
                         NotificationEvent::GradeUpdated => {
-                            match ui::progress_percent(&n.course_id, &n.resource_id) {
-                                Some(percent) => ui::progress_color(ui, percent),
-                                None => ui.global::<UiState>().get_theme().colors.border,
-                            }
+                            ui::grade_color(ui, &n.course_id, &n.resource_id)
                         }
                         _ => match n.material_type {
                             Some(MaterialType::Assignment | MaterialType::Assessment) => {

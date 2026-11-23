@@ -552,10 +552,7 @@ impl CourseState {
     )?;
         for item in &mut items {
             if item.kind == "assignment" {
-                item.icon_color = match ui::progress_percent(course, &item.id) {
-                    Some(percent) => ui::progress_color(ui, percent),
-                    None => ui.global::<UiState>().get_theme().colors.border,
-                };
+                item.icon_color = ui::grade_color(ui, course, &item.id);
             }
         }
         Ok(items)

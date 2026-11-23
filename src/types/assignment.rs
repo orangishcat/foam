@@ -51,6 +51,9 @@ impl Assignment {
     pub fn is_past_due(&self) -> bool {
         self.due < Utc::now()
     }
+    pub fn is_submitted(&self) -> bool {
+        self.submissions.iter().any(|submission| !submission.draft)
+    }
     pub fn is_scored(&self) -> bool {
         self.score.is_some() || self.letter_grade.is_some()
     }
