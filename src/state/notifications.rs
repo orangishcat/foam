@@ -15,13 +15,14 @@ use crate::{
     thread_manager,
     types::{
         material::MaterialType,
-        notification::{Notification, NotificationEvent},
+        notification::{Notification, NotificationEvent, repair_missing_courses},
     },
     ui,
 };
 
 impl State for NotificationState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
+        repair_missing_courses()?;
         let notifications = database::from_sql_map(
             "SELECT n.*, COALESCE(c.course_title, NULLIF(n.course_title, ''), 'Unknown course') AS display_course
              FROM notifications n LEFT JOIN courses c ON n.course_id = c.course_id

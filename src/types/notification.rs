@@ -39,7 +39,27 @@ impl Notification {
     }
 }
 
+/// Fill in missing notification course IDs from the cached material hierarchy.
+pub fn repair_missing_courses() -> anyhow::Result<usize> {
+    database::execute(
+        "UPDATE notifications
+         SET course_id = (
+             SELECT MIN(materials.course_id) FROM materials
+             WHERE materials.material_id = notifications.resource_id
+         )
+         WHERE resource_id != ''
+           AND COALESCE(course_id, '') = ''
+           AND (
+               SELECT COUNT(DISTINCT materials.course_id) FROM materials
+               WHERE materials.material_id = notifications.resource_id
+           ) = 1"
+            .to_owned(),
+        &[],
+    )
+}
+
 pub fn notifications() -> anyhow::Result<Vec<Notification>> {
+    repair_missing_courses()?;
     database::from_sql(
         "SELECT * FROM notifications ORDER BY julianday(created) DESC, seq".to_owned(),
         &[],
