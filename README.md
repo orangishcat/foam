@@ -9,6 +9,7 @@ Uses **API key** and **calendar URL** to import assignments, make sure you have 
 ## Installation
 
 To install, download the relevant app binary in the [latest release](https://github.com/orangishcat/foam/releases/latest) based on your platform.
+**Note**: Onboarding copy and paste may not be working, use Right Click + Copy in onboarding if Ctrl+C/V aren't working.
 
 **MacOS only**: After opening the disk image and adding to Applications, you must unquarantine the application. Otherwise you might get an error saying the application is damaged. To do so, run these commands in your terminal once Foam is in your Applications folder:
 
