@@ -91,7 +91,7 @@ jobs:
           # cargo packager also writes foam.app.tar.gz (same for both macOS
           # targets). Remove it so the only *.app.tar.gz here is ours, and
           # so the uploaded foam.app.tar.gz asset can't overwrite the other arch.
-          app="$(find . -maxdepth 1 -name '*.app' -print -quit)"
+          app="$(find . -maxdepth 1 -name '*.app' -print -quit | xargs basename)"
           rm -f "${app}.tar.gz" "${app}.tar.gz.sig"
           bundle="${app%.app}-${{ matrix.target }}.app.tar.gz"
           tar -czf "$bundle" "$app"
