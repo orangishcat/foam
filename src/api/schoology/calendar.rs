@@ -351,7 +351,7 @@ impl SchoologyAccountConfig {
                 io::Error::other("calendar IDs and assignments have different lengths").into(),
             );
         }
-        self.scrape_missing_calendar(ids)?;
+        self.scrape_missing_assignments(ids, cal_assignments)?;
         self.scrape_missing_event_courses(cal_events)?;
         let mut updated = database::bulk_execute(
             UPDATE_CALENDAR.to_owned(),
@@ -366,8 +366,9 @@ impl SchoologyAccountConfig {
     }
 
     /// Feed events without a course link need their section, the realm for event API calls.
-    /// Scans every course's events once; events already linked are skipped.
+    /// Scans every course's events once; events already linked or past due are skipped.
     fn scrape_missing_event_courses(&self, events: &mut [CalendarEvent]) -> anyhow::Result<()> {
+        let now = Utc::now();
         let linked: HashSet<String> = database::from_sql_map(
             "SELECT id FROM events WHERE course_id IS NOT NULL".to_owned(),
             &[],
@@ -379,6 +380,7 @@ impl SchoologyAccountConfig {
             .iter_mut()
             .filter(|event| {
                 event.course_id.is_none()
+                    && event.due > now
                     && !linked.contains(&event.id)
                     && event_number(&event.id).is_some()
             })
@@ -410,9 +412,20 @@ impl SchoologyAccountConfig {
         Ok(())
     }
 
-    fn scrape_missing_calendar(&self, ids: &[String]) -> anyhow::Result<()> {
+    /// Fetches assignments that are due later than now and not yet cached.
+    fn scrape_missing_assignments(
+        &self,
+        ids: &[String],
+        cal_assignments: &[CalendarAssignment],
+    ) -> anyhow::Result<()> {
         let _reset = ResetProgress(CALENDAR_PROGRESS_PRIORITY, ui::ProgressTask::Calendar);
-        let mut missing: HashSet<String> = ids.iter().cloned().collect();
+        let now = Utc::now();
+        let mut missing: HashSet<String> = ids
+            .iter()
+            .zip(cal_assignments)
+            .filter(|(_, assignment)| assignment.due > now)
+            .map(|(id, _)| id.clone())
+            .collect();
         let existing: Vec<String> = database::from_sql_map(
             "SELECT DISTINCT id FROM assignments".to_owned(),
             &[],
