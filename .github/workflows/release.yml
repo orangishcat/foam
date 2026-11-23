@@ -184,6 +184,8 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download manifest fragments
         uses: actions/download-artifact@v4
         with:
@@ -206,9 +208,10 @@ jobs:
             }' fragments/*.json > latest.json
           cat latest.json
 
-      - name: Upload latest.json to GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
+          body_path: changelog.md
           files: |
             latest.json
