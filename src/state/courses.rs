@@ -4,13 +4,32 @@ use crate::{
     Screen::{self},
     ScreenMenuItem, UiState, database, filesystem,
     state::{state::menu_item, top_bar::refresh_file_view},
+    thread_manager,
     types::course::Course,
     ui::{self},
 };
 use anyhow;
 use rusqlite::params;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
-use std::io;
+use std::{
+    collections::HashSet,
+    io,
+    sync::{LazyLock, Mutex},
+};
+
+static REFRESHING_FOLDERS: LazyLock<Mutex<HashSet<(String, String)>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
+
+struct FolderRefreshGuard((String, String));
+
+impl Drop for FolderRefreshGuard {
+    fn drop(&mut self) {
+        REFRESHING_FOLDERS
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .remove(&self.0);
+    }
+}
 
 impl State for CourseState {
     fn sync_ui(&self, ui: &AppWindow) -> anyhow::Result<()> {
@@ -350,6 +369,7 @@ impl CourseState {
                 .invoke_open(tab.course_id, tab.document_id);
         } else if tab.assignment_id.is_empty() {
             ui.global::<UiState>().set_screen(Screen::Materials);
+            Self::refresh_folder_if_stale(ui);
         } else {
             ui.global::<crate::AssignmentUi>()
                 .invoke_open(tab.course_id, tab.assignment_id);
@@ -377,6 +397,102 @@ impl CourseState {
         params![course],
         |row| Ok(row.get::<_, String>(0)?),
     )?.into_iter().next().unwrap_or_else(|| "0".into()))
+    }
+
+    fn folder_needs_refresh(course: &str, folder: &str) -> anyhow::Result<bool> {
+        let Some(last_updated) = database::from_sql_map(
+            "SELECT last_updated FROM materials
+             WHERE course_id = ? AND type = 'folder' AND material_id = ?"
+                .into(),
+            params![course, folder],
+            |row| Ok(row.get::<_, Option<String>>(0)?),
+        )?
+        .into_iter()
+        .next()
+        .flatten() else {
+            return Ok(true);
+        };
+        let Ok(updated) = chrono::DateTime::parse_from_rfc3339(&last_updated) else {
+            return Ok(true);
+        };
+        Ok(
+            chrono::Utc::now().signed_duration_since(updated.with_timezone(&chrono::Utc))
+                > chrono::Duration::weeks(1),
+        )
+    }
+
+    /// Refresh the folder currently open in the UI when its cached scrape is stale.
+    pub fn refresh_folder_if_stale(ui: &AppWindow) {
+        let global = ui.global::<CoursesUi>();
+        let course = global.get_course_id().to_string();
+        if course.is_empty() {
+            return;
+        }
+        let folder = global.get_folder_id().to_string();
+        let folder_id = if folder.is_empty() {
+            match Self::root_folder(&course) {
+                Ok(folder) => folder,
+                Err(error) => {
+                    log::warn!("Resolving course root folder failed: {error}");
+                    return;
+                }
+            }
+        } else {
+            folder
+        };
+        match Self::folder_needs_refresh(&course, &folder_id) {
+            Ok(true) => {}
+            Ok(false) => return,
+            Err(error) => {
+                log::warn!("Checking folder freshness failed: {error}");
+                return;
+            }
+        }
+        let key = (course.clone(), folder_id.clone());
+        {
+            let mut refreshing = REFRESHING_FOLDERS
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            if !refreshing.insert(key.clone()) {
+                return;
+            }
+        }
+        let thread_course = course.clone();
+        let thread_folder = folder_id.clone();
+        let thread_key = key.clone();
+        let result = thread_manager::spawn_thread("refresh folder", move || {
+            let _guard = FolderRefreshGuard(thread_key);
+            let result = crate::account::active_account()
+                .and_then(|account| account.refresh_folder(&thread_course, &thread_folder));
+            match result {
+                Ok(()) => {
+                    log::info!("Refreshed folder {thread_folder} in course {thread_course}");
+                    ui::run_on_ui_thread(move |ui| {
+                        let global = ui.global::<CoursesUi>();
+                        let current_course = global.get_course_id().to_string();
+                        let current_folder = global.get_folder_id().to_string();
+                        let current_folder = if current_folder.is_empty() {
+                            Self::root_folder(&current_course).unwrap_or_default()
+                        } else {
+                            current_folder
+                        };
+                        if current_course == thread_course && current_folder == thread_folder {
+                            refresh_file_view(&ui);
+                        }
+                    });
+                }
+                Err(error) => log::warn!(
+                    "Refreshing folder {thread_folder} in course {thread_course} failed: {error}"
+                ),
+            }
+        });
+        if let Err(error) = result {
+            REFRESHING_FOLDERS
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .remove(&key);
+            log::warn!("Starting folder refresh failed: {error}");
+        }
     }
 
     pub fn folder_metadata(course: &str, folder: &str) -> anyhow::Result<(String, String)> {

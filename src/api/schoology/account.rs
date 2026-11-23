@@ -15,6 +15,8 @@ use crate::{
 };
 use anyhow;
 
+const FOLDER_PROGRESS_PRIORITY: u8 = 0;
+
 pub(super) struct ResetProgress(pub(super) u8, pub(super) ui::ProgressTask);
 
 impl Drop for ResetProgress {
@@ -132,6 +134,16 @@ impl Account for SchoologyAccountConfig {
         }
         notification::save_notifications(&scraped_notifs)?;
         update_result.map_err(|error| anyhow::anyhow!("{error}"))
+    }
+
+    fn refresh_folder(&self, course_id: &str, folder_id: &str) -> anyhow::Result<()> {
+        let _reset = ResetProgress(FOLDER_PROGRESS_PRIORITY, ui::ProgressTask::Folder);
+        ui::publish_progress(1.0, FOLDER_PROGRESS_PRIORITY, ui::ProgressTask::Folder);
+        let folder = self
+            .course(course_id, folder_id)
+            .map_err(|error| anyhow::anyhow!("{error}"))?;
+        crate::types::material::store_refreshed_folder(course_id, &folder)?;
+        Ok(())
     }
 
     fn slow_sync(&self) -> anyhow::Result<()> {

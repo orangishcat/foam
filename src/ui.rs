@@ -6,6 +6,7 @@ use crate::{AppWindow, ColorPalette, UiState, database, state::state::state};
 #[derive(Clone, Copy)]
 pub enum ProgressTask {
     Calendar,
+    Folder,
     Notifications,
     Submissions,
 }
@@ -14,6 +15,7 @@ impl ProgressTask {
     fn color(self, palette: &ColorPalette) -> slint::Color {
         match self {
             Self::Calendar => palette.overrides.progress_calendar,
+            Self::Folder => palette.colors.primary,
             Self::Notifications => palette.overrides.progress_notifications,
             Self::Submissions => palette.overrides.progress_submissions,
         }

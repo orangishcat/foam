@@ -17,6 +17,7 @@ pub trait Account: Send {
     fn save(&self) -> anyhow::Result<()>;
     fn fast_sync(&self) -> anyhow::Result<()>;
     fn slow_sync(&self) -> anyhow::Result<()>;
+    fn refresh_folder(&self, course_id: &str, folder_id: &str) -> anyhow::Result<()>;
     fn get_resource(&self, url: &str) -> RequestResult<reqwest::blocking::RequestBuilder>;
 }
 

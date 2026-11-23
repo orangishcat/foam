@@ -117,6 +117,6 @@ pub fn store_course(course: &Course, root: &Folder) -> anyhow::Result<()> {
         course.period = current.period;
     }
     write_course_on(&transaction, &course)?;
-    super::material::store_hierarchy_on(&transaction, &course.course_id, root)?;
+    super::material::store_scraped_hierarchy_on(&transaction, &course.course_id, root)?;
     Ok(transaction.commit()?)
 }

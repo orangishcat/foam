@@ -90,6 +90,7 @@ impl MaterialsState {
             }
             ui.global::<UiState>().set_screen(Screen::Materials);
             refresh_file_view(&ui);
+            crate::state::courses::CourseState::refresh_folder_if_stale(&ui);
         });
     }
 }

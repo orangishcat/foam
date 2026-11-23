@@ -9,8 +9,7 @@ INSERT INTO assignments (
     description = excluded.description,
     due = excluded.due,
     max_points = excluded.max_points,
-    score = excluded.score,
-    letter_grade = excluded.letter_grade,
+    score = COALESCE(excluded.score, score),
+    letter_grade = COALESCE(excluded.letter_grade, letter_grade),
     allow_submissions = excluded.allow_submissions,
-    attachments = excluded.attachments,
-    submissions = excluded.submissions
+    attachments = excluded.attachments

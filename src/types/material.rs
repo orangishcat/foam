@@ -1,6 +1,6 @@
 use crate::database;
 use anyhow;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -44,6 +44,33 @@ pub fn store_hierarchy(course_id: &str, root: &Folder) -> anyhow::Result<()> {
     let mut connection = database::connection()?;
     let transaction = connection.transaction()?;
     store_hierarchy_on(&transaction, course_id, root)?;
+    Ok(transaction.commit()?)
+}
+
+/// Replace one folder and its descendants with a freshly scraped subtree.
+pub fn store_refreshed_folder(course_id: &str, folder: &Folder) -> anyhow::Result<()> {
+    let mut connection = database::connection()?;
+    let transaction = connection.transaction()?;
+    let parent_id = transaction
+        .query_row(
+            "SELECT parent_id FROM materials
+             WHERE course_id = ? AND type = 'folder' AND material_id = ?",
+            params![course_id, folder.id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .unwrap_or_default();
+    let last_updated = chrono::Utc::now().to_rfc3339();
+    let mut retained = Vec::new();
+    store_folder_on(
+        &transaction,
+        course_id,
+        &parent_id,
+        folder,
+        &mut retained,
+        Some(&last_updated),
+    )?;
+    prune_folder_subtree(&transaction, course_id, &folder.id, &retained)?;
     Ok(transaction.commit()?)
 }
 
@@ -114,8 +141,27 @@ pub(crate) fn store_hierarchy_on(
     course_id: &str,
     root: &Folder,
 ) -> anyhow::Result<()> {
+    store_hierarchy_on_with(connection, course_id, root, None)
+}
+
+/// Store a complete scraped course tree and mark every scraped folder as current.
+pub(crate) fn store_scraped_hierarchy_on(
+    connection: &Connection,
+    course_id: &str,
+    root: &Folder,
+) -> anyhow::Result<()> {
+    let last_updated = chrono::Utc::now().to_rfc3339();
+    store_hierarchy_on_with(connection, course_id, root, Some(&last_updated))
+}
+
+fn store_hierarchy_on_with(
+    connection: &Connection,
+    course_id: &str,
+    root: &Folder,
+    last_updated: Option<&str>,
+) -> anyhow::Result<()> {
     let mut retained = Vec::new();
-    store_folder_on(connection, course_id, "", root, &mut retained)?;
+    store_folder_on(connection, course_id, "", root, &mut retained, last_updated)?;
     connection.execute(
         "DELETE FROM materials WHERE course_id = ?1 AND NOT EXISTS (
             SELECT 1 FROM json_each(?2) WHERE json_extract(value, '$[0]') = materials.type
@@ -131,6 +177,7 @@ fn store_folder_on(
     parent_id: &str,
     folder: &Folder,
     retained: &mut Vec<(MaterialType, String)>,
+    last_updated: Option<&str>,
 ) -> anyhow::Result<()> {
     let metadata = Folder {
         id: folder.id.clone(),
@@ -144,15 +191,53 @@ fn store_folder_on(
         parent_id,
         &Material::Folder(Box::new(metadata)),
     )?;
+    if let Some(last_updated) = last_updated {
+        connection.execute(
+            "UPDATE materials SET last_updated = ?
+             WHERE course_id = ? AND type = 'folder' AND material_id = ?",
+            params![last_updated, course_id, folder.id],
+        )?;
+    }
     retained.push((MaterialType::Folder, folder.id.clone()));
     for material in &folder.materials {
         if let Material::Folder(child) = material {
-            store_folder_on(connection, course_id, &folder.id, child, retained)?;
+            store_folder_on(
+                connection,
+                course_id,
+                &folder.id,
+                child,
+                retained,
+                last_updated,
+            )?;
         } else {
             store_material_on(connection, course_id, &folder.id, material)?;
             retained.push((MaterialType::from(material), material.id().to_owned()));
         }
     }
+    Ok(())
+}
+
+/// Remove materials under a refreshed folder that no longer exist in its scraped subtree.
+fn prune_folder_subtree(
+    connection: &Connection,
+    course_id: &str,
+    folder_id: &str,
+    retained: &[(MaterialType, String)],
+) -> anyhow::Result<()> {
+    connection.execute(
+        "WITH RECURSIVE subtree(rowid, type, material_id, parent_id) AS (
+            SELECT rowid, type, material_id, parent_id FROM materials
+            WHERE course_id = ?1 AND type = 'folder' AND material_id = ?2
+            UNION
+            SELECT m.rowid, m.type, m.material_id, m.parent_id
+            FROM materials m JOIN subtree s ON m.course_id = ?1 AND m.parent_id = s.material_id
+        )
+        DELETE FROM materials WHERE rowid IN (
+            SELECT rowid FROM subtree WHERE NOT EXISTS (
+                SELECT 1 FROM json_each(?3) WHERE json_extract(value, '$[0]') = subtree.type
+                    AND json_extract(value, '$[1]') = subtree.material_id))",
+        params![course_id, folder_id, serde_json::to_string(retained)?],
+    )?;
     Ok(())
 }
 
