@@ -168,6 +168,8 @@ impl crate::state::state::State for DashboardState {
             .inspect_err(|err| log::warn!("Error marking assignment {id} as done: {err}"))
             .ok();
         });
+        g.set_column_count(config().calendar_day_buckets + 2);
+
         let window = ui.as_weak();
         g.on_new_event(move || {
             let Some(ui) = window.upgrade() else { return };
