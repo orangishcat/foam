@@ -1,3 +1,3 @@
 **Fixed**
 
-- Re-release v0.1.4, fixing auto-update... again...
+- Dashboard: Date now appears on events in the "Future" column (was broken before)
